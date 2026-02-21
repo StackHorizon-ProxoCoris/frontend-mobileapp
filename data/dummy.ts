@@ -445,7 +445,58 @@ export const dummyActionDetails: Record<string, ActionDetail> = {
   },
 };
 
-export const dummyInfoFeed = [
+export interface InfoFeed {
+  id: string;
+  type: string;
+  bg: string;
+  source: string;
+  title: string;
+  color: string;
+  category: string;
+}
+
+export interface InfoDetail extends InfoFeed {
+  gradient: string;
+  subtitle: string;
+  content: string[];
+  author: {
+    name: string;
+    initials: string;
+    role: string;
+    organization: string;
+  };
+  publishedAt: string;
+  updatedAt: string;
+  readTime: string;
+  photoUrls: string[];
+  tags: string[];
+  relatedLinks: {
+    title: string;
+    url: string;
+  }[];
+  tips: {
+    icon: string;
+    title: string;
+    desc: string;
+  }[];
+  stats: {
+    views: number;
+    shares: number;
+    bookmarks: number;
+  };
+  comments: {
+    id: string;
+    user: string;
+    initials: string;
+    text: string;
+    time: string;
+    likes: number;
+  }[];
+  verified: boolean;
+  verifiedBy: string | null;
+}
+
+export const dummyInfoFeed: InfoFeed[] = [
   {
     id: 'info_001',
     type: 'CloudRain',
@@ -474,6 +525,164 @@ export const dummyInfoFeed = [
     category: 'pengumuman',
   },
 ];
+
+// ============================================================
+// DETAIL INFO & EDUKASI
+// ============================================================
+
+export const dummyInfoDetails: Record<string, InfoDetail> = {
+  info_001: {
+    id: 'info_001',
+    type: 'CloudRain',
+    bg: '#eff6ff',
+    gradient: '#3b82f6',
+    source: 'BMKG • Hari ini',
+    title: 'Prakiraan Cuaca: Hujan Lebat di Bandung Selatan',
+    subtitle: 'Waspada potensi banjir dan longsor di kawasan dataran rendah',
+    color: '#3b82f6',
+    category: 'cuaca',
+    content: [
+      'Badan Meteorologi, Klimatologi, dan Geofisika (BMKG) merilis peringatan dini cuaca untuk wilayah Bandung Selatan. Berdasarkan analisis citra satelit dan model cuaca numerik, diprediksi akan terjadi hujan lebat disertai petir dan angin kencang pada hari ini.',
+      'Intensitas hujan diperkirakan mencapai 50-100 mm per hari, yang tergolong dalam kategori hujan lebat. Wilayah yang paling terdampak meliputi Kecamatan Dayeuhkolot, Baleendah, Bojongsoang, dan Margahayu.',
+      'Masyarakat yang tinggal di daerah rawan banjir disarankan untuk mempersiapkan langkah-langkah antisipasi, termasuk memindahkan barang berharga ke tempat yang lebih tinggi dan menyiapkan tas darurat berisi dokumen penting.',
+      'Kondisi cuaca ini diperkirakan akan berlangsung hingga 3 hari ke depan. BMKG akan terus memperbarui informasi setiap 6 jam sekali melalui aplikasi dan kanal resmi. Pantau terus perkembangan cuaca di wilayah Anda.',
+    ],
+    author: {
+      name: 'Dr. Andi Prasetyo',
+      initials: 'AP',
+      role: 'Kepala Bidang Prakiraan',
+      organization: 'BMKG Stasiun Bandung',
+    },
+    publishedAt: '21 Feb 2026, 06:00',
+    updatedAt: '21 Feb 2026, 08:30',
+    readTime: '3 menit',
+    photoUrls: [
+      'https://placehold.co/400x250/3b82f6/fff?text=Peta+Cuaca',
+      'https://placehold.co/400x250/3b82f6/fff?text=Citra+Satelit',
+      'https://placehold.co/400x250/3b82f6/fff?text=Prakiraan+Hujan',
+    ],
+    tags: ['Cuaca', 'Peringatan Dini', 'Hujan Lebat', 'Bandung Selatan'],
+    relatedLinks: [
+      { title: 'Website resmi BMKG', url: 'https://bmkg.go.id' },
+      { title: 'Info prakiraan cuaca harian', url: 'https://cuaca.bmkg.go.id' },
+    ],
+    tips: [
+      { icon: 'Umbrella', title: 'Bawa Payung', desc: 'Selalu siapkan payung atau jas hujan saat keluar rumah' },
+      { icon: 'Warning', title: 'Hindari Genangan', desc: 'Jangan melintas di area genangan air yang dalam' },
+      { icon: 'Lightning', title: 'Waspada Petir', desc: 'Jauhi pohon tinggi dan tiang listrik saat hujan petir' },
+      { icon: 'House', title: 'Siapkan Darurat', desc: 'Siapkan senter, makanan, dan obat-obatan darurat' },
+    ],
+    stats: { views: 1240, shares: 89, bookmarks: 156 },
+    comments: [
+      { id: 'ci1', user: 'Ahmad Fauzi', initials: 'AF', text: 'Terima kasih infonya. Sudah siap-siap di rumah dari tadi pagi.', time: '2 jam lalu', likes: 15 },
+      { id: 'ci2', user: 'Rina Sari', initials: 'RS', text: 'Di Dayeuhkolot sudah mulai gerimis sejak subuh. Semoga tidak banjir lagi.', time: '1 jam lalu', likes: 8 },
+      { id: 'ci3', user: 'Budi Santoso', initials: 'BS', text: 'Tolong tambahkan info jalur evakuasi juga dong.', time: '30 mnt lalu', likes: 22 },
+    ],
+    verified: true,
+    verifiedBy: 'BMKG Stasiun Geofisika Bandung',
+  },
+  info_002: {
+    id: 'info_002',
+    type: 'BookOpenText',
+    bg: '#ecfdf5',
+    gradient: '#10b981',
+    source: 'Edukasi • 2 hari lalu',
+    title: '5 Langkah Mitigasi Banjir untuk Warga',
+    subtitle: 'Panduan praktis kesiapsiagaan banjir untuk rumah tangga',
+    color: '#10b981',
+    category: 'edukasi',
+    content: [
+      'Banjir merupakan salah satu bencana alam yang paling sering terjadi di Indonesia, terutama saat musim penghujan. Kesiapsiagaan yang baik dapat meminimalkan kerugian material dan menyelamatkan nyawa.',
+      'Langkah pertama adalah mengenali tanda-tanda banjir. Perhatikan curah hujan yang tinggi secara terus-menerus, naiknya permukaan air sungai, dan peringatan dini dari BMKG. Jangan abaikan informasi dari RT/RW setempat.',
+      'Langkah kedua, siapkan tas darurat (go-bag) berisi dokumen penting, obat-obatan, pakaian ganti, senter, power bank, dan makanan tahan lama minimal untuk 3 hari. Simpan di tempat yang mudah dijangkau.',
+      'Langkah ketiga, pastikan saluran air di sekitar rumah tidak tersumbat. Bersihkan got, selokan, dan drainase secara berkala. Sampah yang menumpuk di saluran air adalah penyebab utama banjir lokal.',
+      'Langkah keempat, tentukan titik kumpul dan jalur evakuasi bersama keluarga. Pastikan semua anggota keluarga tahu ke mana harus pergi jika banjir datang. Simpan nomor darurat yang penting.',
+      'Langkah kelima, ikut serta dalam kegiatan gotong royong lingkungan. Pencegahan banjir adalah tanggung jawab bersama. Berpartisipasi dalam kerja bakti bersih-bersih sungai dan perawatan drainase.',
+    ],
+    author: {
+      name: 'Tim Redaksi ProxoCoris',
+      initials: 'PC',
+      role: 'Tim Edukasi',
+      organization: 'ProxoCoris',
+    },
+    publishedAt: '19 Feb 2026, 10:00',
+    updatedAt: '19 Feb 2026, 10:00',
+    readTime: '5 menit',
+    photoUrls: [
+      'https://placehold.co/400x250/10b981/fff?text=Mitigasi+Banjir',
+      'https://placehold.co/400x250/10b981/fff?text=Tas+Darurat',
+      'https://placehold.co/400x250/10b981/fff?text=Jalur+Evakuasi',
+    ],
+    tags: ['Edukasi', 'Mitigasi', 'Banjir', 'Kesiapsiagaan'],
+    relatedLinks: [
+      { title: 'Panduan BNPB tentang banjir', url: 'https://bnpb.go.id' },
+      { title: 'Checklist tas darurat', url: 'https://siaga.bnpb.go.id' },
+    ],
+    tips: [
+      { icon: 'Backpack', title: 'Siapkan Go-Bag', desc: 'Tas darurat untuk keluarga berisi kebutuhan 3 hari' },
+      { icon: 'Drop', title: 'Bersihkan Drainase', desc: 'Cek dan bersihkan saluran air rumah setiap minggu' },
+      { icon: 'MapTrifold', title: 'Cari Jalur Evakuasi', desc: 'Tentukan rute evakuasi dan titik kumpul keluarga' },
+      { icon: 'Phone', title: 'Simpan Nomor Darurat', desc: '112 (Darurat), 113 (Pemadam), 118 (Ambulance)' },
+    ],
+    stats: { views: 3420, shares: 245, bookmarks: 512 },
+    comments: [
+      { id: 'ci4', user: 'Dewi Lestari', initials: 'DL', text: 'Sangat informatif! Saya sudah siapkan tas darurat sejak baca artikel ini.', time: '1 hari lalu', likes: 28 },
+      { id: 'ci5', user: 'Pak Darmawan', initials: 'PD', text: 'Good article. Harusnya diajarkan juga di sekolah-sekolah.', time: '2 hari lalu', likes: 34 },
+    ],
+    verified: true,
+    verifiedBy: 'BPBD Kota Bandung',
+  },
+  info_003: {
+    id: 'info_003',
+    type: 'MegaphoneSimple',
+    bg: '#fffbeb',
+    gradient: '#f59e0b',
+    source: 'Pengumuman • Dinas PU',
+    title: 'Perbaikan Jalan Sudirman Dimulai 20 Feb',
+    subtitle: 'Pengalihan lalu lintas selama proses perbaikan 14 hari',
+    color: '#f59e0b',
+    category: 'pengumuman',
+    content: [
+      'Dinas Pekerjaan Umum (PU) Kota Bandung mengumumkan dimulainya proyek perbaikan Jl. Sudirman pada tanggal 20 Februari 2026. Proyek ini mencakup perbaikan aspal, penataan trotoar, dan perbaikan saluran drainase sepanjang 1.2 kilometer.',
+      'Pekerjaan akan dilakukan secara bertahap, dimulai dari segmen depan Halte Dago hingga Simpang Dago. Estimasi waktu pengerjaan adalah 14 hari kerja, dengan target penyelesaian pada 10 Maret 2026.',
+      'Selama masa perbaikan, akan diberlakukan pengalihan arus lalu lintas. Kendaraan dari arah utara dialihkan melalui Jl. Riau, sementara dari arah selatan melalui Jl. Diponegoro. Rambu pengalihan sudah dipasang di titik-titik strategis.',
+      'Dinas PU memastikan pekerjaan akan dilakukan pada jam 08:00 – 17:00 WIB untuk meminimalkan gangguan. Pada jam sibuk pagi dan sore, sebagian jalur tetap dibuka untuk arus kendaraan. Warga dimohon kesabarannya selama proses perbaikan berlangsung.',
+    ],
+    author: {
+      name: 'Ir. Bambang Sutopo',
+      initials: 'BS',
+      role: 'Kepala Bidang Bina Marga',
+      organization: 'Dinas PU Kota Bandung',
+    },
+    publishedAt: '18 Feb 2026, 14:00',
+    updatedAt: '20 Feb 2026, 09:00',
+    readTime: '4 menit',
+    photoUrls: [
+      'https://placehold.co/400x250/f59e0b/fff?text=Peta+Pengalihan',
+      'https://placehold.co/400x250/f59e0b/fff?text=Jalan+Rusak',
+      'https://placehold.co/400x250/f59e0b/fff?text=Proses+Perbaikan',
+    ],
+    tags: ['Pengumuman', 'Infrastruktur', 'Jalan Sudirman', 'Pengalihan Lalu Lintas'],
+    relatedLinks: [
+      { title: 'Peta pengalihan lalu lintas', url: '#' },
+      { title: 'Info proyek Dinas PU', url: '#' },
+    ],
+    tips: [
+      { icon: 'NavigationArrow', title: 'Rute Alternatif', desc: 'Gunakan Jl. Riau atau Jl. Diponegoro sebagai alternatif' },
+      { icon: 'Clock', title: 'Jam Kerja', desc: 'Pekerjaan berlangsung 08:00 - 17:00 WIB' },
+      { icon: 'CalendarBlank', title: 'Durasi Proyek', desc: '20 Feb - 10 Mar 2026 (14 hari kerja)' },
+      { icon: 'WarningCircle', title: 'Hati-hati', desc: 'Perhatikan rambu pengalihan dan petugas lapangan' },
+    ],
+    stats: { views: 2180, shares: 167, bookmarks: 298 },
+    comments: [
+      { id: 'ci6', user: 'Joko Widodo', initials: 'JW', text: 'Akhirnya diperbaiki juga! Sudah berbulan-bulan berlubang parah.', time: '2 hari lalu', likes: 45 },
+      { id: 'ci7', user: 'Siti Nurhaliza', initials: 'SN', text: 'Tolong pastikan pengerjaannya tepat waktu ya. Jangan sampai molor.', time: '1 hari lalu', likes: 31 },
+      { id: 'ci8', user: 'Andi Pratama', initials: 'AP', text: 'Info pengalihan lalu lintasnya sangat membantu, terima kasih.', time: '1 hari lalu', likes: 12 },
+    ],
+    verified: true,
+    verifiedBy: 'Dinas PU Kota Bandung',
+  },
+};
 
 export const dummyBudgetWatch = {
   id: 'budget_001',
@@ -670,3 +879,114 @@ export const dummyReportDetails: Record<string, ReportDetail> = {
     verifiedCount: 5,
   },
 };
+
+// ============================================================
+// PROFIL & PENGATURAN
+// ============================================================
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  initials: string;
+  email: string;
+  phone: string;
+  birthDate: string;
+  gender: string;
+  address: string;
+  location: {
+    district: string;
+    city: string;
+    province: string;
+    lat: number;
+    lng: number;
+  };
+  ecoPoints: number;
+  pointsToNextBadge: number;
+  nextBadgeThreshold: number;
+  currentBadge: string;
+  nextBadge: string;
+  notifCount: number;
+  joinedDate: string;
+  totalReports: number;
+  totalActions: number;
+  totalVerifications: number;
+  rank: number;
+  bio: string;
+}
+
+export const dummyUserProfile: UserProfile = {
+  id: 'user_001',
+  name: 'Diyon Kobi',
+  initials: 'DK',
+  email: 'diyon.kobi@email.com',
+  phone: '+6281234567890',
+  birthDate: '15 Maret 1998',
+  gender: 'Laki-laki',
+  address: 'Jl. Dago No. 45, RT 03/RW 05',
+  location: {
+    district: 'Kec. Coblong',
+    city: 'Kota Bandung',
+    province: 'Jawa Barat',
+    lat: -6.8917,
+    lng: 107.6107,
+  },
+  ecoPoints: 285,
+  pointsToNextBadge: 15,
+  nextBadgeThreshold: 300,
+  currentBadge: 'Warga Peduli',
+  nextBadge: 'Pahlawan Komunitas',
+  notifCount: 3,
+  joinedDate: '10 Januari 2026',
+  totalReports: 24,
+  totalActions: 12,
+  totalVerifications: 38,
+  rank: 42,
+  bio: 'Warga aktif yang peduli terhadap lingkungan dan infrastruktur kota Bandung.',
+};
+
+export interface ActivityItem {
+  id: string;
+  type: 'report' | 'action' | 'support' | 'verify' | 'comment' | 'badge';
+  icon: string;
+  bgColor: string;
+  color: string;
+  title: string;
+  desc: string;
+  time: string;
+  date: string;
+  points: number;
+  status?: string;
+  statusColor?: string;
+  refId?: string;
+}
+
+export const dummyActivities: ActivityItem[] = [
+  { id: 'act_h01', type: 'report', icon: 'Camera', bgColor: '#eff6ff', color: '#3b82f6', title: 'Melaporkan: Banjir Jl. Merdeka', desc: 'Banjir setinggi 50cm di Jl. Merdeka', time: '10 menit lalu', date: '21 Feb 2026', points: 10, status: 'Diverifikasi', statusColor: '#3b82f6', refId: 'rep_001' },
+  { id: 'act_h02', type: 'action', icon: 'Trash', bgColor: '#ecfdf5', color: '#059669', title: 'Aksi: Bersih-bersih Sungai', desc: 'Gotong royong membersihkan Sungai Cikapundung', time: '2 jam lalu', date: '21 Feb 2026', points: 50, status: 'Selesai', statusColor: '#059669', refId: 'act_001' },
+  { id: 'act_h03', type: 'support', icon: 'ThumbsUp', bgColor: '#fef3c7', color: '#d97706', title: 'Dukungan: Perbaikan Jalan', desc: 'Mendukung laporan jalan berlubang Jl. Sudirman', time: '5 jam lalu', date: '21 Feb 2026', points: 5, refId: 'rep_002' },
+  { id: 'act_h04', type: 'verify', icon: 'ShieldCheck', bgColor: '#f0fdf4', color: '#16a34a', title: 'Verifikasi: Sampah Gang Melati', desc: 'Memverifikasi laporan sampah menumpuk', time: '6 jam lalu', date: '21 Feb 2026', points: 5, refId: 'rep_003' },
+  { id: 'act_h05', type: 'comment', icon: 'ChatCircle', bgColor: '#eff6ff', color: '#3b82f6', title: 'Komentar: Banjir Jl. Merdeka', desc: 'Mengomentari laporan banjir', time: '8 jam lalu', date: '21 Feb 2026', points: 2 },
+  { id: 'act_h06', type: 'badge', icon: 'Medal', bgColor: '#fef3c7', color: '#f59e0b', title: 'Badge: Pelapor Handal', desc: 'Mendapatkan badge Pelapor Handal', time: '1 hari lalu', date: '20 Feb 2026', points: 25 },
+  { id: 'act_h07', type: 'report', icon: 'Camera', bgColor: '#fff7ed', color: '#ea580c', title: 'Melaporkan: Jalan Rusak Dago', desc: 'Jalan rusak dan berlubang di Jl. Dago Atas', time: '1 hari lalu', date: '20 Feb 2026', points: 10, status: 'Menunggu', statusColor: '#f59e0b' },
+  { id: 'act_h08', type: 'action', icon: 'Tree', bgColor: '#ecfdf5', color: '#059669', title: 'Aksi: Tanam Pohon', desc: 'Ikut kegiatan tanam pohon di Taman Kota', time: '2 hari lalu', date: '19 Feb 2026', points: 40, status: 'Selesai', statusColor: '#059669', refId: 'act_003' },
+  { id: 'act_h09', type: 'support', icon: 'ThumbsUp', bgColor: '#fce7f3', color: '#ec4899', title: 'Dukungan: Genangan Asia-Afrika', desc: 'Mendukung laporan genangan air di Jl. Asia-Afrika', time: '3 hari lalu', date: '18 Feb 2026', points: 5 },
+  { id: 'act_h10', type: 'verify', icon: 'ShieldCheck', bgColor: '#f0fdf4', color: '#16a34a', title: 'Verifikasi: Perbaikan Jalan RT 05', desc: 'Memverifikasi aksi perbaikan jalan warga', time: '4 hari lalu', date: '17 Feb 2026', points: 5, refId: 'act_002' },
+];
+
+export interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
+
+export const dummyFAQ: FAQItem[] = [
+  { id: 'faq_01', question: 'Bagaimana cara membuat laporan?', answer: 'Buka tab Lapor, ambil foto, isi detail lokasi dan deskripsi masalah, lalu kirim. Laporan Anda akan diverifikasi oleh warga sekitar sebelum diteruskan ke dinas terkait.', category: 'Laporan' },
+  { id: 'faq_02', question: 'Apa itu Eco-Points?', answer: 'Eco-Points adalah poin reward yang didapat saat berkontribusi di SIAGA. Anda mendapat poin dari membuat laporan (+10), berpartisipasi dalam aksi (+50), mendukung laporan (+5), dan memverifikasi (+5). Poin dapat ditukar dengan badge dan hadiah.', category: 'Eco-Points' },
+  { id: 'faq_03', question: 'Bagaimana cara mendapatkan badge?', answer: 'Badge didapatkan berdasarkan akumulasi Eco-Points dan aktivitas. Setiap level badge memiliki threshold poin tertentu. Contoh: Warga Peduli (100 pts), Relawan Aktif (200 pts), Pahlawan Komunitas (300 pts).', category: 'Badge' },
+  { id: 'faq_04', question: 'Apakah laporan saya anonim?', answer: 'Secara default, nama pelapor ditampilkan untuk membangun kepercayaan. Namun, Anda bisa memilih opsi anonim saat membuat laporan jika diperlukan.', category: 'Privasi' },
+  { id: 'faq_05', question: 'Bagaimana proses penanganan laporan?', answer: 'Setelah dibuat, laporan akan diverifikasi warga (min. 3 verifikasi), lalu diteruskan ke dinas terkait. Tim lapangan akan dikirim dan progress bisa dipantau real-time melalui halaman Pantau.', category: 'Laporan' },
+  { id: 'faq_06', question: 'Apa itu fitur SOS darurat?', answer: 'Fitur SOS memungkinkan Anda mengirim sinyal darurat beserta lokasi GPS ke layanan darurat (112), pemadam (113), ambulance (118), dan polisi (110) dalam satu ketukan.', category: 'Darurat' },
+  { id: 'faq_07', question: 'Bagaimana cara berpartisipasi dalam aksi positif?', answer: 'Buka halaman Beranda, scroll ke bagian Aksi Positif, dan pilih aksi yang ingin diikuti. Klik "Gabung" untuk mendaftar. Anda akan mendapat notifikasi saat acara dimulai.', category: 'Aksi Positif' },
+  { id: 'faq_08', question: 'Apakah data saya aman?', answer: 'Ya, SIAGA menggunakan enkripsi end-to-end dan mematuhi standar keamanan data. Data lokasi hanya digunakan saat diperlukan. Anda dapat mengelola pengaturan privasi di menu Pengaturan.', category: 'Privasi' },
+];

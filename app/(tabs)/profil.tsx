@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Switch } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
     MapPin, DotsThreeVertical, ShieldCheck,
     FileText, HandsClapping, Leaf, TrendUp,
     Star, Medal, Trophy, Crown, Target,
     CaretRight, Clock, Camera, Trash, Wrench,
-    UserCircle, Bell, ShieldCheckered, Globe, CircleHalf,
-    SignOut, Envelope, LockKey, Fingerprint, PencilSimple,
-    Info, Question, ChatCircleDots,
-    CheckCircle, Sparkle,
+    Bell, SignOut, PencilSimple,
+    CheckCircle, Sparkle, Gear, ArrowRight,
+    ChartBar, Eye, ShieldCheckered,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { dummyUserProfile, dummyActivities } from '@/data/dummy';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
@@ -24,138 +25,154 @@ const BADGES = [
     { icon: Target, color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', label: '100 Hari Streak', active: false },
 ];
 
-const ACTIVITIES = [
-    { icon: Camera, bgColor: '#eff6ff', color: '#3b82f6', title: 'Melaporkan: Banjir Jl. Merdeka', time: '10 menit lalu', points: '+10 pts' },
-    { icon: Trash, bgColor: '#ecfdf5', color: '#059669', title: 'Aksi: Bersih-bersih Sungai', time: '2 jam lalu', points: '+50 pts' },
-    { icon: Wrench, bgColor: '#fef3c7', color: '#d97706', title: 'Dukungan: Perbaikan Jalan', time: '5 jam lalu', points: '+5 pts' },
-];
-
-interface SettingItem {
-    icon: any;
-    label: string;
-    color: string;
-    badge?: string;
-    badgeBg?: string;
-    badgeColor?: string;
-    toggle?: boolean;
-    defaultOff?: boolean;
-    extra?: string;
-}
-
-const SETTINGS_GROUPS: { title: string; items: SettingItem[] }[] = [
-    {
-        title: 'Akun',
-        items: [
-            { icon: UserCircle, label: 'Edit Profil', color: SiagaColors.primary },
-            { icon: Envelope, label: 'Email & Telepon', color: '#3b82f6' },
-            { icon: LockKey, label: 'Keamanan', color: '#f59e0b' },
-            { icon: Fingerprint, label: 'Verifikasi Identitas', color: '#059669', badge: 'Verified', badgeBg: '#dcfce7', badgeColor: '#15803d' },
-        ],
-    },
-    {
-        title: 'Notifikasi',
-        items: [
-            { icon: Bell, label: 'Push Notification', color: '#f59e0b', toggle: true },
-            { icon: ShieldCheckered, label: 'Peringatan Bencana', color: SiagaColors.danger, toggle: true },
-        ],
-    },
-    {
-        title: 'Lainnya',
-        items: [
-            { icon: Globe, label: 'Bahasa', color: SiagaColors.info, extra: '🇮🇩 Indonesia' },
-            { icon: CircleHalf, label: 'Mode Gelap', color: '#475569', toggle: true, defaultOff: true },
-            { icon: Info, label: 'Tentang SIAGA', color: SiagaColors.primary },
-            { icon: Question, label: 'Bantuan', color: '#7c3aed' },
-            { icon: ChatCircleDots, label: 'Feedback', color: '#059669' },
-        ],
-    },
-];
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+    Camera, Trash, Wrench,
+};
 
 export default function ProfilScreen() {
-    const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
-        'Push Notification': true,
-        'Peringatan Bencana': true,
-        'Mode Gelap': false,
-    });
     const [sosVisible, setSosVisible] = useState(false);
     const insets = useSafeAreaInsets();
+    const router = useRouter();
+    const user = dummyUserProfile;
+
+    // Show only 3 most recent activities
+    const recentActivities = dummyActivities.slice(0, 3);
+
+    const handleActivityPress = (refId?: string, type?: string) => {
+        if (refId) {
+            if (type === 'report' || type === 'support' || type === 'verify') {
+                router.push({ pathname: '/report-detail', params: { id: refId } });
+            } else if (type === 'action') {
+                router.push({ pathname: '/action-detail', params: { id: refId } });
+            }
+        }
+    };
 
     return (
         <View className="flex-1 bg-[#f8fafd]" style={{ paddingTop: insets.top }}>
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* Profile Header */}
-                <View className="h-28" style={{ backgroundColor: SiagaColors.primary }}>
-                    <View className="flex-row items-center justify-end gap-2 px-4 pt-3">
-                        <TouchableOpacity className="w-8 h-8 rounded-full bg-white/10 items-center justify-center">
-                            <PencilSimple size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
-                        </TouchableOpacity>
-                        <TouchableOpacity className="w-8 h-8 rounded-full bg-white/10 items-center justify-center">
-                            <DotsThreeVertical size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Avatar & Info */}
-                <View className="items-center -mt-10 px-5">
-                    <View className="w-20 h-20 rounded-full border-4 border-white items-center justify-center" style={{ backgroundColor: SiagaColors.primaryLight, elevation: 4 }}>
-                        <Text className="text-2xl font-bold text-white">DK</Text>
-                    </View>
-                    <Text className="text-lg font-bold text-primary mt-2">Diyon Kobi</Text>
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                        <MapPin size={12} color={SiagaColors.secondary} weight="duotone" />
-                        <Text className="text-[11px] text-secondary">Kec. Coblong, Bandung</Text>
-                    </View>
-                    <View className="flex-row items-center gap-1.5 mt-1.5">
-                        <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#dcfce7' }}>
-                            <CheckCircle size={10} color="#15803d" weight="fill" />
-                            <Text className="text-[9px] font-bold text-success">Terverifikasi</Text>
-                        </View>
-                        <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50">
-                            <Medal size={10} color="#f59e0b" weight="duotone" />
-                            <Text className="text-[9px] font-bold" style={{ color: '#b45309' }}>Warga Peduli</Text>
+                {/* Profile Header - Gradient Style */}
+                <View style={{ backgroundColor: SiagaColors.primary }}>
+                    <View className="px-5 pt-3 pb-14">
+                        <View className="flex-row items-center justify-between">
+                            <Text className="text-base font-bold text-white/80">Profil Saya</Text>
+                            <View className="flex-row items-center gap-2">
+                                <TouchableOpacity
+                                    className="w-8 h-8 rounded-full bg-white/10 items-center justify-center"
+                                    onPress={() => Alert.alert('Notifikasi', `Anda memiliki ${user.notifCount} notifikasi baru.`)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Bell size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
+                                    {user.notifCount > 0 && (
+                                        <View className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-danger rounded-full border border-white/30 items-center justify-center">
+                                            <Text className="text-[6px] font-bold text-white">{user.notifCount}</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    className="w-8 h-8 rounded-full bg-white/10 items-center justify-center"
+                                    onPress={() => router.push('/pengaturan')}
+                                    activeOpacity={0.7}
+                                >
+                                    <Gear size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 </View>
 
-                {/* Stats */}
-                <View className="flex-row gap-2 mx-5 mt-5">
-                    {[
-                        { value: '24', label: 'Laporan', color: SiagaColors.info },
-                        { value: '12', label: 'Aksi Positif', color: SiagaColors.success },
-                        { value: '285', label: 'Eco-Points', color: '#f59e0b' },
-                        { value: '#42', label: 'Rank', color: '#7c3aed' },
-                    ].map((s, i) => (
-                        <View key={i} className="flex-1 bg-white border border-slate-100 rounded-xl p-2.5 items-center" style={{ elevation: 1 }}>
-                            <Text className="text-lg font-bold" style={{ color: s.color }}>{s.value}</Text>
-                            <Text className="text-[8px] font-medium text-secondary mt-0.5">{s.label}</Text>
+                {/* Avatar & Info Card - Overlapping */}
+                <View className="mx-5 -mt-10 bg-white rounded-2xl border border-slate-100 p-5" style={{ elevation: 3, shadowColor: '#082a4c', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 }}>
+                    <View className="flex-row items-start gap-4">
+                        {/* Avatar */}
+                        <View className="relative">
+                            <View
+                                className="w-[68px] h-[68px] rounded-2xl items-center justify-center"
+                                style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}
+                            >
+                                <Text className="text-2xl font-bold text-white">{user.initials}</Text>
+                            </View>
+                            <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white items-center justify-center">
+                                <CheckCircle size={10} color="#fff" weight="fill" />
+                            </View>
                         </View>
-                    ))}
+
+                        {/* Info */}
+                        <View className="flex-1">
+                            <Text className="text-[16px] font-bold text-primary">{user.name}</Text>
+                            <View className="flex-row items-center gap-1 mt-0.5">
+                                <MapPin size={11} color={SiagaColors.secondary} weight="duotone" />
+                                <Text className="text-xs text-secondary">{user.location.district}, {user.location.city}</Text>
+                            </View>
+                            <View className="flex-row items-center gap-1.5 mt-2">
+                                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
+                                    <CheckCircle size={10} color="#15803d" weight="fill" />
+                                    <Text className="text-[10px] font-bold text-success">Terverifikasi</Text>
+                                </View>
+                                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50">
+                                    <Medal size={10} color="#f59e0b" weight="duotone" />
+                                    <Text className="text-[10px] font-bold" style={{ color: '#b45309' }}>{user.currentBadge}</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Edit Button */}
+                        <TouchableOpacity
+                            className="w-8 h-8 rounded-lg bg-slate-50 items-center justify-center"
+                            onPress={() => router.push('/edit-profil')}
+                            activeOpacity={0.7}
+                        >
+                            <PencilSimple size={14} color={SiagaColors.primary} weight="duotone" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Bio */}
+                    <Text className="text-[13px] text-secondary mt-3 leading-5">{user.bio}</Text>
+
+                    {/* Stats Row */}
+                    <View className="flex-row gap-2 mt-4">
+                        {[
+                            { value: user.totalReports.toString(), label: 'Laporan', color: SiagaColors.info },
+                            { value: user.totalActions.toString(), label: 'Aksi', color: SiagaColors.success },
+                            { value: user.ecoPoints.toString(), label: 'Eco-Points', color: '#f59e0b' },
+                            { value: `#${user.rank}`, label: 'Rank', color: '#7c3aed' },
+                        ].map((s, i) => (
+                            <View key={i} className="flex-1 bg-slate-50 rounded-xl p-2.5 items-center">
+                                <Text className="text-base font-bold" style={{ color: s.color }}>{s.value}</Text>
+                                <Text className="text-[10px] font-medium text-secondary mt-0.5">{s.label}</Text>
+                            </View>
+                        ))}
+                    </View>
                 </View>
 
                 {/* Eco-Points Card */}
-                <View className="mx-5 mt-5 rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary }}>
+                <View className="mx-5 mt-4 rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}>
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-1.5">
                             <Leaf size={16} color="#fff" weight="duotone" />
-                            <Text className="text-[12px] font-bold text-white">Eco-Points</Text>
+                            <Text className="text-sm font-bold text-white">Eco-Points</Text>
                         </View>
                         <View className="bg-white/10 rounded-lg px-2 py-1 flex-row items-center gap-1">
                             <TrendUp size={10} color="#10b981" weight="bold" />
-                            <Text className="text-[9px] font-bold text-success">+45 minggu ini</Text>
+                            <Text className="text-[11px] font-bold text-success">+45 minggu ini</Text>
                         </View>
                     </View>
                     <View className="flex-row items-end gap-1 mb-2">
-                        <Text className="text-3xl font-extrabold text-white">285</Text>
+                        <Text className="text-3xl font-extrabold text-white">{user.ecoPoints}</Text>
                         <Text className="text-xs text-white/50 pb-1">points</Text>
                     </View>
                     <View className="mb-2">
                         <View className="flex-row items-center justify-between mb-1">
-                            <Text className="text-[9px] font-medium text-white/60">Menuju Pahlawan Komunitas</Text>
-                            <Text className="text-[9px] font-bold text-white">285 / 300</Text>
+                            <Text className="text-[11px] font-medium text-white/60">Menuju {user.nextBadge}</Text>
+                            <Text className="text-[11px] font-bold text-white">{user.ecoPoints} / {user.nextBadgeThreshold}</Text>
                         </View>
                         <View className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <View className="w-[95%] h-full rounded-full" style={{ backgroundColor: '#10b981' }} />
+                            <View
+                                className="h-full rounded-full"
+                                style={{ width: `${(user.ecoPoints / user.nextBadgeThreshold) * 100}%`, backgroundColor: '#10b981' }}
+                            />
                         </View>
+                        <Text className="text-[10px] text-white/40 mt-1">{user.pointsToNextBadge} poin lagi untuk badge berikutnya</Text>
                     </View>
                     <View className="flex-row gap-2 mt-1">
                         {[
@@ -165,7 +182,7 @@ export default function ProfilScreen() {
                         ].map((p, i) => (
                             <View key={i} className="flex-row items-center gap-1 bg-white/10 rounded-md px-2 py-1">
                                 {p.icon}
-                                <Text className="text-[8px] font-medium text-white/80">{p.label}</Text>
+                                <Text className="text-[10px] font-medium text-white/80">{p.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -174,25 +191,45 @@ export default function ProfilScreen() {
                 {/* Badges */}
                 <View className="mt-5 px-5">
                     <View className="flex-row items-center justify-between mb-3">
-                        <Text className="text-sm font-bold text-primary">Badge Saya</Text>
-                        <Text className="text-[10px] font-semibold text-info">3 / 6 terkumpul</Text>
+                        <View className="flex-row items-center gap-2">
+                            <View className="w-7 h-7 rounded-lg bg-amber-50 items-center justify-center">
+                                <Trophy size={14} color="#f59e0b" weight="duotone" />
+                            </View>
+                            <Text className="text-base font-bold text-primary">Badge Saya</Text>
+                        </View>
+                        <View className="bg-amber-50 rounded-md px-2 py-0.5">
+                            <Text className="text-[11px] font-semibold" style={{ color: '#b45309' }}>3 / 6 terkumpul</Text>
+                        </View>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                         {BADGES.map((b, i) => (
-                            <View
+                            <TouchableOpacity
                                 key={i}
-                                className="w-20 items-center p-2.5 rounded-xl border-2"
+                                className="w-[76px] items-center p-2.5 rounded-xl border-2"
                                 style={{
                                     borderColor: b.active ? b.border : '#f1f5f9',
                                     backgroundColor: b.active ? b.bg : '#fafafa',
-                                    opacity: b.active ? 1 : 0.5,
+                                    opacity: b.active ? 1 : 0.45,
                                 }}
+                                onPress={() => {
+                                    if (b.active) {
+                                        Alert.alert(b.label, `Badge "${b.label}" berhasil dikumpulkan!`);
+                                    } else {
+                                        Alert.alert(b.label, `Badge belum terbuka. Terus berkontribusi untuk membuka badge ini.`);
+                                    }
+                                }}
+                                activeOpacity={0.7}
                             >
                                 <View className="w-10 h-10 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: b.active ? `${b.color}15` : '#f1f5f9' }}>
                                     <b.icon size={20} color={b.active ? b.color : '#c4c4c4'} weight="duotone" />
                                 </View>
-                                <Text className="text-[8px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
-                            </View>
+                                <Text className="text-[10px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
+                                {b.active && (
+                                    <View className="absolute -top-1 -right-1">
+                                        <CheckCircle size={14} color={b.color} weight="fill" />
+                                    </View>
+                                )}
+                            </TouchableOpacity>
                         ))}
                     </ScrollView>
                 </View>
@@ -200,85 +237,112 @@ export default function ProfilScreen() {
                 {/* Recent Activity */}
                 <View className="mt-5 px-5">
                     <View className="flex-row items-center justify-between mb-3">
-                        <Text className="text-sm font-bold text-primary">Aktivitas Terkini</Text>
-                        <TouchableOpacity className="flex-row items-center gap-0.5">
-                            <Text className="text-[10px] font-semibold text-info">Semua</Text>
-                            <CaretRight size={10} color={SiagaColors.info} />
+                        <View className="flex-row items-center gap-2">
+                            <View className="w-7 h-7 rounded-lg bg-blue-50 items-center justify-center">
+                                <Clock size={14} color="#3b82f6" weight="duotone" />
+                            </View>
+                            <Text className="text-base font-bold text-primary">Aktivitas Terkini</Text>
+                        </View>
+                        <TouchableOpacity
+                            className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg"
+                            onPress={() => router.push('/riwayat-aktivitas')}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-[11px] font-bold text-info">Lihat Semua</Text>
+                            <ArrowRight size={10} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
                     <View className="gap-2">
-                        {ACTIVITIES.map((a, i) => (
-                            <View key={i} className="bg-white border border-slate-100 rounded-xl p-3 flex-row items-center gap-3" style={{ elevation: 1 }}>
-                                <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: a.bgColor }}>
-                                    <a.icon size={18} color={a.color} weight="duotone" />
-                                </View>
-                                <View className="flex-1">
-                                    <Text className="text-[11px] font-bold text-primary" numberOfLines={1}>{a.title}</Text>
-                                    <View className="flex-row items-center gap-2 mt-0.5">
-                                        <View className="flex-row items-center gap-0.5">
-                                            <Clock size={9} color={SiagaColors.secondary} />
-                                            <Text className="text-[9px] text-secondary">{a.time}</Text>
-                                        </View>
-                                        <Text className="text-[9px] font-bold text-success">{a.points}</Text>
+                        {recentActivities.map((a) => {
+                            const IconComp = ICON_MAP[a.icon] || Camera;
+                            return (
+                                <TouchableOpacity
+                                    key={a.id}
+                                    className="bg-white border border-slate-100 rounded-xl p-3 flex-row items-center gap-3"
+                                    style={{ elevation: 1 }}
+                                    onPress={() => handleActivityPress(a.refId, a.type)}
+                                    activeOpacity={a.refId ? 0.7 : 1}
+                                >
+                                    <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: a.bgColor }}>
+                                        <IconComp size={18} color={a.color} weight="duotone" />
                                     </View>
-                                </View>
-                                <CaretRight size={14} color={SiagaColors.secondary} />
-                            </View>
-                        ))}
+                                    <View className="flex-1">
+                                        <Text className="text-sm font-bold text-primary" numberOfLines={1}>{a.title}</Text>
+                                        <View className="flex-row items-center gap-2 mt-0.5">
+                                            <View className="flex-row items-center gap-0.5">
+                                                <Clock size={9} color={SiagaColors.secondary} />
+                                                <Text className="text-[11px] text-secondary">{a.time}</Text>
+                                            </View>
+                                            <View className="flex-row items-center gap-0.5">
+                                                <Leaf size={9} color="#059669" weight="duotone" />
+                                                <Text className="text-[11px] font-bold text-success">+{a.points} pts</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                    {a.refId && <CaretRight size={14} color={SiagaColors.secondary} />}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
 
-                {/* Settings */}
+                {/* Quick Menu */}
                 <View className="mt-5 px-5">
-                    <Text className="text-sm font-bold text-primary mb-3">Pengaturan</Text>
-                    <View className="gap-4">
-                        {SETTINGS_GROUPS.map((group, gi) => (
-                            <View key={gi}>
-                                <Text className="text-[10px] font-semibold text-secondary uppercase tracking-wider mb-2">{group.title}</Text>
-                                <View className="bg-white border border-slate-100 rounded-2xl overflow-hidden" style={{ elevation: 1 }}>
-                                    {group.items.map((item, ii) => (
-                                        <TouchableOpacity
-                                            key={ii}
-                                            className="flex-row items-center gap-3 px-4 py-3"
-                                            style={{ borderBottomWidth: ii < group.items.length - 1 ? 1 : 0, borderBottomColor: '#f8fafc' }}
-                                        >
-                                            <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
-                                                <item.icon size={16} color={item.color} weight="duotone" />
-                                            </View>
-                                            <Text className="flex-1 text-[12px] font-semibold text-primary">{item.label}</Text>
-                                            {item.badge && (
-                                                <View className="px-1.5 py-0.5 rounded flex-row items-center gap-0.5" style={{ backgroundColor: item.badgeBg }}>
-                                                    <CheckCircle size={8} color={item.badgeColor} weight="fill" />
-                                                    <Text className="text-[8px] font-bold" style={{ color: item.badgeColor }}>{item.badge}</Text>
-                                                </View>
-                                            )}
-                                            {item.extra && <Text className="text-[10px] font-medium text-secondary">{item.extra}</Text>}
-                                            {item.toggle ? (
-                                                <Switch
-                                                    value={toggleStates[item.label]}
-                                                    onValueChange={(val) => setToggleStates(prev => ({ ...prev, [item.label]: val }))}
-                                                    trackColor={{ false: '#e2e8f0', true: `${item.color}40` }}
-                                                    thumbColor={toggleStates[item.label] ? item.color : '#f4f3f4'}
-                                                    style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
-                                                />
-                                            ) : (
-                                                <CaretRight size={14} color={SiagaColors.secondary} />
-                                            )}
-                                        </TouchableOpacity>
-                                    ))}
+                    <View className="flex-row items-center gap-2 mb-3">
+                        <View className="w-7 h-7 rounded-lg bg-slate-100 items-center justify-center">
+                            <Gear size={14} color={SiagaColors.primary} weight="duotone" />
+                        </View>
+                        <Text className="text-base font-bold text-primary">Menu</Text>
+                    </View>
+                    <View className="bg-white border border-slate-100 rounded-2xl overflow-hidden" style={{ elevation: 1 }}>
+                        {[
+                            { icon: PencilSimple, label: 'Edit Profil', color: SiagaColors.primary, onPress: () => router.push('/edit-profil') },
+                            { icon: ChartBar, label: 'Riwayat Aktivitas', color: '#3b82f6', onPress: () => router.push('/riwayat-aktivitas') },
+                            { icon: Gear, label: 'Pengaturan', color: '#475569', onPress: () => router.push('/pengaturan') },
+                            { icon: ShieldCheckered, label: 'Keamanan & Privasi', color: '#f59e0b', onPress: () => router.push('/pengaturan') },
+                            { icon: Eye, label: 'Tentang SIAGA', color: SiagaColors.info, onPress: () => router.push('/tentang') },
+                        ].map((item, i, arr) => (
+                            <TouchableOpacity
+                                key={i}
+                                className="flex-row items-center gap-3 px-4 py-3.5"
+                                style={{
+                                    borderBottomWidth: i < arr.length - 1 ? 1 : 0,
+                                    borderBottomColor: '#f8fafc',
+                                }}
+                                onPress={item.onPress}
+                                activeOpacity={0.7}
+                            >
+                                <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: `${item.color}12` }}>
+                                    <item.icon size={16} color={item.color} weight="duotone" />
                                 </View>
-                            </View>
+                                <Text className="flex-1 text-sm font-semibold text-primary">{item.label}</Text>
+                                <CaretRight size={14} color={SiagaColors.secondary} />
+                            </TouchableOpacity>
                         ))}
                     </View>
                 </View>
 
                 {/* Logout */}
                 <View className="mx-5 mt-5">
-                    <TouchableOpacity className="flex-row items-center justify-center gap-2 py-3.5 bg-red-50 border border-red-100 rounded-2xl">
+                    <TouchableOpacity
+                        className="flex-row items-center justify-center gap-2 py-3.5 bg-red-50 border border-red-100 rounded-2xl"
+                        onPress={() => {
+                            Alert.alert(
+                                'Keluar',
+                                'Apakah Anda yakin ingin keluar dari akun ini?',
+                                [
+                                    { text: 'Batal', style: 'cancel' },
+                                    { text: 'Keluar', style: 'destructive', onPress: () => Alert.alert('Info', 'Fitur logout memerlukan backend.') },
+                                ]
+                            );
+                        }}
+                        activeOpacity={0.7}
+                    >
                         <SignOut size={18} color={SiagaColors.danger} weight="duotone" />
-                        <Text className="text-[13px] font-bold text-danger">Keluar</Text>
+                        <Text className="text-sm font-bold text-danger">Keluar</Text>
                     </TouchableOpacity>
-                    <Text className="text-center text-[9px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
+                    <Text className="text-center text-[11px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
+                    <Text className="text-center text-[10px] text-secondary/50 mt-0.5">Bergabung sejak {user.joinedDate}</Text>
                 </View>
             </ScrollView>
 
