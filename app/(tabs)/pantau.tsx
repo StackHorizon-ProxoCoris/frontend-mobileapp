@@ -1,19 +1,24 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Dimensions, FlatList } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Dimensions, FlatList, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
-    CaretLeft, MagnifyingGlass, SquaresFour, Funnel,
+    MagnifyingGlass, SquaresFour, Funnel,
     Waves, RoadHorizon, Trash, Mountains, Fire,
     MapPin, Clock, CaretRight, Users,
-    ListBullets, X, LineSegments,
-    ArrowsOut, ArrowCounterClockwise, CaretDown, CaretUp,
-    MapTrifold, CheckCircle,
+    ListBullets, CaretDown, CaretUp,
+    ShieldCheck, Warning, Eye, NavigationArrow,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { dummyReports, dummyReportDetails, type Report } from '@/data/dummy';
+import EmbeddedMap from '@/components/ui/MapView';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
-const { height: W_HEIGHT } = Dimensions.get('window');
+const { height: W_HEIGHT, width: W_WIDTH } = Dimensions.get('window');
+
+// Bandung center coordinates
+const MAP_CENTER = { lat: -6.8917, lng: 107.6107 };
 
 const FILTER_CHIPS = [
     { icon: SquaresFour, label: 'Semua', color: SiagaColors.primary },
@@ -24,143 +29,221 @@ const FILTER_CHIPS = [
     { icon: Fire, label: 'Kebakaran', color: SiagaColors.danger },
 ];
 
-const REPORTS = [
-    { type: 'Banjir', typeBg: '#dbeafe', typeColor: '#2563eb', title: 'Banjir Jl. Merdeka', desc: 'Air naik 50cm · Jl. Ir. H. Juanda', time: '10 mnt', urgency: 145, dist: '1.2 KM', votes: 24, status: 'Kritis', statusColor: '#e74c3c', statusBg: '#fee2e2' },
-    { type: 'Jalan Rusak', typeBg: '#fef3c7', typeColor: '#d97706', title: 'Lubang Jl. Sudirman', desc: 'Lubang besar · Jl. Sudirman', time: '2 jam', urgency: 70, dist: '800 M', votes: 8, status: 'Sedang', statusColor: '#a16207', statusBg: '#fef9c3' },
-    { type: 'Sampah', typeBg: '#dcfce7', typeColor: '#15803d', title: 'Sampah Gang Melati', desc: 'Sampah menumpuk · Gang Melati', time: '5 jam', urgency: 35, dist: '300 M', votes: 3, status: 'Rendah', statusColor: '#15803d', statusBg: '#dcfce7' },
-    { type: 'Banjir', typeBg: '#dbeafe', typeColor: '#2563eb', title: 'Genangan Jl. Asia-Afrika', desc: 'Genangan 30cm · Jl. Asia-Afrika', time: '6 jam', urgency: 90, dist: '2.5 KM', votes: 12, status: 'Diproses', statusColor: '#2563eb', statusBg: '#dbeafe' },
-    { type: 'Longsor', typeBg: '#ffedd5', typeColor: '#ea580c', title: 'Longsor Ringan Dago', desc: 'Tanah longsor · Jl. Dago Atas', time: '1 hari', urgency: 120, dist: '3.1 KM', votes: 19, status: 'Kritis', statusColor: '#e74c3c', statusBg: '#fee2e2' },
-];
+const TYPE_MAP: Record<string, { icon: typeof Waves; color: string; bg: string; label: string }> = {
+    Waves: { icon: Waves, color: '#2563eb', bg: '#dbeafe', label: 'Banjir' },
+    RoadHorizon: { icon: RoadHorizon, color: '#d97706', bg: '#fef3c7', label: 'Jalan Rusak' },
+    Trash: { icon: Trash, color: '#15803d', bg: '#dcfce7', label: 'Sampah' },
+};
+
+const FILTER_TYPE_MAP: Record<string, string> = {
+    Banjir: 'Waves',
+    Jalan: 'RoadHorizon',
+    Sampah: 'Trash',
+    Longsor: 'Mountains',
+    Kebakaran: 'Fire',
+};
 
 export default function PantauScreen() {
     const [activeFilter, setActiveFilter] = useState('Semua');
     const [expanded, setExpanded] = useState(false);
     const [sosVisible, setSosVisible] = useState(false);
     const insets = useSafeAreaInsets();
+    const router = useRouter();
 
-    const filteredReports = activeFilter === 'Semua' ? REPORTS : REPORTS.filter(r => r.type === activeFilter);
+    const filteredReports = activeFilter === 'Semua'
+        ? dummyReports
+        : dummyReports.filter(r => r.type === FILTER_TYPE_MAP[activeFilter]);
+
+    const mapMarkers = Object.values(dummyReportDetails).map(r => ({
+        lat: r.location.lat,
+        lng: r.location.lng,
+        title: r.title,
+        color: r.urgencyColor,
+        popup: `<b>${r.title}</b><br/><span style="color:${r.badgeColor}">${r.badge}</span>`,
+    }));
+
+    const handleReportPress = useCallback((report: Report) => {
+        router.push({ pathname: '/report-detail', params: { id: report.id } });
+    }, [router]);
+
+    const typeInfo = (type: string) => TYPE_MAP[type] || TYPE_MAP.Waves;
+
+    const getUrgencyLabel = (urgency: number) => {
+        if (urgency >= 100) return { label: 'Kritis', color: '#dc2626', bg: '#fee2e2' };
+        if (urgency >= 50) return { label: 'Sedang', color: '#a16207', bg: '#fef9c3' };
+        return { label: 'Rendah', color: '#15803d', bg: '#dcfce7' };
+    };
 
     return (
         <View className="flex-1 bg-[#f8fafd]" style={{ paddingTop: insets.top }}>
-            {/* Map Section (placeholder) */}
-            <View className="flex-1 bg-surface/50 items-center justify-center" style={{ minHeight: expanded ? 160 : W_HEIGHT * 0.45 }}>
+            {/* Map Section */}
+            <View className="flex-1" style={{ minHeight: expanded ? 180 : W_HEIGHT * 0.48 }}>
+                {/* Embedded Map */}
+                <View className="absolute inset-0">
+                    <EmbeddedMap
+                        latitude={MAP_CENTER.lat}
+                        longitude={MAP_CENTER.lng}
+                        zoom={14}
+                        height={expanded ? 180 : W_HEIGHT * 0.48}
+                        markers={mapMarkers}
+                        borderRadius={0}
+                        showOpenButton={false}
+                        interactive={true}
+                    />
+                </View>
+
+                {/* Overlay Header */}
                 <View className="absolute top-0 left-0 right-0 z-20 px-4 pt-3">
-                    {/* Header */}
-                    <View className="bg-white/90 rounded-2xl border border-slate-100 p-3" style={{ elevation: 3 }}>
-                        <View className="flex-row items-center gap-3">
-                            <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center flex-shrink-0">
-                                <CaretLeft size={14} color={SiagaColors.primary} />
-                            </TouchableOpacity>
-                            <View className="flex-1 flex-row items-center gap-2 bg-[#f1f6fc] rounded-xl px-3 py-2">
-                                <MagnifyingGlass size={14} color={SiagaColors.secondary} weight="duotone" />
-                                <Text className="flex-1 text-[12px] text-secondary/50">Cari lokasi atau laporan...</Text>
+                    <View className="bg-white/95 rounded-2xl border border-slate-100/50 p-3" style={{ elevation: 4, shadowColor: '#082a4c', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 }}>
+                        <View className="flex-row items-center gap-2.5">
+                            <View className="flex-row items-center gap-1.5">
+                                <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
+                                    <Eye size={14} color="#fff" weight="bold" />
+                                </View>
+                                <Text className="text-sm font-bold text-primary">Pantau</Text>
                             </View>
-                            <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center flex-shrink-0">
-                                <Funnel size={14} color={SiagaColors.primary} weight="duotone" />
+                            <View className="flex-1 flex-row items-center gap-2 bg-[#f1f6fc] rounded-xl px-3 py-2">
+                                <MagnifyingGlass size={13} color={SiagaColors.secondary} weight="duotone" />
+                                <Text className="flex-1 text-[11px] text-secondary/50">Cari lokasi atau laporan...</Text>
+                            </View>
+                            <TouchableOpacity className="w-8 h-8 rounded-xl bg-surface items-center justify-center" activeOpacity={0.7}>
+                                <Funnel size={13} color={SiagaColors.primary} weight="duotone" />
                             </TouchableOpacity>
                         </View>
                         {/* Filter chips */}
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2" contentContainerStyle={{ gap: 6 }}>
-                            {FILTER_CHIPS.map((fc, i) => (
-                                <TouchableOpacity
-                                    key={i}
-                                    className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                                    style={{
-                                        backgroundColor: activeFilter === fc.label ? SiagaColors.primary : '#fff',
-                                        borderWidth: 1,
-                                        borderColor: activeFilter === fc.label ? SiagaColors.primary : '#e2e8f0',
-                                    }}
-                                    onPress={() => setActiveFilter(fc.label)}
-                                >
-                                    <fc.icon size={12} color={activeFilter === fc.label ? '#fff' : fc.color} weight="duotone" />
-                                    <Text className="text-[10px] font-semibold" style={{ color: activeFilter === fc.label ? '#fff' : SiagaColors.primary }}>{fc.label}</Text>
-                                </TouchableOpacity>
-                            ))}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2.5" contentContainerStyle={{ gap: 6 }}>
+                            {FILTER_CHIPS.map((fc, i) => {
+                                const isActive = activeFilter === fc.label;
+                                return (
+                                    <TouchableOpacity
+                                        key={i}
+                                        className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                                        style={{
+                                            backgroundColor: isActive ? SiagaColors.primary : '#fff',
+                                            borderWidth: 1,
+                                            borderColor: isActive ? SiagaColors.primary : '#e2e8f0',
+                                        }}
+                                        onPress={() => setActiveFilter(fc.label)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <fc.icon size={11} color={isActive ? '#fff' : fc.color} weight="duotone" />
+                                        <Text className="text-[10px] font-semibold" style={{ color: isActive ? '#fff' : SiagaColors.primary }}>{fc.label}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
                     </View>
                 </View>
 
-                {/* Map placeholder */}
-                <View className="w-20 h-20 rounded-full bg-white/50 items-center justify-center" style={{ elevation: 1 }}>
-                    <MapTrifold size={36} color={SiagaColors.secondary} weight="duotone" />
-                </View>
-                <Text className="text-[11px] text-secondary font-medium mt-2">Peta Interaktif</Text>
-                <Text className="text-[9px] text-secondary/60">(react-native-maps integration)</Text>
-
-                {/* Stats bubbles */}
-                <View className="absolute bottom-4 left-4 right-4 flex-row justify-between">
+                {/* Stats Overlay */}
+                <View className="absolute bottom-3 left-3 right-3 flex-row" style={{ gap: 6 }}>
                     {[
-                        { label: 'Aktif', value: '12', color: SiagaColors.danger },
-                        { label: 'Diproses', value: '8', color: SiagaColors.info },
-                        { label: 'Selesai', value: '45', color: SiagaColors.success },
-                        { label: 'Total', value: '65', color: SiagaColors.primary },
+                        { label: 'Aktif', value: '12', icon: Warning, color: SiagaColors.danger, bg: '#fee2e2' },
+                        { label: 'Diproses', value: '8', icon: NavigationArrow, color: SiagaColors.info, bg: '#dbeafe' },
+                        { label: 'Selesai', value: '45', icon: ShieldCheck, color: SiagaColors.success, bg: '#dcfce7' },
+                        { label: 'Total', value: '65', icon: Eye, color: SiagaColors.primary, bg: SiagaColors.surface },
                     ].map((s, i) => (
-                        <View key={i} className="bg-white rounded-xl px-3 py-2 items-center" style={{ elevation: 2, minWidth: 70 }}>
-                            <Text className="text-[13px] font-bold" style={{ color: s.color }}>{s.value}</Text>
-                            <Text className="text-[8px] font-medium text-secondary">{s.label}</Text>
+                        <View key={i} className="flex-1 bg-white/95 rounded-xl px-2 py-2 items-center" style={{ elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+                            <View className="w-6 h-6 rounded-lg items-center justify-center mb-1" style={{ backgroundColor: s.bg }}>
+                                <s.icon size={12} color={s.color} weight="duotone" />
+                            </View>
+                            <Text className="text-[14px] font-bold" style={{ color: s.color }}>{s.value}</Text>
+                            <Text className="text-[10px] font-semibold text-secondary mt-0.5">{s.label}</Text>
                         </View>
                     ))}
                 </View>
             </View>
 
             {/* Bottom Sheet */}
-            <View className="bg-white border-t border-slate-100 rounded-t-3xl" style={{ elevation: 8, maxHeight: expanded ? W_HEIGHT * 0.6 : W_HEIGHT * 0.35 }}>
-                <TouchableOpacity className="items-center pt-2.5 pb-1" onPress={() => setExpanded(!expanded)}>
+            <View className="bg-white rounded-t-3xl" style={{ elevation: 10, maxHeight: expanded ? W_HEIGHT * 0.62 : W_HEIGHT * 0.38, shadowColor: '#082a4c', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, marginTop: -16 }}>
+                <TouchableOpacity className="items-center pt-3 pb-1" onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
                     <View className="w-10 h-1 bg-slate-200 rounded-full" />
                 </TouchableOpacity>
 
-                <View className="px-4 py-2 flex-row items-center justify-between">
+                <View className="px-4 py-2.5 flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
-                        <ListBullets size={16} color={SiagaColors.primary} weight="duotone" />
+                        <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
+                            <ListBullets size={14} color={SiagaColors.primary} weight="bold" />
+                        </View>
                         <Text className="text-sm font-bold text-primary">Daftar Laporan</Text>
-                        <View className="px-1.5 py-0.5 rounded bg-primary">
-                            <Text className="text-[9px] font-bold text-white">{filteredReports.length}</Text>
+                        <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: SiagaColors.primary }}>
+                            <Text className="text-[11px] font-bold text-white">{filteredReports.length}</Text>
                         </View>
                     </View>
-                    <TouchableOpacity className="flex-row items-center gap-0.5" onPress={() => setExpanded(!expanded)}>
-                        {expanded ? <CaretDown size={14} color={SiagaColors.info} /> : <CaretUp size={14} color={SiagaColors.info} />}
-                        <Text className="text-[10px] font-semibold text-info">{expanded ? 'Kecilkan' : 'Perbesar'}</Text>
+                    <TouchableOpacity className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg" onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
+                        {expanded ? <CaretDown size={12} color={SiagaColors.info} weight="bold" /> : <CaretUp size={12} color={SiagaColors.info} weight="bold" />}
+                        <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>{expanded ? 'Kecilkan' : 'Perbesar'}</Text>
                     </TouchableOpacity>
                 </View>
 
                 <FlatList
                     data={filteredReports}
-                    keyExtractor={(_, i) => i.toString()}
+                    keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}
-                    renderItem={({ item: r }) => (
-                        <TouchableOpacity className="bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
-                            <View className="flex-row items-start gap-2.5">
-                                <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: r.typeBg }}>
-                                    <MapPin size={18} color={r.typeColor} weight="duotone" />
-                                </View>
-                                <View className="flex-1">
-                                    <View className="flex-row items-center gap-1.5 mb-0.5">
-                                        <View className="px-1.5 py-0.5 rounded gap-0.5 flex-row items-center" style={{ backgroundColor: r.statusBg }}>
-                                            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: r.statusColor }} />
-                                            <Text className="text-[8px] font-bold uppercase" style={{ color: r.statusColor }}>{r.status}</Text>
+                    contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, gap: 10 }}
+                    renderItem={({ item: r }) => {
+                        const info = typeInfo(r.type);
+                        const urgency = getUrgencyLabel(r.urgency);
+                        const IconComp = info.icon;
+                        return (
+                            <TouchableOpacity
+                                className="bg-white border border-slate-100 rounded-2xl overflow-hidden"
+                                style={{ elevation: 2, shadowColor: '#082a4c', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }}
+                                onPress={() => handleReportPress(r)}
+                                activeOpacity={0.7}
+                            >
+                                {/* Top accent line */}
+                                <View style={{ height: 3, backgroundColor: info.color }} />
+                                <View className="p-3.5">
+                                    <View className="flex-row items-start gap-3">
+                                        {/* Icon */}
+                                        <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: info.bg }}>
+                                            <IconComp size={22} color={info.color} weight="duotone" />
                                         </View>
-                                        <View className="flex-row items-center gap-0.5">
-                                            <Clock size={9} color={SiagaColors.secondary} />
-                                            <Text className="text-[8px] text-secondary">{r.time}</Text>
+
+                                        {/* Content */}
+                                        <View className="flex-1">
+                                            {/* Badges row */}
+                                            <View className="flex-row items-center gap-1.5 mb-1">
+                                                <View className="px-2 py-0.5 rounded-md flex-row items-center gap-1" style={{ backgroundColor: urgency.bg }}>
+                                                    <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: urgency.color }} />
+                                                    <Text className="text-[10px] font-bold uppercase" style={{ color: urgency.color }}>{urgency.label}</Text>
+                                                </View>
+                                                <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: info.bg }}>
+                                                    <Text className="text-[10px] font-semibold" style={{ color: info.color }}>{info.label}</Text>
+                                                </View>
+                                            </View>
+
+                                            {/* Title */}
+                                            <Text className="text-sm font-bold text-primary" numberOfLines={1}>{r.title}</Text>
+                                            <Text className="text-[10px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
+
+                                            {/* Meta row */}
+                                            <View className="flex-row items-center gap-3 mt-2">
+                                                <View className="flex-row items-center gap-1">
+                                                    <Clock size={10} color={SiagaColors.secondary} />
+                                                    <Text className="text-[11px] text-secondary font-medium">{r.time}</Text>
+                                                </View>
+                                                <View className="flex-row items-center gap-1">
+                                                    <MapPin size={10} color={SiagaColors.secondary} weight="duotone" />
+                                                    <Text className="text-[11px] text-secondary font-medium">{r.distance}</Text>
+                                                </View>
+                                                <View className="flex-row items-center gap-1">
+                                                    <Users size={10} color={SiagaColors.primary} weight="duotone" />
+                                                    <Text className="text-[11px] font-bold text-primary">{r.votes} dukungan</Text>
+                                                </View>
+                                            </View>
+                                        </View>
+
+                                        {/* Arrow */}
+                                        <View className="w-7 h-7 rounded-lg bg-slate-50 items-center justify-center self-center">
+                                            <CaretRight size={12} color={SiagaColors.secondary} weight="bold" />
                                         </View>
                                     </View>
-                                    <Text className="text-[12px] font-bold text-primary">{r.title}</Text>
-                                    <View className="flex-row items-center gap-2.5 mt-1.5">
-                                        <View className="flex-row items-center gap-0.5">
-                                            <MapPin size={9} color={SiagaColors.secondary} weight="duotone" />
-                                            <Text className="text-[8px] text-secondary">{r.dist}</Text>
-                                        </View>
-                                        <View className="flex-row items-center gap-0.5">
-                                            <Users size={9} color={SiagaColors.primary} weight="duotone" />
-                                            <Text className="text-[8px] font-semibold text-primary">{r.votes}</Text>
-                                        </View>
-                                    </View>
                                 </View>
-                                <CaretRight size={14} color={SiagaColors.secondary} />
-                            </View>
-                        </TouchableOpacity>
-                    )}
+                            </TouchableOpacity>
+                        );
+                    }}
                 />
             </View>
 
