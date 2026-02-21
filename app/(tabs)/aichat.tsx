@@ -86,7 +86,7 @@ export default function AIChatScreen() {
                         <Robot size={10} color="#fff" weight="fill" />
                     </View>
                     <Text className="text-[9px] font-semibold text-secondary">SIAGA AI</Text>
-                    <Text className="text-[8px] text-secondary/50">{item.time}</Text>
+                    <Text className="text-[9px] text-secondary/50">{item.time}</Text>
                 </View>
             )}
             <View
@@ -102,7 +102,7 @@ export default function AIChatScreen() {
             </View>
             {item.type === 'user' && (
                 <View className="flex-row items-center gap-1 mt-0.5 mr-1">
-                    <Text className="text-[8px] text-secondary/50">{item.time}</Text>
+                    <Text className="text-[9px] text-secondary/50">{item.time}</Text>
                     <CheckCircle size={10} color={SiagaColors.info} weight="fill" />
                 </View>
             )}
@@ -124,7 +124,7 @@ export default function AIChatScreen() {
                         <View className="absolute -bottom-0 -right-0 w-3 h-3 bg-success rounded-full border-2 border-white" />
                     </View>
                     <View className="flex-1">
-                        <Text className="text-[13px] font-bold text-primary">SIAGA AI</Text>
+                        <Text className="text-sm font-bold text-primary">SIAGA AI</Text>
                         <View className="flex-row items-center gap-1">
                             <View className="w-1.5 h-1.5 rounded-full bg-success" />
                             <Text className="text-[9px] font-medium text-success">Online · Civic AI Assistant</Text>

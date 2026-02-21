@@ -9,7 +9,7 @@ import {
   Waves, RoadHorizon, Trash, Users, Camera, ThumbsUp,
   Leaf, Star, Medal, Trophy, CaretRight, HandsClapping,
   Plant, Tree, Newspaper, CloudRain, BookOpenText, MegaphoneSimple,
-  ChartPieSlice, HardHat, Flag, CheckCircle,
+  CheckCircle,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import SOSButton from '@/components/ui/SOSButton';
@@ -21,7 +21,6 @@ import {
   dummyReports,
   dummyPositiveActions,
   dummyInfoFeed,
-  dummyBudgetWatch,
   dummyEmergencyContacts,
   type Report,
 } from '@/data/dummy';
@@ -376,7 +375,7 @@ export default function HomeScreen() {
                   className="flex-row items-center gap-3 bg-white border border-slate-100 rounded-xl p-3.5"
                   style={{ elevation: 1 }}
                   activeOpacity={0.8}
-                  onPress={() => Alert.alert(info.source, info.title)}
+                  onPress={() => router.push({ pathname: '/info-detail', params: { id: info.id } })}
                 >
                   <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: info.bg }}>{infoIcon}</View>
                   <View className="flex-1">
@@ -390,56 +389,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Budget Watch */}
-        <View>
-          <SectionHeader title="Budget Watch" icon={<ChartPieSlice size={16} color="#7c3aed" weight="duotone" />} actionLabel="Proyek" onAction={() => router.push('/(tabs)/pantau')} />
-          <View className="bg-white border border-slate-100 rounded-2xl p-4" style={{ elevation: 1 }}>
-            <View className="flex-row items-start justify-between mb-2">
-              <View className="flex-row items-start gap-2.5">
-                <View className="w-10 h-10 rounded-lg bg-violet-50 items-center justify-center mt-0.5">
-                  <HardHat size={22} color="#7c3aed" weight="duotone" />
-                </View>
-                <View>
-                  <Text className="text-[13px] font-bold text-primary">{dummyBudgetWatch.title}</Text>
-                  <Text className="text-[11px] text-secondary mt-0.5">{dummyBudgetWatch.contractor} • {dummyBudgetWatch.budgetFormatted}</Text>
-                </View>
-              </View>
-              <View className="flex-row items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef3c7' }}>
-                <Flag size={10} color="#a16207" weight="fill" />
-                <Text className="text-[9px] font-bold" style={{ color: '#a16207' }}>{dummyBudgetWatch.flagCount} Flag</Text>
-              </View>
-            </View>
-            <View className="mb-2">
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-[10px] font-medium text-secondary">Progress</Text>
-                <Text className="text-[10px] font-bold text-primary">{dummyBudgetWatch.progress}%</Text>
-              </View>
-              <View className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                <View className="h-full rounded-full" style={{ width: `${dummyBudgetWatch.progress}%`, backgroundColor: SiagaColors.info }} />
-              </View>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-3">
-                <View className="flex-row items-center gap-0.5">
-                  <Clock size={11} color={SiagaColors.secondary} />
-                  <Text className="text-[10px] text-secondary">Sisa {dummyBudgetWatch.daysLeft} hari</Text>
-                </View>
-                <View className="flex-row items-center gap-1">
-                  <Star size={11} color="#fbbf24" weight="fill" />
-                  <Text className="text-[10px] text-secondary">{dummyBudgetWatch.rating} / 5.0</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                className="flex-row items-center gap-0.5"
-                activeOpacity={0.7}
-                onPress={() => router.push('/(tabs)/pantau')}
-              >
-                <Text className="text-[11px] font-semibold text-info">Detail</Text>
-                <CaretRight size={11} color={SiagaColors.info} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+
       </ScrollView>
 
       {/* Floating SOS */}

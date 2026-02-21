@@ -208,7 +208,7 @@ export default function LaporScreen() {
                                         {[{ icon: Waves, label: 'Banjir: 3 KM', color: '#3b82f6' }, { icon: RoadHorizon, label: 'Jalan: 1 KM', color: '#f59e0b' }, { icon: Trash, label: 'Sampah: 500 M', color: '#10b981' }].map((r, i) => (
                                             <View key={i} className="flex-row items-center gap-1 bg-white px-2 py-1 rounded-lg">
                                                 <r.icon size={10} color={r.color} weight="duotone" />
-                                                <Text className="text-[8px] font-semibold text-primary">{r.label}</Text>
+                                                <Text className="text-[9px] font-semibold text-primary">{r.label}</Text>
                                             </View>
                                         ))}
                                     </View>
@@ -280,14 +280,14 @@ export default function LaporScreen() {
                                         <Image size={20} color="rgba(231,76,60,0.7)" weight="duotone" />
                                     </View>
                                     <Text className="text-[10px] font-bold text-primary">SEBELUM</Text>
-                                    <Text className="text-[8px] text-secondary">Foto kondisi awal</Text>
+                                    <Text className="text-[9px] text-secondary">Foto kondisi awal</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity className="flex-1 h-36 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-2">
                                     <View className="w-11 h-11 rounded-full bg-emerald-50 items-center justify-center">
                                         <Image size={20} color="rgba(39,174,96,0.7)" weight="duotone" />
                                     </View>
                                     <Text className="text-[10px] font-bold text-primary">SESUDAH</Text>
-                                    <Text className="text-[8px] text-secondary">Foto hasil aksi</Text>
+                                    <Text className="text-[9px] text-secondary">Foto hasil aksi</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
