@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, Image,
-  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, Alert,
+  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, Alert, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,10 +10,10 @@ import {
   CheckCircle, DotsThree, Heart, Star, Leaf,
   CalendarBlank, UserCircle, Medal, CaretRight,
   Plant, RoadHorizon, Tree, Trash, HandsClapping,
-  ShieldCheck, Trophy, ChartBar,
+  ShieldCheck, Trophy, ChartBar, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
+import { dummyActionDetails, dummyUser, type ActionDetail } from '@/data/dummy';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -25,6 +25,8 @@ export default function ActionDetailScreen() {
   const [activePhoto, setActivePhoto] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
 
   const action = dummyActionDetails[id ?? ''];
 
@@ -399,9 +401,30 @@ export default function ActionDetailScreen() {
         {/* Comments */}
         <View className="px-5 pt-5">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-[13px] font-bold text-primary">Komentar ({action.comments.length})</Text>
+            <Text className="text-[13px] font-bold text-primary">Komentar ({action.comments.length + localComments.length})</Text>
           </View>
           <View className="gap-2.5">
+            {localComments.map((comment) => (
+              <View key={comment.id} className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
+                <View className="flex-row items-start gap-2.5">
+                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
+                    <Text className="text-[10px] font-bold text-white">{comment.initials}</Text>
+                  </View>
+                  <View className="flex-1">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center gap-1.5">
+                        <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
+                        <View className="bg-blue-100 rounded px-1.5 py-0.5">
+                          <Text className="text-[8px] font-bold text-info">Anda</Text>
+                        </View>
+                      </View>
+                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
+                    </View>
+                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
             {action.comments.map((comment) => (
               <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
                 <View className="flex-row items-start gap-2.5">
@@ -422,6 +445,52 @@ export default function ActionDetailScreen() {
                 </View>
               </View>
             ))}
+          </View>
+
+          {/* Comment Input */}
+          <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
+            <View className="flex-row items-start gap-2.5">
+              <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
+                <Text className="text-[10px] font-bold text-white">{dummyUser.initials}</Text>
+              </View>
+              <View className="flex-1">
+                <TextInput
+                  className="text-[11px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  placeholder="Tulis komentar..."
+                  placeholderTextColor={SiagaColors.secondary}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                  maxLength={500}
+                  style={{ textAlignVertical: 'top' }}
+                />
+                <View className="flex-row items-center justify-between mt-2">
+                  <Text className="text-[9px] text-secondary">{commentText.length}/500</Text>
+                  <TouchableOpacity
+                    className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
+                    style={{ backgroundColor: commentText.trim() ? SiagaColors.primary : '#e2e8f0' }}
+                    disabled={!commentText.trim()}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      if (!commentText.trim()) return;
+                      const newComment = {
+                        id: `c_new_${Date.now()}`,
+                        user: dummyUser.name,
+                        initials: dummyUser.initials,
+                        text: commentText.trim(),
+                        time: 'Baru saja',
+                        likes: 0,
+                      };
+                      setLocalComments(prev => [newComment, ...prev]);
+                      setCommentText('');
+                    }}
+                  >
+                    <PaperPlaneTilt size={12} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
+                    <Text className="text-[10px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
