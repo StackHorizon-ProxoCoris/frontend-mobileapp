@@ -1,98 +1,450 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import {
+  Warning, X, Sun, Moon, SunHorizon, Cloud, Bell, MagnifyingGlass, MapPin, ShieldWarning,
+  FileText, ChartLineUp, Clock, Megaphone, MapTrifold, Siren, Robot,
+  FireTruck, Ambulance, PoliceCar, Binoculars, PhoneCall,
+  Waves, RoadHorizon, Trash, Users, Camera, ThumbsUp,
+  Leaf, Star, Medal, Trophy, CaretRight, HandsClapping,
+  Plant, Tree, Newspaper, CloudRain, BookOpenText, MegaphoneSimple,
+  ChartPieSlice, HardHat, Flag, CheckCircle,
+} from 'phosphor-react-native';
+import { SiagaColors } from '@/constants/theme';
+import SOSButton from '@/components/ui/SOSButton';
+import SOSModal from '@/components/ui/SOSModal';
+import SectionHeader from '@/components/ui/SectionHeader';
+import {
+  dummyUser,
+  dummyAreaStatus,
+  dummyReports,
+  dummyPositiveActions,
+  dummyInfoFeed,
+  dummyBudgetWatch,
+  dummyEmergencyContacts,
+  type Report,
+} from '@/data/dummy';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+function getGreeting(): { text: string; Icon: React.ComponentType<any> } {
+  const hour = new Date().getHours();
+  if (hour >= 4 && hour < 11) return { text: 'Selamat Pagi', Icon: Sun };
+  if (hour >= 11 && hour < 15) return { text: 'Selamat Siang', Icon: SunHorizon };
+  if (hour >= 15 && hour < 18) return { text: 'Selamat Sore', Icon: Cloud };
+  return { text: 'Selamat Malam', Icon: Moon };
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+export default function HomeScreen() {
+  const [showWarning, setShowWarning] = useState(true);
+  const [sosVisible, setSosVisible] = useState(false);
+  const [reports, setReports] = useState<Report[]>(dummyReports);
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const greeting = useMemo(() => getGreeting(), []);
+
+  const handleSupport = (reportId: string) => {
+    setReports(prev =>
+      prev.map(r =>
+        r.id === reportId
+          ? { ...r, supported: !r.supported, votes: r.supported ? r.votes - 1 : r.votes + 1 }
+          : r
+      )
+    );
+  };
+
+  return (
+    <View className="flex-1 bg-[#f8fafd]" style={{ paddingTop: insets.top }}>
+      {/* Warning Banner */}
+      {showWarning && (
+        <View className="flex-row items-center gap-3 px-4 py-3" style={{ backgroundColor: '#f59e0b' }}>
+          <View className="w-8 h-8 rounded-full bg-white/20 items-center justify-center">
+            <Warning size={16} color="#fff" weight="duotone" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-xs font-bold text-white uppercase tracking-wider">Peringatan — {dummyAreaStatus.warningType}</Text>
+            <Text className="text-[11px] text-white/90">{dummyAreaStatus.warningMessage}</Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowWarning(false)} className="p-1.5">
+            <X size={16} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Header */}
+      <View className="px-5 pt-4 pb-2">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-3">
+            <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
+              <Text className="text-white font-bold text-base">{dummyUser.initials}</Text>
+            </View>
+            <View>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs text-secondary">{greeting.text} </Text>
+                <greeting.Icon size={16} color="#fbbf24" weight="duotone" />
+              </View>
+              <Text className="text-base font-bold text-primary">{dummyUser.name}</Text>
+            </View>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity
+              className="relative w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
+              style={{ elevation: 1 }}
+              onPress={() => Alert.alert('Notifikasi', `Anda memiliki ${dummyUser.notifCount} notifikasi baru.`)}
+            >
+              <Bell size={20} color={SiagaColors.primary} weight="duotone" />
+              {dummyUser.notifCount > 0 && (
+                <View className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-danger rounded-full border-2 border-white" />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
+              style={{ elevation: 1 }}
+              onPress={() => Alert.alert('Pencarian', 'Fitur pencarian akan segera hadir.')}
+            >
+              <MagnifyingGlass size={20} color={SiagaColors.primary} weight="duotone" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView className="flex-1 px-5 pb-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingBottom: 80 }}>
+        {/* Status Card */}
+        <View className="rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary }}>
+          <View className="flex-row items-center gap-1.5 mb-3">
+            <View className="w-2.5 h-2.5 rounded-full bg-success" />
+            <Text className="text-[11px] font-medium text-white/70 uppercase tracking-wider">Status Area Anda</Text>
+          </View>
+          <View className="flex-row items-center justify-between mb-4">
+            <View>
+              <View className="flex-row items-center gap-1.5">
+                <MapPin size={18} color="rgba(255,255,255,0.8)" weight="duotone" />
+                <Text className="text-xl font-bold text-white">{dummyUser.location.district}</Text>
+              </View>
+              <Text className="text-xs text-white/60 ml-7">{dummyUser.location.city}, {dummyUser.location.province}</Text>
+            </View>
+            <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: 'rgba(243,156,18,0.2)', borderWidth: 1, borderColor: 'rgba(243,156,18,0.3)' }}>
+              <ShieldWarning size={16} color={SiagaColors.warning} weight="duotone" />
+              <Text className="text-[11px] font-bold" style={{ color: SiagaColors.warning }}>{dummyAreaStatus.level}</Text>
+            </View>
+          </View>
+          <View className="flex-row gap-2">
+            {[
+              { icon: <FileText size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: String(dummyAreaStatus.activeReports), label: 'Laporan Aktif' },
+              { icon: <ChartLineUp size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.responseRate}%`, label: 'Respon Rate' },
+              { icon: <Clock size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.avgResponseHours}j`, label: 'Avg. Respons' },
+            ].map((stat, i) => (
+              <View key={i} className="flex-1 rounded-xl p-3 items-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                {stat.icon}
+                <Text className="text-xl font-bold text-white mt-1">{stat.value}</Text>
+                <Text className="text-[10px] text-white/60 font-medium">{stat.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View>
+          <Text className="text-base font-bold text-primary mb-3">Menu Utama</Text>
+          <View className="flex-row justify-between">
+            {[
+              { icon: <Megaphone size={28} color="#2563eb" weight="duotone" />, label: 'Lapor', bg: '#dbeafe', border: '#bfdbfe', onPress: () => router.push('/(tabs)/lapor') },
+              { icon: <MapTrifold size={28} color="#059669" weight="duotone" />, label: 'Pantau', bg: '#d1fae5', border: '#a7f3d0', onPress: () => router.push('/(tabs)/pantau') },
+              { icon: <Siren size={28} color={SiagaColors.danger} weight="duotone" />, label: 'SOS', bg: '#fee2e2', border: '#fecaca', sos: true, onPress: () => setSosVisible(true) },
+              { icon: <Robot size={28} color="#7c3aed" weight="duotone" />, label: 'AI Chat', bg: '#ede9fe', border: '#ddd6fe', onPress: () => router.push('/(tabs)/aichat') },
+            ].map((item, i) => (
+              <TouchableOpacity
+                key={i}
+                className="items-center gap-2"
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View className="w-16 h-16 rounded-2xl items-center justify-center" style={{ backgroundColor: item.bg, borderWidth: 1, borderColor: item.border }}>
+                  {item.icon}
+                </View>
+                <Text className="text-[11px] font-semibold" style={{ color: item.sos ? SiagaColors.danger : 'rgba(8,42,76,0.8)' }}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Emergency Contacts */}
+        <View>
+          <SectionHeader title="Panggilan Darurat" onAction={() => setSosVisible(true)} actionLabel="SOS" />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {[
+              { icon: <FireTruck size={22} color={SiagaColors.danger} weight="duotone" />, name: 'Pemadam', num: '113', color: SiagaColors.danger, bg: '#fef2f2' },
+              { icon: <Ambulance size={22} color={SiagaColors.info} weight="duotone" />, name: 'Ambulance', num: '118', color: SiagaColors.info, bg: '#eff6ff' },
+              { icon: <PoliceCar size={22} color={SiagaColors.primary} weight="duotone" />, name: 'Polisi', num: '110', color: SiagaColors.primary, bg: '#f8fafc' },
+              { icon: <Binoculars size={22} color="#d97706" weight="duotone" />, name: 'SAR', num: '115', color: '#d97706', bg: '#fffbeb' },
+              { icon: <PhoneCall size={22} color="#059669" weight="duotone" />, name: 'Darurat', num: '112', color: '#059669', bg: '#ecfdf5' },
+            ].map((c, i) => (
+              <TouchableOpacity
+                key={i}
+                className="flex-row items-center gap-3 bg-white border border-slate-100 rounded-xl px-4 py-3.5"
+                style={{ elevation: 1 }}
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL(`tel:${c.num}`)}
+              >
+                <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: c.bg }}>{c.icon}</View>
+                <View>
+                  <Text className="text-[11px] font-bold text-primary">{c.name}</Text>
+                  <Text className="text-sm font-extrabold tracking-wider" style={{ color: c.color }}>{c.num}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Nearby Reports */}
+        <View>
+          <SectionHeader title="Laporan di Sekitar" subtitle="Dalam radius lokasi Anda" onAction={() => router.push('/(tabs)/pantau')} actionLabel="Lihat Semua" />
+          <View className="gap-2.5">
+            {reports.map((r) => {
+              const reportIcon = r.type === 'Waves'
+                ? <Waves size={28} color="#fff" weight="duotone" />
+                : r.type === 'RoadHorizon'
+                  ? <RoadHorizon size={28} color="#fff" weight="duotone" />
+                  : <Trash size={28} color="#fff" weight="duotone" />;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  className="bg-white border border-slate-100 rounded-2xl p-3.5"
+                  style={{ elevation: 1 }}
+                  activeOpacity={0.85}
+                  onPress={() => router.push({ pathname: '/report-detail', params: { id: r.id } })}
+                >
+                  <View className="flex-row gap-3">
+                    <View className="w-16 h-16 rounded-xl items-center justify-center" style={{ backgroundColor: r.gradient }}>
+                      {reportIcon}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <View className="px-2 py-0.5 rounded flex-row items-center gap-1" style={{ backgroundColor: r.badgeBg }}>
+                          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.badgeColor }} />
+                          <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: r.badgeColor }}>{r.badge}</Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <Clock size={12} color={SiagaColors.secondary} />
+                          <Text className="text-[10px] text-secondary">{r.time}</Text>
+                        </View>
+                      </View>
+                      <Text className="text-sm font-bold text-primary">{r.title}</Text>
+                      <Text className="text-[11px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
+                      <View className="flex-row items-center gap-3 mt-2">
+                        <View className="flex-row items-center gap-1">
+                          <MapPin size={13} color={SiagaColors.secondary} weight="duotone" />
+                          <Text className="text-[10px] text-secondary">{r.distance}</Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <Users size={13} color={SiagaColors.primary} weight="duotone" />
+                          <Text className="text-[10px] font-semibold text-primary">{r.votes} dukungan</Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <Camera size={13} color={SiagaColors.secondary} weight="duotone" />
+                          <Text className="text-[10px] text-secondary">{r.photos} foto</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                  <View className="flex-row items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
+                    <View className="flex-row items-center gap-2">
+                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.urgencyColor }} />
+                      <Text className="text-[10px] font-semibold" style={{ color: r.urgencyColor }}>Urgensi: {r.urgency} poin</Text>
+                      <View className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <View className="h-full rounded-full" style={{ width: `${Math.min(r.urgency, 100)}%`, backgroundColor: r.urgencyColor }} />
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
+                      style={{ backgroundColor: r.supported ? '#dcfce7' : SiagaColors.primary }}
+                      onPress={(e) => { e.stopPropagation?.(); handleSupport(r.id); }}
+                      activeOpacity={0.7}
+                    >
+                      <ThumbsUp size={12} color={r.supported ? '#15803d' : '#fff'} weight={r.supported ? 'fill' : 'bold'} />
+                      <Text className="text-[11px] font-semibold" style={{ color: r.supported ? '#15803d' : '#fff' }}>
+                        {r.supported ? 'Didukung' : 'Dukung'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Eco Points */}
+        <TouchableOpacity
+          className="rounded-2xl p-4 border border-accent/20"
+          style={{ backgroundColor: SiagaColors.surface }}
+          activeOpacity={0.85}
+          onPress={() => router.push('/(tabs)/profil')}
+        >
+          <View className="flex-row items-center justify-between mb-3">
+            <View>
+              <View className="flex-row items-center gap-1.5">
+                <Leaf size={18} color={SiagaColors.success} weight="duotone" />
+                <Text className="text-base font-bold text-primary">Eco-Points Saya</Text>
+              </View>
+              <Text className="text-[11px] text-secondary mt-0.5">Terus berkontribusi untuk komunitasmu!</Text>
+            </View>
+            <View className="bg-white rounded-xl px-3 py-2 flex-row items-center gap-1.5" style={{ elevation: 1 }}>
+              <Star size={16} color="#fbbf24" weight="duotone" />
+              <Text className="text-sm font-bold text-primary">{dummyUser.ecoPoints} pts</Text>
+            </View>
+          </View>
+          <View className="flex-row gap-2 mb-3">
+            <View className="flex-row items-center gap-1.5 bg-white/80 rounded-lg px-2.5 py-1.5" style={{ elevation: 1 }}>
+              <Medal size={16} color="#f59e0b" weight="duotone" />
+              <Text className="text-[10px] font-semibold text-primary">{dummyUser.currentBadge}</Text>
+            </View>
+            <View className="flex-row items-center gap-1.5 bg-white/50 rounded-lg px-2.5 py-1.5 border border-dashed border-accent">
+              <Trophy size={16} color="rgba(152,172,195,0.4)" weight="duotone" />
+              <Text className="text-[10px] font-medium text-secondary">{dummyUser.pointsToNextBadge} pts lagi</Text>
+            </View>
+          </View>
+          <View className="bg-white/60 rounded-lg p-2.5">
+            <View className="flex-row items-center justify-between mb-1.5">
+              <Text className="text-[10px] font-medium text-secondary">Menuju {dummyUser.nextBadge}</Text>
+              <Text className="text-[10px] font-bold text-primary">{dummyUser.ecoPoints} / {dummyUser.nextBadgeThreshold}</Text>
+            </View>
+            <View className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+              <View
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.round((dummyUser.ecoPoints / dummyUser.nextBadgeThreshold) * 100)}%`,
+                  backgroundColor: SiagaColors.info,
+                }}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Positive Actions */}
+        <View>
+          <SectionHeader title="Aksi Positif" icon={<HandsClapping size={16} color="#f59e0b" weight="duotone" />} onAction={() => router.push('/(tabs)/lapor')} actionLabel="Ikut Aksi" />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {dummyPositiveActions.map((a) => {
+              const actionIcon = a.type === 'Plant'
+                ? <Plant size={48} color="rgba(5,150,105,0.6)" weight="duotone" />
+                : a.type === 'RoadHorizon'
+                  ? <RoadHorizon size={48} color="rgba(37,99,235,0.6)" weight="duotone" />
+                  : <Tree size={48} color="rgba(217,119,6,0.6)" weight="duotone" />;
+              return (
+                <TouchableOpacity
+                  key={a.id}
+                  className="w-[220px] bg-white border border-slate-100 rounded-2xl overflow-hidden"
+                  style={{ elevation: 1 }}
+                  activeOpacity={0.85}
+                  onPress={() => router.push({ pathname: '/action-detail', params: { id: a.id } })}
+                >
+                  <View className="h-28 items-center justify-center" style={{ backgroundColor: a.bg }}>{actionIcon}</View>
+                  <View className="p-3.5">
+                    <View className="flex-row items-center gap-1 mb-1">
+                      <View className="flex-row items-center gap-1 px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(39,174,96,0.1)' }}>
+                        <CheckCircle size={11} color={SiagaColors.success} weight="fill" />
+                        <Text className="text-[10px] font-semibold text-success">Tervalidasi</Text>
+                      </View>
+                    </View>
+                    <Text className="text-xs font-bold text-primary leading-tight">{a.title}</Text>
+                    <View className="flex-row items-center gap-2 mt-2">
+                      <View className="flex-row items-center gap-1">
+                        <Clock size={11} color={SiagaColors.secondary} />
+                        <Text className="text-[10px] text-secondary">{a.time}</Text>
+                      </View>
+                      <Text className="text-[10px] text-success font-semibold">+{a.points} pts</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Info Feed */}
+        <View>
+          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={16} color={SiagaColors.info} weight="duotone" />} onAction={() => Alert.alert('Info & Edukasi', 'Halaman lengkap akan segera hadir.')} actionLabel="Semua" />
+          <View className="gap-2.5">
+            {dummyInfoFeed.map((info) => {
+              const infoIcon = info.type === 'CloudRain'
+                ? <CloudRain size={24} color={info.color} weight="duotone" />
+                : info.type === 'BookOpenText'
+                  ? <BookOpenText size={24} color={info.color} weight="duotone" />
+                  : <MegaphoneSimple size={24} color={info.color} weight="duotone" />;
+              return (
+                <TouchableOpacity
+                  key={info.id}
+                  className="flex-row items-center gap-3 bg-white border border-slate-100 rounded-xl p-3.5"
+                  style={{ elevation: 1 }}
+                  activeOpacity={0.8}
+                  onPress={() => Alert.alert(info.source, info.title)}
+                >
+                  <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: info.bg }}>{infoIcon}</View>
+                  <View className="flex-1">
+                    <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: info.color }}>{info.source}</Text>
+                    <Text className="text-xs font-bold text-primary leading-tight mt-0.5">{info.title}</Text>
+                  </View>
+                  <CaretRight size={16} color={SiagaColors.secondary} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Budget Watch */}
+        <View>
+          <SectionHeader title="Budget Watch" icon={<ChartPieSlice size={16} color="#7c3aed" weight="duotone" />} actionLabel="Proyek" onAction={() => router.push('/(tabs)/pantau')} />
+          <View className="bg-white border border-slate-100 rounded-2xl p-4" style={{ elevation: 1 }}>
+            <View className="flex-row items-start justify-between mb-2">
+              <View className="flex-row items-start gap-2.5">
+                <View className="w-10 h-10 rounded-lg bg-violet-50 items-center justify-center mt-0.5">
+                  <HardHat size={22} color="#7c3aed" weight="duotone" />
+                </View>
+                <View>
+                  <Text className="text-[13px] font-bold text-primary">{dummyBudgetWatch.title}</Text>
+                  <Text className="text-[11px] text-secondary mt-0.5">{dummyBudgetWatch.contractor} • {dummyBudgetWatch.budgetFormatted}</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef3c7' }}>
+                <Flag size={10} color="#a16207" weight="fill" />
+                <Text className="text-[9px] font-bold" style={{ color: '#a16207' }}>{dummyBudgetWatch.flagCount} Flag</Text>
+              </View>
+            </View>
+            <View className="mb-2">
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="text-[10px] font-medium text-secondary">Progress</Text>
+                <Text className="text-[10px] font-bold text-primary">{dummyBudgetWatch.progress}%</Text>
+              </View>
+              <View className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <View className="h-full rounded-full" style={{ width: `${dummyBudgetWatch.progress}%`, backgroundColor: SiagaColors.info }} />
+              </View>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="flex-row items-center gap-0.5">
+                  <Clock size={11} color={SiagaColors.secondary} />
+                  <Text className="text-[10px] text-secondary">Sisa {dummyBudgetWatch.daysLeft} hari</Text>
+                </View>
+                <View className="flex-row items-center gap-1">
+                  <Star size={11} color="#fbbf24" weight="fill" />
+                  <Text className="text-[10px] text-secondary">{dummyBudgetWatch.rating} / 5.0</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                className="flex-row items-center gap-0.5"
+                activeOpacity={0.7}
+                onPress={() => router.push('/(tabs)/pantau')}
+              >
+                <Text className="text-[11px] font-semibold text-info">Detail</Text>
+                <CaretRight size={11} color={SiagaColors.info} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Floating SOS */}
+      <SOSButton onPress={() => setSosVisible(true)} />
+      <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />
+    </View>
+  );
+}
