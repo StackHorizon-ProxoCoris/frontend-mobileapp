@@ -1,35 +1,55 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View, Text } from 'react-native';
+import { House, Megaphone, MapTrifold, ChatCenteredDots, UserCircle } from 'phosphor-react-native';
+import { SiagaColors } from '@/constants/theme';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const TAB_ITEMS = [
+  { name: 'index', label: 'Beranda', Icon: House },
+  { name: 'lapor', label: 'Lapor', Icon: Megaphone },
+  { name: 'pantau', label: 'Pantau', Icon: MapTrifold },
+  { name: 'aichat', label: 'AI Chat', Icon: ChatCenteredDots },
+  { name: 'profil', label: 'Profil', Icon: UserCircle },
+];
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+        tabBarStyle: {
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderTopColor: '#f1f5f9',
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 6,
+          paddingTop: 6,
+        },
+        tabBarActiveTintColor: SiagaColors.primary,
+        tabBarInactiveTintColor: SiagaColors.secondary,
+        tabBarLabelStyle: {
+          fontSize: 9,
+          fontWeight: '600',
+        },
+      }}
+    >
+      {TAB_ITEMS.map(({ name, label, Icon }) => (
+        <Tabs.Screen
+          key={name}
+          name={name}
+          options={{
+            title: label,
+            tabBarIcon: ({ color, focused }) => (
+              <View className="items-center">
+                <Icon size={22} color={color} weight="duotone" />
+                {focused && (
+                  <View className="w-5 h-[3px] bg-primary rounded-full mt-0.5" />
+                )}
+              </View>
+            ),
+          }}
+        />
+      ))}
     </Tabs>
   );
 }
