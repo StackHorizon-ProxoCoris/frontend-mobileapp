@@ -21,14 +21,14 @@ export default function TabLayout() {
           backgroundColor: 'rgba(255,255,255,0.95)',
           borderTopColor: '#f1f5f9',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 6,
+          height: 65,
+          paddingBottom: 8,
           paddingTop: 6,
         },
         tabBarActiveTintColor: SiagaColors.primary,
         tabBarInactiveTintColor: SiagaColors.secondary,
         tabBarLabelStyle: {
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}
@@ -41,7 +41,7 @@ export default function TabLayout() {
             title: label,
             tabBarIcon: ({ color, focused }) => (
               <View className="items-center">
-                <Icon size={22} color={color} weight="duotone" />
+                <Icon size={26} color={color} weight="duotone" />
                 {focused && (
                   <View className="w-5 h-[3px] bg-primary rounded-full mt-0.5" />
                 )}
