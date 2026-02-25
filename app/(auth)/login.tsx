@@ -10,6 +10,7 @@ import {
     ShieldCheck, Envelope, Lock, Eye, EyeSlash,
     GoogleLogo, ArrowRight, CaretRight,
     Fingerprint, Globe, Lightning,
+    Users, Buildings, UserGear,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 
@@ -24,6 +25,13 @@ export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [selectedRole, setSelectedRole] = useState<'user' | 'pemerintah' | 'admin'>('user');
+
+    const roles = [
+        { key: 'user' as const, label: 'Masyarakat', icon: Users, description: 'Warga & Pengguna' },
+        { key: 'pemerintah' as const, label: 'Pemerintah', icon: Buildings, description: 'Instansi Pemerintah' },
+        { key: 'admin' as const, label: 'Admin', icon: UserGear, description: 'Administrator' },
+    ];
 
     // Animations
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -37,6 +45,14 @@ export default function LoginScreen() {
             Animated.spring(logoScale, { toValue: 1, friction: 4, useNativeDriver: true }),
         ]).start();
     }, []);
+
+    const getTargetRoute = () => {
+        switch (selectedRole) {
+            case 'pemerintah': return '/(gov-tabs)' as const;
+            case 'admin': return '/(tabs)' as const;
+            default: return '/(tabs)' as const;
+        }
+    };
 
     const handleLogin = () => {
         if (!email.trim()) {
@@ -55,7 +71,7 @@ export default function LoginScreen() {
         setIsLoading(true);
         setTimeout(() => {
             setIsLoading(false);
-            router.replace('/(tabs)');
+            router.replace(getTargetRoute());
         }, 1500);
     };
 
@@ -63,7 +79,7 @@ export default function LoginScreen() {
         setIsLoading(true);
         setTimeout(() => {
             setIsLoading(false);
-            router.replace('/(tabs)');
+            router.replace(getTargetRoute());
         }, 1500);
     };
 
@@ -93,23 +109,6 @@ export default function LoginScreen() {
                             <Text className="text-3xl font-extrabold text-white tracking-wider">SIAGA</Text>
                             <Text className="text-[11px] text-white/50 mt-1 tracking-widest uppercase">Smart Indonesia Adaptive Governance</Text>
                         </Animated.View>
-
-                        {/* Trust indicators */}
-                        <Animated.View
-                            style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                            className="flex-row items-center justify-center gap-4 mt-2"
-                        >
-                            {[
-                                { icon: <Globe size={10} color="rgba(255,255,255,0.5)" weight="duotone" />, label: 'Open Data' },
-                                { icon: <Lightning size={10} color="rgba(255,255,255,0.5)" weight="duotone" />, label: 'Real-time' },
-                                { icon: <Fingerprint size={10} color="rgba(255,255,255,0.5)" weight="duotone" />, label: 'Secure' },
-                            ].map((item, i) => (
-                                <View key={i} className="flex-row items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-                                    {item.icon}
-                                    <Text className="text-[8px] font-semibold text-white/40">{item.label}</Text>
-                                </View>
-                            ))}
-                        </Animated.View>
                     </View>
 
                     {/* Form Card */}
@@ -118,9 +117,57 @@ export default function LoginScreen() {
                         className="bg-white rounded-t-[32px] px-7 pt-8 pb-6"
                     >
                         {/* Header */}
-                        <View className="mb-6">
+                        <View className="mb-5">
                             <Text className="text-[22px] font-bold text-primary">Selamat Datang</Text>
                             <Text className="text-[12px] text-secondary mt-1">Masuk untuk melindungi komunitas Anda</Text>
+                        </View>
+
+                        {/* Role Selector */}
+                        <View className="mb-5">
+                            <Text className="text-[11px] font-bold text-primary/70 mb-2 ml-1">Masuk Sebagai</Text>
+                            <View className="flex-row gap-2">
+                                {roles.map((role) => {
+                                    const isActive = selectedRole === role.key;
+                                    const IconComponent = role.icon;
+                                    return (
+                                        <TouchableOpacity
+                                            key={role.key}
+                                            className="flex-1 items-center py-3 rounded-2xl border-2"
+                                            style={{
+                                                borderColor: isActive ? SiagaColors.primary : '#f1f5f9',
+                                                backgroundColor: isActive ? `${SiagaColors.primary}08` : '#fafbfc',
+                                            }}
+                                            onPress={() => setSelectedRole(role.key)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View
+                                                className="w-9 h-9 rounded-xl items-center justify-center mb-1.5"
+                                                style={{
+                                                    backgroundColor: isActive ? `${SiagaColors.primary}15` : '#f1f5f9',
+                                                }}
+                                            >
+                                                <IconComponent
+                                                    size={18}
+                                                    color={isActive ? SiagaColors.primary : SiagaColors.secondary}
+                                                    weight={isActive ? 'fill' : 'duotone'}
+                                                />
+                                            </View>
+                                            <Text
+                                                className="text-[11px] font-bold"
+                                                style={{ color: isActive ? SiagaColors.primary : SiagaColors.secondary }}
+                                            >
+                                                {role.label}
+                                            </Text>
+                                            <Text
+                                                className="text-[8px] mt-0.5"
+                                                style={{ color: isActive ? SiagaColors.primary + '80' : SiagaColors.secondary + '80' }}
+                                            >
+                                                {role.description}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
                         </View>
 
                         {/* Google Login */}
