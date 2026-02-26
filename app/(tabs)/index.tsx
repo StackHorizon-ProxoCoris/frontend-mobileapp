@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,10 +16,10 @@ import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 import SectionHeader from '@/components/ui/SectionHeader';
 import { useAuth } from '@/context/auth';
+import { getReports, toggleReportVote, type ReportData } from '@/services/report.service';
+import { getActions, type ActionData } from '@/services/action.service';
 import {
   dummyAreaStatus,
-  dummyReports,
-  dummyPositiveActions,
   dummyInfoFeed,
   dummyEmergencyContacts,
   type Report,
@@ -36,20 +36,65 @@ function getGreeting(): { text: string; Icon: React.ComponentType<any> } {
 export default function HomeScreen() {
   const [showWarning, setShowWarning] = useState(true);
   const [sosVisible, setSosVisible] = useState(false);
-  const [reports, setReports] = useState<Report[]>(dummyReports);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [actions, setActions] = useState<ActionData[]>([]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
   const greeting = useMemo(() => getGreeting(), []);
 
-  const handleSupport = (reportId: string) => {
-    setReports(prev =>
-      prev.map(r =>
-        r.id === reportId
-          ? { ...r, supported: !r.supported, votes: r.supported ? r.votes - 1 : r.votes + 1 }
-          : r
-      )
-    );
+  // Helper: konversi data API ke format UI Report
+  const mapReportToUI = useCallback((r: ReportData): Report => ({
+    id: r.id,
+    type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
+    gradient: '#3b82f6',
+    badge: r.urgency >= 80 ? 'Kritis' : r.urgency >= 40 ? 'Sedang' : 'Rendah',
+    badgeBg: r.urgency >= 80 ? '#fee2e2' : r.urgency >= 40 ? '#fef3c7' : '#dcfce7',
+    badgeColor: r.urgency >= 80 ? '#dc2626' : r.urgency >= 40 ? '#f59e0b' : '#10b981',
+    title: r.title,
+    desc: r.description?.slice(0, 60) + (r.description?.length > 60 ? '...' : '') || '',
+    distance: `${r.district || '-'}`,
+    votes: r.votesCount,
+    photos: r.photosCount,
+    time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+    urgency: r.urgency,
+    urgencyColor: r.urgency >= 80 ? '#dc2626' : r.urgency >= 40 ? '#f59e0b' : '#10b981',
+    supported: r.hasVoted || false,
+  }), []);
+
+  // Ambil reports dari API
+  useEffect(() => {
+    async function loadReports() {
+      const result = await getReports({ limit: 5 });
+      if (result.success && result.data) {
+        setReports(result.data.map(mapReportToUI));
+      }
+    }
+    loadReports();
+  }, [mapReportToUI]);
+
+  // Ambil actions dari API
+  useEffect(() => {
+    async function loadActions() {
+      const result = await getActions({ limit: 5 });
+      if (result.success && result.data) {
+        setActions(result.data);
+      }
+    }
+    loadActions();
+  }, []);
+
+  const handleSupport = async (reportId: string) => {
+    const result = await toggleReportVote(reportId);
+    if (result.success) {
+      setReports(prev =>
+        prev.map(r =>
+          r.id === reportId
+            ? { ...r, supported: !r.supported, votes: r.supported ? r.votes - 1 : r.votes + 1 }
+            : r
+        )
+      );
+    }
   };
 
   return (
@@ -320,12 +365,7 @@ export default function HomeScreen() {
         <View>
           <SectionHeader title="Aksi Positif" icon={<HandsClapping size={16} color="#f59e0b" weight="duotone" />} onAction={() => router.push('/(tabs)/lapor')} actionLabel="Ikut Aksi" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-            {dummyPositiveActions.map((a) => {
-              const actionIcon = a.type === 'Plant'
-                ? <Plant size={48} color="rgba(5,150,105,0.6)" weight="duotone" />
-                : a.type === 'RoadHorizon'
-                  ? <RoadHorizon size={48} color="rgba(37,99,235,0.6)" weight="duotone" />
-                  : <Tree size={48} color="rgba(217,119,6,0.6)" weight="duotone" />;
+            {actions.map((a) => {
               return (
                 <TouchableOpacity
                   key={a.id}
@@ -334,19 +374,21 @@ export default function HomeScreen() {
                   activeOpacity={0.85}
                   onPress={() => router.push({ pathname: '/action-detail', params: { id: a.id } })}
                 >
-                  <View className="h-28 items-center justify-center" style={{ backgroundColor: a.bg }}>{actionIcon}</View>
+                  <View className="h-28 items-center justify-center" style={{ backgroundColor: '#ecfdf5' }}>
+                    <Plant size={48} color="rgba(5,150,105,0.6)" weight="duotone" />
+                  </View>
                   <View className="p-3.5">
                     <View className="flex-row items-center gap-1 mb-1">
                       <View className="flex-row items-center gap-1 px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(39,174,96,0.1)' }}>
                         <CheckCircle size={11} color={SiagaColors.success} weight="fill" />
-                        <Text className="text-[10px] font-semibold text-success">Tervalidasi</Text>
+                        <Text className="text-[10px] font-semibold text-success">{a.status}</Text>
                       </View>
                     </View>
                     <Text className="text-xs font-bold text-primary leading-tight">{a.title}</Text>
                     <View className="flex-row items-center gap-2 mt-2">
                       <View className="flex-row items-center gap-1">
                         <Clock size={11} color={SiagaColors.secondary} />
-                        <Text className="text-[10px] text-secondary">{a.time}</Text>
+                        <Text className="text-[10px] text-secondary">{new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
                       </View>
                       <Text className="text-[10px] text-success font-semibold">+{a.points} pts</Text>
                     </View>
