@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
     Animated, TextInput, Dimensions,
@@ -15,6 +15,7 @@ import {
     Warning, Eye, ChatText, CheckSquare,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { getReports, type ReportData } from '@/services/report.service';
 
 const { width } = Dimensions.get('window');
 
@@ -308,6 +309,7 @@ export default function GovLaporanScreen() {
     const [showSearch, setShowSearch] = useState(false);
     const [showSort, setShowSort] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [apiReports, setApiReports] = useState<ReportData[]>([]);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
@@ -319,6 +321,15 @@ export default function GovLaporanScreen() {
             Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
         ]).start();
+    }, []);
+
+    // Ambil laporan dari API
+    useEffect(() => {
+        async function load() {
+            const result = await getReports({ limit: 20 });
+            if (result.success && result.data) setApiReports(result.data);
+        }
+        load();
     }, []);
 
     const toggleSearch = () => {
@@ -337,7 +348,82 @@ export default function GovLaporanScreen() {
         setShowAnalytics(!showAnalytics);
     };
 
-    const filteredReports = REPORTS.filter((r) => {
+    // Konversi API data ke UI format
+    const REPORTS_LIVE = useMemo(() => {
+        const iconMap: Record<string, { icon: any; iconColor: string; bgColor: string }> = {
+            'Banjir': { icon: Waves, iconColor: '#2563eb', bgColor: '#eff6ff' },
+            'Longsor': { icon: Mountains, iconColor: '#ea580c', bgColor: '#fff7ed' },
+            'Jalan Rusak': { icon: RoadHorizon, iconColor: '#d97706', bgColor: '#fffbeb' },
+            'Kebakaran': { icon: Fire, iconColor: '#dc2626', bgColor: '#fef2f2' },
+            'Sampah': { icon: Trash, iconColor: '#059669', bgColor: '#ecfdf5' },
+        };
+        const statusMap: Record<string, StatusType> = {
+            'Menunggu': 'Baru',
+            'Diverifikasi': 'Diproses',
+            'Ditangani': 'Diproses',
+            'Selesai': 'Selesai',
+        };
+        return apiReports.map(r => {
+            const cat = iconMap[r.category] || { icon: Warning, iconColor: '#f59e0b', bgColor: '#fffbeb' };
+            const severity: SeverityLevel = r.urgency >= 80 ? 'Kritis' : r.urgency >= 60 ? 'Tinggi' : r.urgency >= 40 ? 'Sedang' : 'Rendah';
+            const status: StatusType = statusMap[r.status] || 'Baru';
+            return {
+                id: r.id,
+                title: r.title,
+                desc: r.description?.slice(0, 80) + (r.description?.length > 80 ? '...' : '') || '',
+                area: r.district || r.city || '-',
+                cluster: `${r.votesCount} dukungan`,
+                time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                severity,
+                status,
+                icon: cat.icon,
+                iconColor: cat.iconColor,
+                bgColor: cat.bgColor,
+            };
+        });
+    }, [apiReports]);
+
+    // Hitung SUMMARY_STATS dari live data
+    const SUMMARY_STATS_LIVE = useMemo(() => {
+        const baru = REPORTS_LIVE.filter(r => r.status === 'Baru').length;
+        const proses = REPORTS_LIVE.filter(r => r.status === 'Diproses').length;
+        const selesai = REPORTS_LIVE.filter(r => r.status === 'Selesai').length;
+        return [
+            { value: String(baru), label: 'Baru', icon: FilePlus, color: SiagaColors.danger, bg: '#fef2f2', trend: `+${baru} hari ini` },
+            { value: String(proses), label: 'Diproses', icon: HourglassMedium, color: '#d97706', bg: '#fffbeb', trend: 'Aktif' },
+            { value: String(selesai), label: 'Selesai', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: REPORTS_LIVE.length > 0 ? `${Math.round(selesai / REPORTS_LIVE.length * 100)}%` : '0%' },
+            { value: '4.2j', label: 'Avg. Respons', icon: Timer, color: SiagaColors.info, bg: '#eff6ff', trend: 'Baik' },
+        ];
+    }, [REPORTS_LIVE]);
+
+    // Hitung FILTER_TABS dari live data
+    const FILTER_TABS_LIVE = useMemo(() => [
+        { key: 'Semua', count: REPORTS_LIVE.length },
+        { key: 'Baru', count: REPORTS_LIVE.filter(r => r.status === 'Baru').length },
+        { key: 'Diproses', count: REPORTS_LIVE.filter(r => r.status === 'Diproses').length },
+        { key: 'Selesai', count: REPORTS_LIVE.filter(r => r.status === 'Selesai').length },
+        { key: 'Ditolak', count: REPORTS_LIVE.filter(r => r.status === 'Ditolak').length },
+    ], [REPORTS_LIVE]);
+
+    // Hitung CATEGORY_DIST dari live data
+    const CATEGORY_DIST_LIVE = useMemo(() => {
+        const cats = [
+            { label: 'Banjir', color: '#3b82f6', bg: '#eff6ff' },
+            { label: 'Jalan Rusak', color: '#f59e0b', bg: '#fffbeb' },
+            { label: 'Sampah', color: '#10b981', bg: '#ecfdf5' },
+            { label: 'Longsor', color: '#f97316', bg: '#fff7ed' },
+            { label: 'Kebakaran', color: '#ef4444', bg: '#fef2f2' },
+        ];
+        return cats.map(c => {
+            const count = apiReports.filter(r => r.category === c.label).length;
+            return { ...c, count, pct: apiReports.length > 0 ? Math.round(count / apiReports.length * 100) : 0 };
+        });
+    }, [apiReports]);
+
+    // Kritis count from live data
+    const kritisCount = REPORTS_LIVE.filter(r => r.severity === 'Kritis').length;
+
+    const filteredReports = REPORTS_LIVE.filter((r) => {
         const matchFilter = activeFilter === 'Semua' || r.status === activeFilter || (activeFilter === 'Darurat' && r.severity === 'Kritis');
         const matchSearch = searchQuery === '' || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.area.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.includes(searchQuery);
         return matchFilter && matchSearch;
@@ -367,7 +453,7 @@ export default function GovLaporanScreen() {
                                     Manajemen Laporan
                                 </Text>
                                 <Text className="text-[10px] font-semibold text-white/40 uppercase tracking-[2px]">
-                                    Kota Bandung · 54 Laporan
+                                    Kota Bandung · {apiReports.length} Laporan
                                 </Text>
                             </View>
                         </View>
@@ -405,7 +491,7 @@ export default function GovLaporanScreen() {
                     >
                         <WarningDiamond size={18} color={SiagaColors.danger} weight="fill" />
                         <Text className="text-[13px] font-bold flex-1" style={{ color: '#fca5a5' }}>
-                            2 Laporan <Text className="text-white">Kritis</Text> butuh respons segera
+                            {kritisCount} Laporan <Text className="text-white">Kritis</Text> butuh respons segera
                         </Text>
                         <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: SiagaColors.danger }}>
                             <Text className="text-[9px] font-bold text-white">DARURAT</Text>
@@ -432,7 +518,7 @@ export default function GovLaporanScreen() {
                     </Text>
                     {/* Stat grid 2x2 */}
                     <View className="flex-row gap-2.5 mb-3">
-                        {SUMMARY_STATS.map((item, i) => (
+                        {SUMMARY_STATS_LIVE.map((item, i) => (
                             <StatCard key={i} item={item} />
                         ))}
                     </View>
@@ -446,7 +532,7 @@ export default function GovLaporanScreen() {
                             Distribusi Kategori
                         </Text>
                         <View className="gap-2">
-                            {CATEGORY_DIST.map((cat, i) => (
+                            {CATEGORY_DIST_LIVE.map((cat, i) => (
                                 <View key={i}>
                                     <View className="flex-row items-center justify-between mb-0.5">
                                         <View className="flex-row items-center gap-1.5">
@@ -517,7 +603,7 @@ export default function GovLaporanScreen() {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
                 >
-                    {FILTER_TABS.map((tab) => {
+                    {FILTER_TABS_LIVE.map((tab) => {
                         const isActive = activeFilter === tab.key;
                         return (
                             <TouchableOpacity
