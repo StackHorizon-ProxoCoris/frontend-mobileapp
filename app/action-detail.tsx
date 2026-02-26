@@ -13,7 +13,8 @@ import {
   ShieldCheck, Trophy, ChartBar, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyActionDetails, dummyUser, type ActionDetail } from '@/data/dummy';
+import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
+import { useAuth } from '@/context/auth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -27,6 +28,7 @@ export default function ActionDetailScreen() {
   const [joined, setJoined] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
+  const { user } = useAuth();
 
   const action = dummyActionDetails[id ?? ''];
 
@@ -451,7 +453,7 @@ export default function ActionDetailScreen() {
           <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
             <View className="flex-row items-start gap-2.5">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                <Text className="text-[10px] font-bold text-white">{dummyUser.initials}</Text>
+                <Text className="text-[10px] font-bold text-white">{user?.initials || 'U'}</Text>
               </View>
               <View className="flex-1">
                 <TextInput
@@ -475,8 +477,8 @@ export default function ActionDetailScreen() {
                       if (!commentText.trim()) return;
                       const newComment = {
                         id: `c_new_${Date.now()}`,
-                        user: dummyUser.name,
-                        initials: dummyUser.initials,
+                        user: user?.fullName || 'User',
+                        initials: user?.initials || 'U',
                         text: commentText.trim(),
                         time: 'Baru saja',
                         likes: 0,

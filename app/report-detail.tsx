@@ -12,7 +12,8 @@ import {
   CalendarBlank, Buildings, UserCircle, Medal, CaretRight, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyReportDetails, dummyUser, type ReportDetail } from '@/data/dummy';
+import { dummyReportDetails, type ReportDetail } from '@/data/dummy';
+import { useAuth } from '@/context/auth';
 import EmbeddedMap from '@/components/ui/MapView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -29,6 +30,7 @@ export default function ReportDetailScreen() {
   const [commentText, setCommentText] = useState('');
   const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
   const scrollRef = useRef<ScrollView>(null);
+  const { user } = useAuth();
 
   const report = dummyReportDetails[id ?? ''];
 
@@ -434,7 +436,7 @@ export default function ReportDetailScreen() {
           <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
             <View className="flex-row items-start gap-2.5">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                <Text className="text-[10px] font-bold text-white">{dummyUser.initials}</Text>
+                <Text className="text-[10px] font-bold text-white">{user?.initials || 'U'}</Text>
               </View>
               <View className="flex-1">
                 <TextInput
@@ -458,8 +460,8 @@ export default function ReportDetailScreen() {
                       if (!commentText.trim()) return;
                       const newComment = {
                         id: `c_new_${Date.now()}`,
-                        user: dummyUser.name,
-                        initials: dummyUser.initials,
+                        user: user?.fullName || 'User',
+                        initials: user?.initials || 'U',
                         text: commentText.trim(),
                         time: 'Baru saja',
                         likes: 0,
