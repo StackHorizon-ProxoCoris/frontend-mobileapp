@@ -11,7 +11,7 @@ import {
     Timer, WarningDiamond, TrendUp, Megaphone, MapTrifold,
     ChartLineUp, ChartDonut, ChartBar, ChartPieSlice,
     ClockCounterClockwise, ChatText, ArrowClockwise,
-    Warning, MapPin, Tree, ClipboardText,
+    Warning, MapPin, Tree, ClipboardText, Wallet,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import Svg, { Circle } from 'react-native-svg';
@@ -30,7 +30,7 @@ const QUICK_ACTIONS = [
     { label: 'Broadcast', icon: Megaphone, color: SiagaColors.info, route: '/action-detail' },
     { label: 'Peta', icon: MapTrifold, color: SiagaColors.success, route: '/(gov-tabs)/peta' },
     { label: 'Statistik', icon: ChartLineUp, color: '#7c3aed', route: '/(gov-tabs)/laporan' },
-    { label: 'Proyek', icon: FilePlus, color: '#d97706', route: '/(gov-tabs)/budget' },
+    { label: 'Budget', icon: Wallet, color: '#d97706', route: '/(gov-tabs)/budget' },
 ];
 
 const FILTER_CHIPS = ['Semua', 'Darurat', 'Baru', 'Proses', 'Selesai'];
