@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity, Animated, Dimensions,
 } from 'react-native';
@@ -15,6 +15,8 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import Svg, { Circle } from 'react-native-svg';
+import { useAuth } from '@/context/auth';
+import { getReports, type ReportData } from '@/services/report.service';
 
 const { width } = Dimensions.get('window');
 
@@ -91,6 +93,8 @@ export default function GovDashboardScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('Semua');
+    const { user } = useAuth();
+    const [reports, setReports] = useState<ReportData[]>([]);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(12)).current;
@@ -101,6 +105,68 @@ export default function GovDashboardScreen() {
             Animated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
         ]).start();
     }, []);
+
+    // Fetch laporan dari API
+    useEffect(() => {
+        async function load() {
+            const result = await getReports({ limit: 10 });
+            if (result.success && result.data) setReports(result.data);
+        }
+        load();
+    }, []);
+
+    // Hitung stats dari data API
+    const STATS = useMemo(() => {
+        const baru = reports.filter(r => r.status === 'Menunggu').length;
+        const proses = reports.filter(r => r.status === 'Ditangani').length;
+        const selesai = reports.filter(r => r.status === 'Selesai').length;
+        return [
+            { value: String(baru), label: 'Laporan Baru', icon: FilePlus, iconColor: SiagaColors.danger, bgColor: '#fef2f2', badge: `+${baru}`, badgeColor: SiagaColors.danger, badgeBg: '#fef2f2' },
+            { value: String(proses), label: 'Sedang Diproses', icon: HourglassMedium, iconColor: SiagaColors.warning, bgColor: '#fffbeb', badge: 'Aktif', badgeColor: '#d97706', badgeBg: '#fffbeb' },
+            { value: String(selesai), label: 'Selesai Bulan Ini', icon: CheckCircle, iconColor: SiagaColors.success, bgColor: '#ecfdf5', badge: reports.length > 0 ? `${Math.round(selesai / reports.length * 100)}%` : '0%', badgeColor: SiagaColors.success, badgeBg: '#ecfdf5' },
+            { value: '4.2', label: 'Rata-rata Respons', icon: Timer, iconColor: SiagaColors.info, bgColor: '#eff6ff', badge: 'Baik', badgeColor: SiagaColors.info, badgeBg: '#eff6ff', suffix: 'jam' },
+        ];
+    }, [reports]);
+
+    // Konversi reports ke UI format
+    const REPORT_CARDS = useMemo(() => {
+        const iconMap: Record<string, { icon: any; iconColor: string; bgColor: string }> = {
+            'Banjir': { icon: Waves, iconColor: '#2563eb', bgColor: '#eff6ff' },
+            'Longsor': { icon: Mountains, iconColor: '#ea580c', bgColor: '#fff7ed' },
+            'Jalan Rusak': { icon: RoadHorizon, iconColor: '#d97706', bgColor: '#fffbeb' },
+            'Kebakaran': { icon: Fire, iconColor: '#dc2626', bgColor: '#fef2f2' },
+            'Sampah': { icon: Trash, iconColor: '#059669', bgColor: '#ecfdf5' },
+        };
+        return reports.slice(0, 5).map(r => {
+            const cat = iconMap[r.category] || iconMap['Sampah'];
+            const severity: SeverityLevel = r.urgency >= 80 ? 'Kritis' : r.urgency >= 60 ? 'Tinggi' : r.urgency >= 40 ? 'Sedang' : 'Rendah';
+            return {
+                id: r.id,
+                title: r.title,
+                area: `${r.district || '-'} · ${r.votesCount} dukungan`,
+                time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                severity,
+                icon: cat.icon,
+                iconColor: cat.iconColor,
+                bgColor: cat.bgColor,
+            };
+        });
+    }, [reports]);
+
+    // Hitung kategori dari data
+    const CATEGORIES_LIVE = useMemo(() => {
+        const cats = [
+            { label: 'Banjir', icon: Waves, color: '#3b82f6', bgColor: '#eff6ff' },
+            { label: 'Jalan Rusak', icon: RoadHorizon, color: '#f59e0b', bgColor: '#fffbeb' },
+            { label: 'Sampah', icon: Trash, color: '#10b981', bgColor: '#ecfdf5' },
+            { label: 'Longsor', icon: Mountains, color: '#f97316', bgColor: '#fff7ed' },
+            { label: 'Kebakaran', icon: Fire, color: '#ef4444', bgColor: '#fef2f2' },
+        ];
+        return cats.map(c => {
+            const count = reports.filter(r => r.category === c.label).length;
+            return { ...c, count, pct: reports.length > 0 ? Math.round(count / reports.length * 100) : 0 };
+        });
+    }, [reports]);
 
     return (
         <View className="flex-1" style={{ backgroundColor: '#f4f7fb' }}>
@@ -136,12 +202,12 @@ export default function GovDashboardScreen() {
                     {/* Profile row */}
                     <TouchableOpacity className="flex-row items-center gap-3" activeOpacity={0.7} onPress={() => router.push('/(gov-tabs)/profil-gov')}>
                         <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.info, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)' }}>
-                            <Text className="text-white font-bold text-base">BS</Text>
+                            <Text className="text-white font-bold text-base">{user?.initials || 'GV'}</Text>
                         </View>
                         <View className="flex-1">
                             <Text className="text-[14px] font-medium text-white/55">Selamat Pagi 👋</Text>
-                            <Text className="text-base font-extrabold text-white" numberOfLines={1}>Budi Santoso, S.T.</Text>
-                            <Text className="text-[13px] font-medium text-white/40">Dinas PU — Kota Bandung</Text>
+                            <Text className="text-base font-extrabold text-white" numberOfLines={1}>{user?.fullName || 'Gov User'}</Text>
+                            <Text className="text-[13px] font-medium text-white/40">{user?.district || 'Dinas PU'} — {user?.city || 'Kota Bandung'}</Text>
                         </View>
                         <View className="items-end">
                             <Text className="text-[12px] font-medium text-white/40">23 Feb 2026</Text>
@@ -278,7 +344,7 @@ export default function GovDashboardScreen() {
 
                     {/* Report cards */}
                     <View className="gap-2.5">
-                        {REPORTS.map((report, i) => {
+                        {REPORT_CARDS.map((report, i) => {
                             const IconComp = report.icon;
                             const severity = SEVERITY_STYLES[report.severity];
                             const isCritical = report.severity === 'Kritis';
@@ -330,7 +396,7 @@ export default function GovDashboardScreen() {
                         activeOpacity={0.7}
                         onPress={() => router.push('/(gov-tabs)/laporan')}
                     >
-                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Lihat 49 Laporan Lainnya</Text>
+                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Lihat {Math.max(0, reports.length - 5)} Laporan Lainnya</Text>
                         <ArrowRight size={14} color={SiagaColors.info} weight="bold" />
                     </TouchableOpacity>
                 </View>
@@ -379,7 +445,7 @@ export default function GovDashboardScreen() {
                         <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Distribusi Kategori</Text>
                     </View>
                     <View className="gap-3">
-                        {CATEGORIES.map((cat, i) => {
+                        {CATEGORIES_LIVE.map((cat, i) => {
                             const IconComp = cat.icon;
                             return (
                                 <View key={i}>
