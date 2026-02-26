@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
     View, Text, TouchableOpacity, Animated, ScrollView,
     Dimensions, ActivityIndicator,
@@ -12,6 +12,7 @@ import {
     Stack, ChartBar, CaretDown, CaretUp,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { getReports, type ReportData } from '@/services/report.service';
 
 const { width, height } = Dimensions.get('window');
 
@@ -339,8 +340,38 @@ export default function GovPetaScreen() {
     const [mapKey, setMapKey] = useState(0); // force reload on filter change
     const [loading, setLoading] = useState(true);
     const [showStats, setShowStats] = useState(false);
+    const [apiReports, setApiReports] = useState<ReportData[]>([]);
 
     const sheetAnim = useRef(new Animated.Value(0)).current;
+
+    // Ambil laporan dari API
+    useEffect(() => {
+        async function load() {
+            const result = await getReports({ limit: 30 });
+            if (result.success && result.data) setApiReports(result.data);
+        }
+        load();
+    }, []);
+
+    // Konversi API data ke REPORT_MARKERS format
+    const LIVE_MARKERS = useMemo(() => {
+        return apiReports.filter(r => r.lat && r.lng).map(r => {
+            const category: CategoryKey = (['Banjir', 'Longsor', 'Jalan Rusak', 'Kebakaran', 'Sampah'].includes(r.category) ? r.category : 'Lainnya') as CategoryKey;
+            const severity: SeverityLevel = r.urgency >= 80 ? 'Kritis' : r.urgency >= 60 ? 'Tinggi' : r.urgency >= 40 ? 'Sedang' : 'Rendah';
+            return {
+                id: r.id,
+                title: r.title,
+                category,
+                severity,
+                lat: r.lat,
+                lng: r.lng,
+                area: r.district || r.city || '-',
+                cluster: r.votesCount,
+                time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                desc: r.description?.slice(0, 100) || '',
+            };
+        });
+    }, [apiReports]);
 
     const openSheet = useCallback((report: typeof REPORT_MARKERS[0]) => {
         setSelectedReport(report);
@@ -357,13 +388,14 @@ export default function GovPetaScreen() {
         try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'marker') {
-                const report = REPORT_MARKERS.find(r => r.id === data.id);
-                if (report) openSheet(report);
+                // Try live markers first, fallback to REPORT_MARKERS
+                const report = LIVE_MARKERS.find(r => r.id === data.id) || REPORT_MARKERS.find(r => r.id === data.id);
+                if (report) openSheet(report as any);
             } else if (data.type === 'dismiss') {
                 closeSheet();
             }
         } catch (_) { }
-    }, [openSheet, closeSheet]);
+    }, [LIVE_MARKERS, openSheet, closeSheet]);
 
     const handleFilterChange = (cat: FilterKey) => {
         setActiveFilter(cat);
@@ -376,12 +408,13 @@ export default function GovPetaScreen() {
         setMapKey(k => k + 1);
     };
 
-    const criticalCount = REPORT_MARKERS.filter(r => r.severity === 'Kritis').length;
+    const allMarkers = LIVE_MARKERS.length > 0 ? LIVE_MARKERS : REPORT_MARKERS;
+    const criticalCount = allMarkers.filter(r => r.severity === 'Kritis').length;
     const filteredCount = activeFilter === 'Semua'
-        ? REPORT_MARKERS.length
+        ? allMarkers.length
         : activeFilter === 'Darurat'
-            ? REPORT_MARKERS.filter(r => r.severity === 'Kritis').length
-            : REPORT_MARKERS.filter(r => r.category === activeFilter).length;
+            ? allMarkers.filter(r => r.severity === 'Kritis').length
+            : allMarkers.filter(r => r.category === activeFilter).length;
 
     return (
         <View style={{ flex: 1, backgroundColor: '#f4f7fb' }}>
@@ -459,9 +492,9 @@ export default function GovPetaScreen() {
                     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
                 }}>
                     {[
-                        { label: 'Total', value: REPORT_MARKERS.length, color: SiagaColors.primary, bg: '#f4f7fb' },
-                        { label: 'Kritis', value: REPORT_MARKERS.filter(r => r.severity === 'Kritis').length, color: '#ef4444', bg: '#fef2f2' },
-                        { label: 'Banjir', value: REPORT_MARKERS.filter(r => r.category === 'Banjir').length, color: '#3b82f6', bg: '#eff6ff' },
+                        { label: 'Total', value: allMarkers.length, color: SiagaColors.primary, bg: '#f4f7fb' },
+                        { label: 'Kritis', value: allMarkers.filter(r => r.severity === 'Kritis').length, color: '#ef4444', bg: '#fef2f2' },
+                        { label: 'Banjir', value: allMarkers.filter(r => r.category === 'Banjir').length, color: '#3b82f6', bg: '#eff6ff' },
                         { label: 'Hotspot', value: HOTSPOTS.length, color: '#f97316', bg: '#fff7ed' },
                     ].map((s, i) => (
                         <View key={i} style={{ flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, backgroundColor: s.bg }}>
