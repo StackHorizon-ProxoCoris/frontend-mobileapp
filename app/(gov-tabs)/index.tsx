@@ -27,10 +27,10 @@ const STATS = [
 ];
 
 const QUICK_ACTIONS = [
-    { label: 'Broadcast', icon: Megaphone, color: SiagaColors.info },
-    { label: 'Peta', icon: MapTrifold, color: SiagaColors.success },
-    { label: 'Statistik', icon: ChartLineUp, color: '#7c3aed' },
-    { label: 'Proyek', icon: FilePlus, color: '#d97706' },
+    { label: 'Broadcast', icon: Megaphone, color: SiagaColors.info, route: '/action-detail' },
+    { label: 'Peta', icon: MapTrifold, color: SiagaColors.success, route: '/(gov-tabs)/peta' },
+    { label: 'Statistik', icon: ChartLineUp, color: '#7c3aed', route: '/(gov-tabs)/laporan' },
+    { label: 'Proyek', icon: FilePlus, color: '#d97706', route: '/(gov-tabs)/budget' },
 ];
 
 const FILTER_CHIPS = ['Semua', 'Darurat', 'Baru', 'Proses', 'Selesai'];
@@ -115,42 +115,42 @@ export default function GovDashboardScreen() {
                     <View className="flex-row items-center justify-between mb-5">
                         <View className="flex-row items-center gap-2.5">
                             <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
-                                <ShieldCheck size={20} color="#fff" weight="duotone" />
+                                <ShieldCheck size={22} color="#fff" weight="duotone" />
                             </View>
                             <View>
                                 <Text className="text-base font-extrabold text-white tracking-tight">SIAGA</Text>
-                                <Text className="text-[9px] font-semibold text-white/35 uppercase tracking-[3px]">Gov Dashboard</Text>
+                                <Text className="text-[10px] font-semibold text-white/35 uppercase tracking-[3px]">Gov Dashboard</Text>
                             </View>
                         </View>
                         <View className="flex-row items-center gap-2.5">
                             <TouchableOpacity className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
-                                <MagnifyingGlass size={20} color="rgba(255,255,255,0.7)" weight="duotone" />
+                                <MagnifyingGlass size={22} color="rgba(255,255,255,0.7)" weight="duotone" />
                             </TouchableOpacity>
                             <TouchableOpacity className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} activeOpacity={0.7}>
-                                <Bell size={20} color="rgba(255,255,255,0.7)" weight="duotone" />
+                                <Bell size={22} color="rgba(255,255,255,0.7)" weight="duotone" />
                                 <View className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SiagaColors.danger, borderWidth: 2, borderColor: SiagaColors.primary }} />
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* Profile row */}
-                    <View className="flex-row items-center gap-3">
+                    <TouchableOpacity className="flex-row items-center gap-3" activeOpacity={0.7} onPress={() => router.push('/(gov-tabs)/profil-gov')}>
                         <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.info, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)' }}>
                             <Text className="text-white font-bold text-base">BS</Text>
                         </View>
                         <View className="flex-1">
-                            <Text className="text-xs font-medium text-white/55">Selamat Pagi 👋</Text>
+                            <Text className="text-[14px] font-medium text-white/55">Selamat Pagi 👋</Text>
                             <Text className="text-base font-extrabold text-white" numberOfLines={1}>Budi Santoso, S.T.</Text>
-                            <Text className="text-[11px] font-medium text-white/40">Dinas PU — Kota Bandung</Text>
+                            <Text className="text-[13px] font-medium text-white/40">Dinas PU — Kota Bandung</Text>
                         </View>
                         <View className="items-end">
-                            <Text className="text-[10px] font-medium text-white/40">23 Feb 2026</Text>
+                            <Text className="text-[12px] font-medium text-white/40">23 Feb 2026</Text>
                             <View className="flex-row items-center gap-1 mt-0.5">
                                 <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: SiagaColors.success }} />
-                                <Text className="text-[10px] font-bold" style={{ color: SiagaColors.success }}>Online</Text>
+                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>Online</Text>
                             </View>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -166,22 +166,23 @@ export default function GovDashboardScreen() {
                         className="rounded-2xl p-3.5"
                         style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(231,76,60,0.2)', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                         activeOpacity={0.85}
+                        onPress={() => router.push('/report-detail')}
                     >
                         <View className="flex-row items-start gap-3">
                             <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: '#fef2f2' }}>
-                                <WarningDiamond size={22} color={SiagaColors.danger} weight="duotone" />
+                                <WarningDiamond size={24} color={SiagaColors.danger} weight="duotone" />
                             </View>
                             <View className="flex-1">
                                 <View className="flex-row items-center gap-2 mb-0.5">
-                                    <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: SiagaColors.danger }}>Peringatan Darurat</Text>
+                                    <Text className="text-[12px] font-bold uppercase tracking-wider" style={{ color: SiagaColors.danger }}>Peringatan Darurat</Text>
                                     <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: SiagaColors.danger }}>
-                                        <Text className="text-[9px] font-bold text-white">3</Text>
+                                        <Text className="text-[10px] font-bold text-white">3</Text>
                                     </View>
                                 </View>
-                                <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>Laporan Banjir Kritis</Text>
-                                <Text className="text-[11px] mt-0.5 leading-relaxed" style={{ color: SiagaColors.secondary }}>Kec. Dayeuhkolot, Coblong — ketinggian air naik 2 jam terakhir.</Text>
+                                <Text className="text-[15px] font-bold" style={{ color: SiagaColors.primary }}>Laporan Banjir Kritis</Text>
+                                <Text className="text-[13px] mt-0.5 leading-relaxed" style={{ color: SiagaColors.secondary }}>Kec. Dayeuhkolot, Coblong — ketinggian air naik 2 jam terakhir.</Text>
                             </View>
-                            <CaretRight size={14} color={SiagaColors.secondary} style={{ marginTop: 10 }} />
+                            <CaretRight size={16} color={SiagaColors.secondary} style={{ marginTop: 10 }} />
                         </View>
                     </TouchableOpacity>
                 </Animated.View>
@@ -199,22 +200,23 @@ export default function GovDashboardScreen() {
                                     className="rounded-2xl p-3.5"
                                     style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                                     activeOpacity={0.85}
+                                    onPress={() => router.push('/(gov-tabs)/laporan')}
                                 >
                                     <View className="flex-row items-center justify-between mb-2.5">
                                         <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: stat.bgColor }}>
-                                            <IconComp size={20} color={stat.iconColor} weight="duotone" />
+                                            <IconComp size={22} color={stat.iconColor} weight="duotone" />
                                         </View>
-                                        <View className="px-2 py-0.5 rounded-md flex-row items-center gap-0.5" style={{ backgroundColor: stat.badgeBg }}>
-                                            {stat.badge.startsWith('+') && <TrendUp size={10} color={stat.badgeColor} weight="fill" />}
-                                            {stat.badge === '92%' && <TrendUp size={10} color={stat.badgeColor} weight="fill" />}
-                                            <Text className="text-[9px] font-bold" style={{ color: stat.badgeColor }}>{stat.badge}</Text>
+                                        <View className="px-3 py-1 rounded-md flex-row items-center gap-0.5" style={{ backgroundColor: stat.badgeBg }}>
+                                            {stat.badge.startsWith('+') && <TrendUp size={12} color={stat.badgeColor} weight="fill" />}
+                                            {stat.badge === '92%' && <TrendUp size={12} color={stat.badgeColor} weight="fill" />}
+                                            <Text className="text-[10px] font-bold" style={{ color: stat.badgeColor }}>{stat.badge}</Text>
                                         </View>
                                     </View>
                                     <View className="flex-row items-baseline">
                                         <Text className="text-[24px] font-extrabold" style={{ color: SiagaColors.primary, lineHeight: 28 }}>{stat.value}</Text>
-                                        {stat.suffix && <Text className="text-xs ml-0.5" style={{ color: SiagaColors.secondary }}>{stat.suffix}</Text>}
+                                        {stat.suffix && <Text className="text-[14px] ml-0.5" style={{ color: SiagaColors.secondary }}>{stat.suffix}</Text>}
                                     </View>
-                                    <Text className="text-[11px] mt-1" style={{ color: SiagaColors.secondary }}>{stat.label}</Text>
+                                    <Text className="text-[13px] mt-1" style={{ color: SiagaColors.secondary }}>{stat.label}</Text>
                                 </TouchableOpacity>
                             </Animated.View>
                         );
@@ -223,16 +225,16 @@ export default function GovDashboardScreen() {
 
                 {/* ── AKSI CEPAT ── */}
                 <View>
-                    <Text className="text-[14px] font-bold mb-3" style={{ color: SiagaColors.primary }}>Aksi Cepat</Text>
+                    <Text className="text-[16px] font-bold mb-3" style={{ color: SiagaColors.primary }}>Aksi Cepat</Text>
                     <View className="flex-row gap-2.5">
                         {QUICK_ACTIONS.map((action, i) => {
                             const IconComp = action.icon;
                             return (
-                                <TouchableOpacity key={i} className="flex-1 items-center gap-1.5" activeOpacity={0.7}>
+                                <TouchableOpacity key={i} className="flex-1 items-center gap-1.5" activeOpacity={0.7} onPress={() => action.route && router.push(action.route as any)}>
                                     <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#f1f5f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2 }}>
-                                        <IconComp size={24} color={action.color} weight="duotone" />
+                                        <IconComp size={26} color={action.color} weight="duotone" />
                                     </View>
-                                    <Text className="text-[10px] font-semibold" style={{ color: SiagaColors.primary }}>{action.label}</Text>
+                                    <Text className="text-[12px] font-semibold" style={{ color: SiagaColors.primary }}>{action.label}</Text>
                                 </TouchableOpacity>
                             );
                         })}
@@ -243,12 +245,12 @@ export default function GovDashboardScreen() {
                 <View>
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-2">
-                            <ClipboardText size={18} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>Laporan Terbaru</Text>
+                            <ClipboardText size={20} color={SiagaColors.info} weight="duotone" />
+                            <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Laporan Terbaru</Text>
                         </View>
-                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7}>
-                            <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
-                            <CaretRight size={12} color={SiagaColors.info} weight="bold" />
+                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7} onPress={() => router.push('/(gov-tabs)/laporan')}>
+                            <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
+                            <CaretRight size={14} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
 
@@ -266,7 +268,7 @@ export default function GovDashboardScreen() {
                                 onPress={() => setActiveFilter(chip)}
                                 activeOpacity={0.7}
                             >
-                                <Text className="text-[11px]" style={{
+                                <Text className="text-[13px]" style={{
                                     fontWeight: activeFilter === chip ? '700' : '600',
                                     color: activeFilter === chip ? '#fff' : SiagaColors.secondary,
                                 }}>{chip}</Text>
@@ -286,31 +288,32 @@ export default function GovDashboardScreen() {
                                     className="rounded-2xl p-3.5"
                                     style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                                     activeOpacity={0.85}
+                                    onPress={() => router.push('/report-detail')}
                                 >
                                     <View className="flex-row items-start gap-3">
                                         <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: report.bgColor }}>
-                                            <IconComp size={22} color={report.iconColor} weight="duotone" />
+                                            <IconComp size={24} color={report.iconColor} weight="duotone" />
                                         </View>
                                         <View className="flex-1">
                                             <View className="flex-row items-center justify-between mb-0.5">
-                                                <Text className="text-[13px] font-bold flex-1 mr-2" style={{ color: SiagaColors.primary }} numberOfLines={1}>{report.title}</Text>
-                                                <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: severity.bgColor }}>
-                                                    <Text className="text-[9px] font-bold" style={{ color: severity.textColor }}>{report.severity}</Text>
+                                                <Text className="text-[15px] font-bold flex-1 mr-2" style={{ color: SiagaColors.primary }} numberOfLines={1}>{report.title}</Text>
+                                                <View className="px-3 py-1 rounded-md" style={{ backgroundColor: severity.bgColor }}>
+                                                    <Text className="text-[10px] font-bold" style={{ color: severity.textColor }}>{report.severity}</Text>
                                                 </View>
                                             </View>
-                                            <Text className="text-[11px]" style={{ color: SiagaColors.secondary }}>{report.area}</Text>
+                                            <Text className="text-[13px]" style={{ color: SiagaColors.secondary }}>{report.area}</Text>
                                             <View className="flex-row items-center justify-between mt-2.5">
                                                 <View className="flex-row items-center gap-1">
-                                                    <Clock size={12} color={SiagaColors.secondary} />
-                                                    <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>{report.time}</Text>
+                                                    <Clock size={14} color={SiagaColors.secondary} />
+                                                    <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>{report.time}</Text>
                                                 </View>
                                                 <TouchableOpacity
                                                     className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
                                                     style={{ backgroundColor: isCritical ? SiagaColors.info : '#eff6ff' }}
                                                     activeOpacity={0.7}
                                                 >
-                                                    <Text className="text-[10px] font-bold" style={{ color: isCritical ? '#fff' : SiagaColors.info }}>Tindak</Text>
-                                                    <ArrowRight size={10} color={isCritical ? '#fff' : SiagaColors.info} weight="bold" />
+                                                    <Text className="text-[12px] font-bold" style={{ color: isCritical ? '#fff' : SiagaColors.info }}>Tindak</Text>
+                                                    <ArrowRight size={12} color={isCritical ? '#fff' : SiagaColors.info} weight="bold" />
                                                 </TouchableOpacity>
                                             </View>
                                         </View>
@@ -325,17 +328,18 @@ export default function GovDashboardScreen() {
                         className="mt-3 py-2.5 rounded-xl flex-row items-center justify-center gap-1"
                         style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#f1f5f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                         activeOpacity={0.7}
+                        onPress={() => router.push('/(gov-tabs)/laporan')}
                     >
-                        <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>Lihat 49 Laporan Lainnya</Text>
-                        <ArrowRight size={12} color={SiagaColors.info} weight="bold" />
+                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Lihat 49 Laporan Lainnya</Text>
+                        <ArrowRight size={14} color={SiagaColors.info} weight="bold" />
                     </TouchableOpacity>
                 </View>
 
                 {/* ── SKOR RESPONSIVITAS ── */}
                 <View className="rounded-2xl p-4" style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}>
                     <View className="flex-row items-center gap-2 mb-4">
-                        <ChartDonut size={18} color={SiagaColors.info} weight="duotone" />
-                        <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>Skor Responsivitas</Text>
+                        <ChartDonut size={20} color={SiagaColors.info} weight="duotone" />
+                        <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Skor Responsivitas</Text>
                     </View>
                     <View className="flex-row items-center gap-5">
                         {/* Circular progress */}
@@ -346,7 +350,7 @@ export default function GovDashboardScreen() {
                             </Svg>
                             <View className="absolute items-center justify-center">
                                 <Text className="text-xl font-extrabold" style={{ color: SiagaColors.primary }}>87%</Text>
-                                <Text className="text-[9px] font-medium" style={{ color: SiagaColors.secondary }}>Response</Text>
+                                <Text className="text-[10px] font-medium" style={{ color: SiagaColors.secondary }}>Response</Text>
                             </View>
                         </View>
                         {/* Stats */}
@@ -359,9 +363,9 @@ export default function GovDashboardScreen() {
                                 <View key={i} className="flex-row items-center justify-between">
                                     <View className="flex-row items-center gap-2">
                                         <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                        <Text className="text-[11px]" style={{ color: SiagaColors.secondary }}>{item.label}</Text>
+                                        <Text className="text-[13px]" style={{ color: SiagaColors.secondary }}>{item.label}</Text>
                                     </View>
-                                    <Text className="text-[11px] font-bold" style={{ color: SiagaColors.primary }}>{item.value}</Text>
+                                    <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>{item.value}</Text>
                                 </View>
                             ))}
                         </View>
@@ -371,8 +375,8 @@ export default function GovDashboardScreen() {
                 {/* ── DISTRIBUSI KATEGORI ── */}
                 <View className="rounded-2xl p-4" style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}>
                     <View className="flex-row items-center gap-2 mb-4">
-                        <ChartBar size={18} color={SiagaColors.info} weight="duotone" />
-                        <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>Distribusi Kategori</Text>
+                        <ChartBar size={20} color={SiagaColors.info} weight="duotone" />
+                        <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Distribusi Kategori</Text>
                     </View>
                     <View className="gap-3">
                         {CATEGORIES.map((cat, i) => {
@@ -381,10 +385,10 @@ export default function GovDashboardScreen() {
                                 <View key={i}>
                                     <View className="flex-row items-center justify-between mb-1">
                                         <View className="flex-row items-center gap-2">
-                                            <IconComp size={14} color={cat.color} weight="duotone" />
-                                            <Text className="text-[11px] font-semibold" style={{ color: SiagaColors.primary }}>{cat.label}</Text>
+                                            <IconComp size={16} color={cat.color} weight="duotone" />
+                                            <Text className="text-[13px] font-semibold" style={{ color: SiagaColors.primary }}>{cat.label}</Text>
                                         </View>
-                                        <Text className="text-[10px] font-bold" style={{ color: SiagaColors.secondary }}>{cat.count}</Text>
+                                        <Text className="text-[12px] font-bold" style={{ color: SiagaColors.secondary }}>{cat.count}</Text>
                                     </View>
                                     <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: cat.bgColor }}>
                                         <View className="h-full rounded-full" style={{ backgroundColor: cat.color, width: `${cat.pct}%` }} />
@@ -399,12 +403,12 @@ export default function GovDashboardScreen() {
                 <View>
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-2">
-                            <ChartPieSlice size={18} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>Budget Watch</Text>
+                            <ChartPieSlice size={20} color={SiagaColors.info} weight="duotone" />
+                            <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Budget Watch</Text>
                         </View>
-                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7}>
-                            <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
-                            <CaretRight size={12} color={SiagaColors.info} weight="bold" />
+                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7} onPress={() => router.push('/(gov-tabs)/budget')}>
+                            <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
+                            <CaretRight size={14} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
                     <View className="gap-2.5">
@@ -416,21 +420,22 @@ export default function GovDashboardScreen() {
                                     className="rounded-2xl p-3.5"
                                     style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                                     activeOpacity={0.85}
+                                    onPress={() => router.push('/(gov-tabs)/budget')}
                                 >
                                     {/* Project header */}
                                     <View className="flex-row items-start gap-3 mb-3">
                                         <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: proj.bgColor }}>
-                                            <IconComp size={22} color={proj.iconColor} weight="duotone" />
+                                            <IconComp size={24} color={proj.iconColor} weight="duotone" />
                                         </View>
                                         <View className="flex-1">
                                             <View className="flex-row items-center justify-between mb-0.5">
-                                                <Text className="text-[13px] font-bold flex-1 mr-2" style={{ color: SiagaColors.primary }} numberOfLines={1}>{proj.title}</Text>
-                                                <View className="px-2 py-0.5 rounded-md flex-row items-center gap-0.5" style={{ backgroundColor: proj.statusBg }}>
-                                                    {proj.status === 'Anomali' ? <Warning size={9} color={proj.statusColor} weight="fill" /> : <CheckCircle size={9} color={proj.statusColor} weight="fill" />}
-                                                    <Text className="text-[9px] font-bold" style={{ color: proj.statusColor }}>{proj.status}</Text>
+                                                <Text className="text-[15px] font-bold flex-1 mr-2" style={{ color: SiagaColors.primary }} numberOfLines={1}>{proj.title}</Text>
+                                                <View className="px-3 py-1 rounded-md flex-row items-center gap-0.5" style={{ backgroundColor: proj.statusBg }}>
+                                                    {proj.status === 'Anomali' ? <Warning size={11} color={proj.statusColor} weight="fill" /> : <CheckCircle size={11} color={proj.statusColor} weight="fill" />}
+                                                    <Text className="text-[10px] font-bold" style={{ color: proj.statusColor }}>{proj.status}</Text>
                                                 </View>
                                             </View>
-                                            <Text className="text-[11px]" style={{ color: SiagaColors.secondary }}>{proj.org}</Text>
+                                            <Text className="text-[13px]" style={{ color: SiagaColors.secondary }}>{proj.org}</Text>
                                         </View>
                                     </View>
                                     {/* Budget grid */}
@@ -441,16 +446,16 @@ export default function GovDashboardScreen() {
                                             { label: 'Fisik', value: proj.fisik, color: proj.fisikColor },
                                         ].map((cell, ci) => (
                                             <View key={ci} className="flex-1 rounded-lg p-2.5 items-center" style={{ backgroundColor: '#fafcfe' }}>
-                                                <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: SiagaColors.secondary }}>{cell.label}</Text>
-                                                <Text className="text-[13px] font-extrabold mt-0.5" style={{ color: cell.color }}>{cell.value}</Text>
+                                                <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: SiagaColors.secondary }}>{cell.label}</Text>
+                                                <Text className="text-[15px] font-extrabold mt-0.5" style={{ color: cell.color }}>{cell.value}</Text>
                                             </View>
                                         ))}
                                     </View>
                                     {/* Progress bar */}
                                     <View>
                                         <View className="flex-row items-center justify-between mb-1">
-                                            <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>Progress Fisik</Text>
-                                            <Text className="text-[10px] font-bold" style={{ color: SiagaColors.primary }}>{proj.fisik}</Text>
+                                            <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>Progress Fisik</Text>
+                                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>{proj.fisik}</Text>
                                         </View>
                                         <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <View className="h-full rounded-full" style={{ backgroundColor: proj.gradientFrom, width: `${proj.progress}%` }} />
@@ -466,12 +471,12 @@ export default function GovDashboardScreen() {
                 <View className="rounded-2xl p-4" style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}>
                     <View className="flex-row items-center justify-between mb-4">
                         <View className="flex-row items-center gap-2">
-                            <ClockCounterClockwise size={18} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>Aktivitas Terkini</Text>
+                            <ClockCounterClockwise size={20} color={SiagaColors.info} weight="duotone" />
+                            <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Aktivitas Terkini</Text>
                         </View>
-                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7}>
-                            <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
-                            <CaretRight size={12} color={SiagaColors.info} weight="bold" />
+                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7} onPress={() => router.push('/riwayat-aktivitas')}>
+                            <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
+                            <CaretRight size={14} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
                     <View className="gap-3">
@@ -481,16 +486,16 @@ export default function GovDashboardScreen() {
                                 <View key={i} className="flex-row items-start gap-3">
                                     <View className="items-center">
                                         <View className="w-9 h-9 rounded-lg items-center justify-center" style={{ backgroundColor: act.bgColor }}>
-                                            <IconComp size={16} color={act.iconColor} weight="duotone" />
+                                            <IconComp size={18} color={act.iconColor} weight="duotone" />
                                         </View>
                                         {act.showLine && <View className="w-px flex-1 mt-1.5" style={{ backgroundColor: '#f1f5f9' }} />}
                                     </View>
                                     <View className="flex-1 pb-3">
-                                        <Text className="text-xs font-semibold" style={{ color: SiagaColors.primary }}>
+                                        <Text className="text-[14px] font-semibold" style={{ color: SiagaColors.primary }}>
                                             {act.text}{' '}
                                             <Text style={{ color: act.highlightColor, fontWeight: '700' }}>{act.highlight}</Text>
                                         </Text>
-                                        <Text className="text-[10px] mt-0.5" style={{ color: SiagaColors.secondary }}>{act.sub}</Text>
+                                        <Text className="text-[12px] mt-0.5" style={{ color: SiagaColors.secondary }}>{act.sub}</Text>
                                     </View>
                                 </View>
                             );
@@ -502,19 +507,19 @@ export default function GovDashboardScreen() {
                 <View className="pt-2 pb-2 items-center gap-1">
                     <View className="flex-row items-center gap-1.5">
                         <View className="w-6 h-6 rounded-md items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                            <ShieldCheck size={12} color="#fff" weight="duotone" />
+                            <ShieldCheck size={14} color="#fff" weight="duotone" />
                         </View>
-                        <Text className="text-[11px] font-bold" style={{ color: SiagaColors.primary }}>SIAGA Dashboard</Text>
+                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>SIAGA Dashboard</Text>
                     </View>
-                    <Text className="text-[9px]" style={{ color: SiagaColors.secondary }}>v1.0.0 · Smart Indonesia Adaptive Governance Application</Text>
+                    <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>v1.0.0 · Smart Indonesia Adaptive Governance Application</Text>
                     <View className="flex-row items-center gap-3 mt-0.5">
                         <View className="flex-row items-center gap-1">
-                            <MapPin size={10} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[9px]" style={{ color: SiagaColors.secondary }}>Wilayah: <Text className="font-bold" style={{ color: SiagaColors.primary }}>Kota Bandung</Text></Text>
+                            <MapPin size={12} color={SiagaColors.info} weight="duotone" />
+                            <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>Wilayah: <Text className="font-bold" style={{ color: SiagaColors.primary }}>Kota Bandung</Text></Text>
                         </View>
                         <View className="flex-row items-center gap-1">
-                            <ShieldCheck size={10} color={SiagaColors.success} weight="duotone" />
-                            <Text className="text-[9px]" style={{ color: SiagaColors.secondary }}>NIP: <Text className="font-bold" style={{ color: SiagaColors.primary }}>198001012005011001</Text></Text>
+                            <ShieldCheck size={12} color={SiagaColors.success} weight="duotone" />
+                            <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>NIP: <Text className="font-bold" style={{ color: SiagaColors.primary }}>198001012005011001</Text></Text>
                         </View>
                     </View>
                 </View>
