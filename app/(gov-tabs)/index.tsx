@@ -166,7 +166,7 @@ export default function GovDashboardScreen() {
                         className="rounded-2xl p-3.5"
                         style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(231,76,60,0.2)', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                         activeOpacity={0.85}
-                        onPress={() => router.push('/report-detail')}
+                        onPress={() => router.push('/(gov-tabs)/peta?filter=Darurat')}
                     >
                         <View className="flex-row items-start gap-3">
                             <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: '#fef2f2' }}>
