@@ -149,17 +149,17 @@ function StatCard({ item }: { item: typeof SUMMARY_STATS[0] }) {
             }}
         >
             <View className="w-9 h-9 rounded-xl items-center justify-center mb-2" style={{ backgroundColor: item.bg }}>
-                <IconComp size={18} color={item.color} weight="duotone" />
+                <IconComp size={20} color={item.color} weight="duotone" />
             </View>
             <Text className="text-[20px] font-extrabold" style={{ color: SiagaColors.primary, lineHeight: 24 }}>
                 {item.value}
             </Text>
-            <Text className="text-[10px] font-medium mt-0.5" style={{ color: SiagaColors.secondary }}>
+            <Text className="text-[12px] font-medium mt-0.5" style={{ color: SiagaColors.secondary }}>
                 {item.label}
             </Text>
             <View className="flex-row items-center gap-0.5 mt-1.5">
-                <TrendUp size={9} color={item.color} weight="fill" />
-                <Text className="text-[9px] font-bold" style={{ color: item.color }}>{item.trend}</Text>
+                <TrendUp size={11} color={item.color} weight="fill" />
+                <Text className="text-[10px] font-bold" style={{ color: item.color }}>{item.trend}</Text>
             </View>
         </View>
     );
@@ -201,14 +201,14 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
                         className="w-11 h-11 rounded-xl items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: report.bgColor }}
                     >
-                        <IconComp size={22} color={report.iconColor} weight="duotone" />
+                        <IconComp size={24} color={report.iconColor} weight="duotone" />
                     </View>
 
                     <View className="flex-1">
                         <View className="flex-row items-center justify-between mb-0.5">
                             <View className="flex-row items-center gap-1.5 flex-1 mr-2">
                                 <Text
-                                    className="text-[9px] font-bold uppercase tracking-wider"
+                                    className="text-[10px] font-bold uppercase tracking-wider"
                                     style={{ color: SiagaColors.secondary }}
                                 >
                                     {report.id}
@@ -218,15 +218,15 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
                                 )}
                             </View>
                             {/* Severity badge */}
-                            <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: sev.bg }}>
-                                <Text className="text-[8px] font-bold" style={{ color: sev.text }}>
+                            <View className="px-3 py-1 rounded-md" style={{ backgroundColor: sev.bg }}>
+                                <Text className="text-[9px] font-bold" style={{ color: sev.text }}>
                                     {report.severity}
                                 </Text>
                             </View>
                         </View>
 
                         <Text
-                            className="text-[13px] font-bold leading-tight"
+                            className="text-[15px] font-bold leading-tight"
                             style={{ color: SiagaColors.primary }}
                             numberOfLines={1}
                         >
@@ -237,7 +237,7 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
 
                 {/* Description */}
                 <Text
-                    className="text-[11px] leading-relaxed mb-2.5"
+                    className="text-[13px] leading-relaxed mb-2.5"
                     style={{ color: SiagaColors.secondary }}
                     numberOfLines={2}
                 >
@@ -247,14 +247,14 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
                 {/* Row 3: meta info */}
                 <View className="flex-row items-center gap-3 mb-3">
                     <View className="flex-row items-center gap-1.5 flex-1">
-                        <MapPin size={11} color={SiagaColors.secondary} weight="duotone" />
-                        <Text className="text-[10px]" style={{ color: SiagaColors.secondary }} numberOfLines={1}>
+                        <MapPin size={13} color={SiagaColors.secondary} weight="duotone" />
+                        <Text className="text-[12px]" style={{ color: SiagaColors.secondary }} numberOfLines={1}>
                             {report.area}
                         </Text>
                     </View>
                     <View className="flex-row items-center gap-1">
-                        <ChartBar size={11} color={SiagaColors.secondary} weight="duotone" />
-                        <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
+                        <ChartBar size={13} color={SiagaColors.secondary} weight="duotone" />
+                        <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>
                             {report.cluster}
                         </Text>
                     </View>
@@ -266,16 +266,16 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
                 {/* Row 4: time + status + action */}
                 <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-1">
-                        <Clock size={11} color={SiagaColors.secondary} />
-                        <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
+                        <Clock size={13} color={SiagaColors.secondary} />
+                        <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>
                             {report.time}
                         </Text>
                     </View>
 
                     <View className="flex-row items-center gap-2">
                         {/* Status pill */}
-                        <View className="px-2.5 py-1 rounded-lg" style={{ backgroundColor: st.bg }}>
-                            <Text className="text-[9px] font-bold" style={{ color: st.text }}>
+                        <View className="px-3 py-1.5 rounded-lg" style={{ backgroundColor: st.bg }}>
+                            <Text className="text-[10px] font-bold" style={{ color: st.text }}>
                                 {report.status}
                             </Text>
                         </View>
@@ -286,10 +286,10 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
                             style={{ backgroundColor: isCritical ? SiagaColors.info : SiagaColors.primary }}
                             activeOpacity={0.7}
                         >
-                            <Text className="text-[9px] font-bold text-white">
+                            <Text className="text-[12px] font-bold text-white">
                                 {report.status === 'Baru' ? 'Tindak' : report.status === 'Diproses' ? 'Update' : 'Lihat'}
                             </Text>
-                            <ArrowRight size={9} color="#fff" weight="bold" />
+                            <ArrowRight size={11} color="#fff" weight="bold" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -360,13 +360,13 @@ export default function GovLaporanScreen() {
                                 className="w-9 h-9 rounded-xl items-center justify-center"
                                 style={{ backgroundColor: SiagaColors.info }}
                             >
-                                <ClipboardText size={18} color="#fff" weight="duotone" />
+                                <ClipboardText size={20} color="#fff" weight="duotone" />
                             </View>
                             <View>
-                                <Text className="text-[15px] font-extrabold text-white tracking-tight">
+                                <Text className="text-[17px] font-extrabold text-white tracking-tight">
                                     Manajemen Laporan
                                 </Text>
-                                <Text className="text-[9px] font-semibold text-white/40 uppercase tracking-[2px]">
+                                <Text className="text-[10px] font-semibold text-white/40 uppercase tracking-[2px]">
                                     Kota Bandung · 54 Laporan
                                 </Text>
                             </View>
@@ -380,7 +380,7 @@ export default function GovLaporanScreen() {
                                 style={{ backgroundColor: showAnalytics ? SiagaColors.info : 'rgba(255,255,255,0.1)' }}
                                 activeOpacity={0.7}
                             >
-                                <ChartBar size={17} color="#fff" weight="duotone" />
+                                <ChartBar size={19} color="#fff" weight="duotone" />
                             </TouchableOpacity>
                             {/* Bell */}
                             <TouchableOpacity
@@ -388,7 +388,7 @@ export default function GovLaporanScreen() {
                                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                                 activeOpacity={0.7}
                             >
-                                <Bell size={17} color="rgba(255,255,255,0.75)" weight="duotone" />
+                                <Bell size={19} color="rgba(255,255,255,0.75)" weight="duotone" />
                                 <View
                                     className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
                                     style={{ backgroundColor: SiagaColors.danger, borderWidth: 1.5, borderColor: SiagaColors.primary }}
@@ -403,14 +403,14 @@ export default function GovLaporanScreen() {
                         style={{ backgroundColor: 'rgba(231,76,60,0.18)', borderWidth: 1, borderColor: 'rgba(231,76,60,0.3)' }}
                         activeOpacity={0.8}
                     >
-                        <WarningDiamond size={16} color={SiagaColors.danger} weight="fill" />
-                        <Text className="text-[11px] font-bold flex-1" style={{ color: '#fca5a5' }}>
+                        <WarningDiamond size={18} color={SiagaColors.danger} weight="fill" />
+                        <Text className="text-[13px] font-bold flex-1" style={{ color: '#fca5a5' }}>
                             2 Laporan <Text className="text-white">Kritis</Text> butuh respons segera
                         </Text>
                         <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: SiagaColors.danger }}>
-                            <Text className="text-[8px] font-bold text-white">DARURAT</Text>
+                            <Text className="text-[9px] font-bold text-white">DARURAT</Text>
                         </View>
-                        <CaretRight size={13} color="rgba(255,255,255,0.5)" />
+                        <CaretRight size={15} color="rgba(255,255,255,0.5)" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -427,7 +427,7 @@ export default function GovLaporanScreen() {
                 }}
             >
                 <View className="px-4 pt-4 pb-3">
-                    <Text className="text-[12px] font-bold mb-3" style={{ color: SiagaColors.primary }}>
+                    <Text className="text-[14px] font-bold mb-3" style={{ color: SiagaColors.primary }}>
                         Ringkasan Laporan
                     </Text>
                     {/* Stat grid 2x2 */}
@@ -442,7 +442,7 @@ export default function GovLaporanScreen() {
                         className="rounded-2xl p-3"
                         style={{ backgroundColor: '#fafcfe', borderWidth: 1, borderColor: '#f1f5f9' }}
                     >
-                        <Text className="text-[11px] font-bold mb-2" style={{ color: SiagaColors.primary }}>
+                        <Text className="text-[13px] font-bold mb-2" style={{ color: SiagaColors.primary }}>
                             Distribusi Kategori
                         </Text>
                         <View className="gap-2">
@@ -451,11 +451,11 @@ export default function GovLaporanScreen() {
                                     <View className="flex-row items-center justify-between mb-0.5">
                                         <View className="flex-row items-center gap-1.5">
                                             <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                                            <Text className="text-[10px] font-semibold" style={{ color: SiagaColors.primary }}>
+                                            <Text className="text-[12px] font-semibold" style={{ color: SiagaColors.primary }}>
                                                 {cat.label}
                                             </Text>
                                         </View>
-                                        <Text className="text-[10px] font-bold" style={{ color: SiagaColors.secondary }}>
+                                        <Text className="text-[12px] font-bold" style={{ color: SiagaColors.secondary }}>
                                             {cat.count}
                                         </Text>
                                     </View>
@@ -486,7 +486,7 @@ export default function GovLaporanScreen() {
                         height: 40,
                     }}
                 >
-                    <MagnifyingGlass size={16} color={SiagaColors.secondary} weight="duotone" />
+                    <MagnifyingGlass size={18} color={SiagaColors.secondary} weight="duotone" />
                     <TextInput
                         placeholder="Cari ID, judul, atau lokasi laporan..."
                         placeholderTextColor={SiagaColors.secondary}
@@ -494,14 +494,14 @@ export default function GovLaporanScreen() {
                         onChangeText={setSearchQuery}
                         style={{
                             flex: 1,
-                            fontSize: 12,
+                            fontSize: 14,
                             color: SiagaColors.primary,
                             paddingVertical: 0,
                         }}
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
-                            <XCircle size={16} color={SiagaColors.secondary} weight="fill" />
+                            <XCircle size={18} color={SiagaColors.secondary} weight="fill" />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -532,7 +532,7 @@ export default function GovLaporanScreen() {
                                 activeOpacity={0.7}
                             >
                                 <Text
-                                    className="text-[11px]"
+                                    className="text-[13px]"
                                     style={{
                                         fontWeight: isActive ? '700' : '600',
                                         color: isActive ? '#fff' : SiagaColors.secondary,
@@ -545,7 +545,7 @@ export default function GovLaporanScreen() {
                                     style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#edf2f9' }}
                                 >
                                     <Text
-                                        className="text-[9px] font-bold"
+                                        className="text-[10px] font-bold"
                                         style={{ color: isActive ? '#fff' : SiagaColors.secondary }}
                                     >
                                         {tab.count}
@@ -569,9 +569,9 @@ export default function GovLaporanScreen() {
                         }}
                         activeOpacity={0.7}
                     >
-                        <SortAscending size={14} color={showSort ? SiagaColors.info : SiagaColors.secondary} weight="duotone" />
+                        <SortAscending size={16} color={showSort ? SiagaColors.info : SiagaColors.secondary} weight="duotone" />
                         <Text
-                            className="text-[11px] font-semibold"
+                            className="text-[13px] font-semibold"
                             style={{ color: showSort ? SiagaColors.info : SiagaColors.secondary }}
                         >
                             {activeSort}
@@ -610,7 +610,7 @@ export default function GovLaporanScreen() {
                                         activeOpacity={0.7}
                                     >
                                         <Text
-                                            className="text-[10px] font-bold"
+                                            className="text-[12px] font-bold"
                                             style={{ color: isActive ? SiagaColors.info : SiagaColors.secondary }}
                                         >
                                             {opt}
@@ -636,7 +636,7 @@ export default function GovLaporanScreen() {
                 >
                     <View className="flex-row items-center gap-1.5">
                         <View className="w-1 h-4 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
-                        <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
+                        <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
                             {filteredReports.length} Laporan
                             {activeFilter !== 'Semua' && (
                                 <Text style={{ color: SiagaColors.secondary }}> · {activeFilter}</Text>
@@ -647,22 +647,22 @@ export default function GovLaporanScreen() {
                     {/* Quick action buttons */}
                     <View className="flex-row items-center gap-2">
                         <TouchableOpacity
-                            className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-lg"
+                            className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
                             style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
                             activeOpacity={0.7}
                         >
-                            <Megaphone size={12} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[10px] font-bold" style={{ color: SiagaColors.info }}>
+                            <Megaphone size={14} color={SiagaColors.info} weight="duotone" />
+                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>
                                 Broadcast
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-lg"
+                            className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
                             style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
                             activeOpacity={0.7}
                         >
-                            <CheckSquare size={12} color={SiagaColors.success} weight="duotone" />
-                            <Text className="text-[10px] font-bold" style={{ color: SiagaColors.success }}>
+                            <CheckSquare size={14} color={SiagaColors.success} weight="duotone" />
+                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>
                                 Tandai Selesai
                             </Text>
                         </TouchableOpacity>
@@ -693,10 +693,10 @@ export default function GovLaporanScreen() {
                         >
                             <ClipboardText size={32} color={SiagaColors.secondary} weight="duotone" />
                         </View>
-                        <Text className="text-[13px] font-bold mb-1" style={{ color: SiagaColors.primary }}>
+                        <Text className="text-[15px] font-bold mb-1" style={{ color: SiagaColors.primary }}>
                             Tidak ditemukan
                         </Text>
-                        <Text className="text-[11px] text-center" style={{ color: SiagaColors.secondary, maxWidth: 220 }}>
+                        <Text className="text-[13px] text-center" style={{ color: SiagaColors.secondary, maxWidth: 220 }}>
                             Tidak ada laporan yang cocok dengan filter atau pencarian kamu.
                         </Text>
                         <TouchableOpacity
@@ -705,7 +705,7 @@ export default function GovLaporanScreen() {
                             style={{ backgroundColor: SiagaColors.primary }}
                             activeOpacity={0.8}
                         >
-                            <Text className="text-[11px] font-bold text-white">Reset Filter</Text>
+                            <Text className="text-[13px] font-bold text-white">Reset Filter</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -726,8 +726,8 @@ export default function GovLaporanScreen() {
                         }}
                         activeOpacity={0.7}
                     >
-                        <ArrowClockwise size={13} color={SiagaColors.info} weight="duotone" />
-                        <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>
+                        <ArrowClockwise size={15} color={SiagaColors.info} weight="duotone" />
+                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
                             Muat Laporan Lainnya
                         </Text>
                     </TouchableOpacity>
@@ -735,7 +735,7 @@ export default function GovLaporanScreen() {
 
                 {/* Info footer */}
                 <View className="items-center pt-1">
-                    <Text className="text-[9px]" style={{ color: SiagaColors.secondary }}>
+                    <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
                         Data diperbarui otomatis setiap 30 detik
                     </Text>
                 </View>
