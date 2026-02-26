@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, Image,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform,
@@ -14,6 +14,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { dummyReportDetails, type ReportDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
+import { getReportById, type ReportData } from '@/services/report.service';
 import EmbeddedMap from '@/components/ui/MapView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -29,18 +30,107 @@ export default function ReportDetailScreen() {
   const [bookmarked, setBookmarked] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
+  const [report, setReport] = useState<ReportDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
   const { user } = useAuth();
 
-  const report = dummyReportDetails[id ?? ''];
-
-  // Initialize votes from report data
-  React.useEffect(() => {
-    if (report) {
-      setVotes(report.votes);
-      setSupported(report.supported);
+  // Fetch report dari API, fallback ke dummy
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      const result = await getReportById(id ?? '');
+      if (result.success && result.data) {
+        const r = result.data;
+        const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
+        const badge: 'Kritis' | 'Sedang' | 'Rendah' = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
+        const statusColorMap: Record<string, { color: string; bg: string }> = {
+          'Menunggu': { color: '#d97706', bg: '#fffbeb' },
+          'Diverifikasi': { color: '#2563eb', bg: '#eff6ff' },
+          'Ditangani': { color: '#7c3aed', bg: '#f5f3ff' },
+          'Selesai': { color: '#059669', bg: '#ecfdf5' },
+        };
+        const sc = statusColorMap[r.status] || statusColorMap['Menunggu'];
+        const mapped: ReportDetail = {
+          id: r.id,
+          type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
+          gradient: '#3b82f6',
+          badge,
+          badgeBg: badge === 'Kritis' ? '#fee2e2' : badge === 'Sedang' ? '#fef9c3' : '#ecfdf5',
+          badgeColor: urgencyColor,
+          title: r.title,
+          desc: r.description || '',
+          distance: '-',
+          votes: r.votesCount,
+          photos: r.photosCount || r.photoUrls?.length || 0,
+          time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+          urgency: r.urgency,
+          urgencyColor,
+          supported: r.hasVoted || false,
+          reporter: {
+            name: r.reporter?.fullName || 'Anonim',
+            initials: r.reporter?.initials || '??',
+            badge: r.reporter?.currentBadge || 'Warga',
+            reportsCount: r.reporter?.totalReports || 0,
+          },
+          location: {
+            address: r.address,
+            district: r.district,
+            city: r.city,
+            lat: r.lat,
+            lng: r.lng,
+          },
+          description: r.description || '',
+          category: r.category,
+          status: r.status,
+          statusColor: sc.color,
+          statusBg: sc.bg,
+          createdAt: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          updatedAt: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          photoUrls: r.photoUrls || [],
+          comments: (r.comments || []).map((c: any) => ({
+            id: c.id,
+            user: c.user?.fullName || c.fullName || 'User',
+            initials: c.user?.initials || c.initials || '??',
+            text: c.text || c.content || '',
+            time: new Date(c.createdAt || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+            likes: c.likes || 0,
+          })),
+          timeline: [
+            { id: 't1', title: 'Laporan Diterima', desc: 'Laporan masuk ke sistem', time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
+            ...(r.status !== 'Menunggu' ? [{ id: 't2', title: 'Diverifikasi', desc: 'Laporan telah diverifikasi', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+            ...(r.status === 'Ditangani' || r.status === 'Selesai' ? [{ id: 't3', title: 'Sedang Ditangani', desc: r.respondedBy ? `Ditangani oleh ${r.respondedBy}` : 'Sedang dalam penanganan', time: '-', status: (r.status === 'Ditangani' ? 'active' : 'done') as 'active' | 'done' }] : []),
+            ...(r.status === 'Selesai' ? [{ id: 't4', title: 'Selesai', desc: 'Masalah telah diselesaikan', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+            ...(r.status === 'Menunggu' ? [{ id: 't2p', title: 'Menunggu Verifikasi', desc: 'Laporan sedang diperiksa', time: '-', status: 'active' as const }] : []),
+          ],
+          respondedBy: r.respondedBy,
+          estimatedCompletion: r.estimatedCompletion,
+          verifiedCount: r.verifiedCount || 0,
+        };
+        setReport(mapped);
+        setVotes(mapped.votes);
+        setSupported(mapped.supported);
+      } else {
+        // Fallback ke dummy data
+        const dummy = dummyReportDetails[id ?? ''];
+        if (dummy) {
+          setReport(dummy);
+          setVotes(dummy.votes);
+          setSupported(dummy.supported);
+        }
+      }
+      setIsLoading(false);
     }
-  }, [report]);
+    load();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
+        <Text className="text-sm text-secondary">Memuat laporan...</Text>
+      </View>
+    );
+  }
 
   if (!report) {
     return (
