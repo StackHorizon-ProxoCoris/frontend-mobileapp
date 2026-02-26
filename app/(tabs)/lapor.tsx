@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Image as RNImage } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     CaretLeft, ClockCounterClockwise, WarningCircle, HandsClapping, Microphone,
@@ -15,6 +15,8 @@ import SOSModal from '@/components/ui/SOSModal';
 import { useAuth } from '@/context/auth';
 import { createReport } from '@/services/report.service';
 import { createAction } from '@/services/action.service';
+import { apiUpload } from '@/services/api';
+import * as ImagePicker from 'expo-image-picker';
 
 type TabType = 'masalah' | 'aksi' | 'voice';
 
@@ -45,6 +47,55 @@ export default function LaporScreen() {
     const [aksiDesc, setAksiDesc] = useState('');
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
+    const [photos, setPhotos] = useState<{ uri: string; uploadedUrl?: string }[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const pickImage = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Izin Diperlukan', 'Izinkan akses ke galeri untuk menambahkan foto.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.7,
+            allowsMultipleSelection: true,
+            selectionLimit: 3 - photos.length,
+        });
+        if (!result.canceled && result.assets) {
+            const newPhotos = result.assets.map(a => ({ uri: a.uri }));
+            setPhotos(prev => [...prev, ...newPhotos].slice(0, 3));
+        }
+    };
+
+    const takePhoto = async () => {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Izin Diperlukan', 'Izinkan akses ke kamera untuk mengambil foto.');
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            quality: 0.7,
+        });
+        if (!result.canceled && result.assets.length > 0) {
+            setPhotos(prev => [...prev, { uri: result.assets[0].uri }].slice(0, 3));
+        }
+    };
+
+    const uploadPhotos = async (): Promise<string[]> => {
+        const urls: string[] = [];
+        for (const photo of photos) {
+            if (photo.uploadedUrl) { urls.push(photo.uploadedUrl); continue; }
+            const formData = new FormData();
+            const filename = photo.uri.split('/').pop() || 'photo.jpg';
+            formData.append('file', { uri: photo.uri, name: filename, type: 'image/jpeg' } as any);
+            const result = await apiUpload<{ url: string }>('/upload', formData);
+            if (result.success && result.data?.url) {
+                urls.push(result.data.url);
+            }
+        }
+        return urls;
+    };
 
     const tabs: { key: TabType; label: string; icon: any }[] = [
         { key: 'masalah', label: 'Lapor Masalah', icon: WarningCircle },
@@ -127,23 +178,33 @@ export default function LaporScreen() {
                             <View className="flex-row items-center gap-1.5 mb-3">
                                 <Camera size={14} color={SiagaColors.info} weight="duotone" />
                                 <Text className="text-[11px] font-bold text-primary uppercase tracking-wider">Foto Bukti</Text>
-                                <Text className="text-[9px] text-secondary">(min. 1 foto)</Text>
+                                <Text className="text-[9px] text-secondary">(min. 1 foto, max 3)</Text>
                             </View>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                                <TouchableOpacity className="w-28 h-28 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-1.5">
-                                    <View className="w-10 h-10 rounded-full bg-surface items-center justify-center">
-                                        <CameraPlus size={20} color={SiagaColors.primary} weight="duotone" />
-                                    </View>
-                                    <Text className="text-[9px] font-semibold text-secondary">Ambil Foto</Text>
-                                </TouchableOpacity>
-                                {[1, 2].map((_, i) => (
-                                    <TouchableOpacity key={i} className="w-28 h-28 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-1.5">
+                                {photos.map((photo, i) => (
+                                    <TouchableOpacity key={i} className="w-28 h-28 rounded-2xl overflow-hidden" onPress={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}>
+                                        <RNImage source={{ uri: photo.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                        <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 items-center justify-center">
+                                            <Text className="text-white text-[9px] font-bold">✕</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                                {photos.length < 3 && (
+                                    <TouchableOpacity className="w-28 h-28 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-1.5" onPress={takePhoto}>
+                                        <View className="w-10 h-10 rounded-full bg-surface items-center justify-center">
+                                            <CameraPlus size={20} color={SiagaColors.primary} weight="duotone" />
+                                        </View>
+                                        <Text className="text-[9px] font-semibold text-secondary">Ambil Foto</Text>
+                                    </TouchableOpacity>
+                                )}
+                                {photos.length < 3 && (
+                                    <TouchableOpacity className="w-28 h-28 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-1.5" onPress={pickImage}>
                                         <View className="w-10 h-10 rounded-full bg-surface items-center justify-center">
                                             <Plus size={20} color={SiagaColors.secondary} weight="duotone" />
                                         </View>
-                                        <Text className="text-[9px] font-medium text-secondary">Tambah</Text>
+                                        <Text className="text-[9px] font-medium text-secondary">Dari Galeri</Text>
                                     </TouchableOpacity>
-                                ))}
+                                )}
                             </ScrollView>
                             <View className="flex-row items-center gap-2 mt-2.5 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
                                 <Robot size={14} color={SiagaColors.info} weight="duotone" />
@@ -254,6 +315,13 @@ export default function LaporScreen() {
                                 if (!title.trim()) { Alert.alert('Error', 'Masukkan judul laporan.'); return; }
                                 if (!description.trim()) { Alert.alert('Error', 'Masukkan deskripsi.'); return; }
                                 setIsSubmitting(true);
+                                // Upload foto dulu
+                                let photoUrls: string[] = [];
+                                if (photos.length > 0) {
+                                    setIsUploading(true);
+                                    photoUrls = await uploadPhotos();
+                                    setIsUploading(false);
+                                }
                                 const result = await createReport({
                                     category: selectedCat,
                                     type: selectedCat,
@@ -265,11 +333,12 @@ export default function LaporScreen() {
                                     lat: -6.8915,
                                     lng: 107.6107,
                                     urgency: 50,
+                                    photoUrls,
                                 });
                                 setIsSubmitting(false);
                                 if (result.success) {
                                     Alert.alert('Berhasil! 🎉', 'Laporan Anda berhasil dikirim dan akan segera divalidasi.', [{ text: 'OK' }]);
-                                    setSelectedCat(null); setTitle(''); setDescription('');
+                                    setSelectedCat(null); setTitle(''); setDescription(''); setPhotos([]);
                                 } else {
                                     Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat mengirim laporan.');
                                 }
