@@ -65,24 +65,24 @@ const MENU_SECTIONS: MenuSection[] = [
     {
         title: 'Akun',
         items: [
-            { label: 'Edit Profil', icon: UserCircle, color: SiagaColors.info },
-            { label: 'Ganti Password', icon: Lock, color: '#7c3aed' },
-            { label: 'Notifikasi', icon: Bell, color: '#f59e0b' },
+            { label: 'Edit Profil', icon: UserCircle, color: SiagaColors.info, action: '/edit-profil' },
+            { label: 'Ganti Password', icon: Lock, color: '#7c3aed', action: '/pengaturan' },
+            { label: 'Notifikasi', icon: Bell, color: '#f59e0b', action: '/riwayat-aktivitas' },
         ],
     },
     {
         title: 'Sistem',
         items: [
-            { label: 'Pengaturan Sistem', icon: Gear, color: SiagaColors.primary },
-            { label: 'Riwayat Aktivitas', icon: ChartBar, color: SiagaColors.success },
-            { label: 'Akses & Keamanan', icon: ShieldCheck, color: SiagaColors.info },
+            { label: 'Pengaturan Sistem', icon: Gear, color: SiagaColors.primary, action: '/pengaturan' },
+            { label: 'Riwayat Aktivitas', icon: ChartBar, color: SiagaColors.success, action: '/riwayat-aktivitas' },
+            { label: 'Akses & Keamanan', icon: ShieldCheck, color: SiagaColors.info, action: '/pengaturan' },
         ],
     },
     {
         title: 'Informasi',
         items: [
-            { label: 'Tentang SIAGA', icon: ShieldCheck, color: SiagaColors.info },
-            { label: 'Panduan Penggunaan', icon: Eye, color: '#059669' },
+            { label: 'Tentang SIAGA', icon: ShieldCheck, color: SiagaColors.info, action: '/tentang' },
+            { label: 'Panduan Penggunaan', icon: Eye, color: '#059669', action: '/bantuan' },
         ],
     },
 ];
@@ -92,13 +92,13 @@ function InfoRow({ label, value, icon: IconComp, accent }: { label: string; valu
     return (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: accent ? accent + '18' : '#f4f7fb', alignItems: 'center', justifyContent: 'center' }}>
-                <IconComp size={16} color={accent ?? SiagaColors.secondary} weight="duotone" />
+                <IconComp size={18} color={accent ?? SiagaColors.secondary} weight="duotone" />
             </View>
             <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 1 }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 1 }}>
                     {label}
                 </Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>
                     {value}
                 </Text>
             </View>
@@ -110,7 +110,7 @@ function SectionLabel({ title }: { title: string }) {
     return (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: SiagaColors.info }} />
-            <Text style={{ fontSize: 12, fontWeight: '800', color: SiagaColors.primary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: SiagaColors.primary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {title}
             </Text>
         </View>
@@ -175,26 +175,26 @@ export default function GovProfilScreen() {
                     <Text style={{ fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.3, marginBottom: 3 }}>
                         {USER.name}
                     </Text>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
                         {USER.jabatan}
                     </Text>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>
                         {USER.instansi} · {USER.wilayah}
                     </Text>
 
                     {/* Tags row */}
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 }}>
-                            <Medal size={12} color="#fbbf24" weight="fill" />
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#fbbf24' }}>Gol. {USER.golongan}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}>
+                            <Medal size={14} color="#fbbf24" weight="fill" />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#fbbf24' }}>Gol. {USER.golongan}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(52,211,153,0.15)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(52,211,153,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
                             <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: SiagaColors.success }} />
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#34d399' }}>Online</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#34d399' }}>Online</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 }}>
-                            <ShieldCheck size={12} color={SiagaColors.info} weight="fill" />
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#93c5fd' }}>{USER.accessLevel}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}>
+                            <ShieldCheck size={14} color={SiagaColors.info} weight="fill" />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#93c5fd' }}>{USER.accessLevel}</Text>
                         </View>
                     </View>
                 </View>
@@ -259,17 +259,17 @@ export default function GovProfilScreen() {
                                     shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3,
                                 }}>
                                     <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: stat.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                                        <IconComp size={18} color={stat.color} weight="duotone" />
+                                        <IconComp size={20} color={stat.color} weight="duotone" />
                                     </View>
                                     <Text style={{ fontSize: 22, fontWeight: '900', color: SiagaColors.primary, lineHeight: 26 }}>
                                         {stat.value}
                                     </Text>
-                                    <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.secondary, marginTop: 2 }}>
+                                    <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.secondary, marginTop: 2 }}>
                                         {stat.label}
                                     </Text>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 6 }}>
-                                        <TrendUp size={9} color={stat.color} weight="fill" />
-                                        <Text style={{ fontSize: 9, fontWeight: '700', color: stat.color }}>{stat.trend}</Text>
+                                        <TrendUp size={11} color={stat.color} weight="fill" />
+                                        <Text style={{ fontSize: 10, fontWeight: '700', color: stat.color }}>{stat.trend}</Text>
                                     </View>
                                 </View>
                             );
@@ -294,17 +294,17 @@ export default function GovProfilScreen() {
                                     {/* Timeline */}
                                     <View style={{ alignItems: 'center', width: 36 }}>
                                         <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: act.bg, alignItems: 'center', justifyContent: 'center' }}>
-                                            <IconComp size={16} color={act.iconColor} weight="duotone" />
+                                            <IconComp size={18} color={act.iconColor} weight="duotone" />
                                         </View>
                                         {!isLast && <View style={{ width: 1.5, flex: 1, backgroundColor: '#f1f5f9', marginTop: 4 }} />}
                                     </View>
                                     {/* Content */}
                                     <View style={{ flex: 1, paddingTop: 3 }}>
-                                        <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary, lineHeight: 17 }}>
+                                        <Text style={{ fontSize: 14, fontWeight: '600', color: SiagaColors.primary, lineHeight: 17 }}>
                                             {act.text + ' '}
                                             <Text style={{ fontWeight: '800', color: act.color }}>{act.highlight}</Text>
                                         </Text>
-                                        <Text style={{ fontSize: 10, color: SiagaColors.secondary, marginTop: 2 }}>{act.time}</Text>
+                                        <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 2 }}>{act.time}</Text>
                                     </View>
                                 </View>
                             );
@@ -318,9 +318,10 @@ export default function GovProfilScreen() {
                                 marginTop: 14, paddingTop: 12,
                                 borderTopWidth: 1, borderTopColor: '#f1f5f9',
                             }}
+                            onPress={() => router.push('/riwayat-aktivitas')}
                         >
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.info }}>Lihat Semua Aktivitas</Text>
-                            <ArrowRight size={11} color={SiagaColors.info} weight="bold" />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.info }}>Lihat Semua Aktivitas</Text>
+                            <ArrowRight size={13} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -334,7 +335,7 @@ export default function GovProfilScreen() {
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <SectionLabel title="Hak Akses & Keamanan" />
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: SiagaColors.info }}>{showAccess ? 'Sembunyikan' : 'Tampilkan'}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.info }}>{showAccess ? 'Sembunyikan' : 'Tampilkan'}</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -347,10 +348,10 @@ export default function GovProfilScreen() {
                         }}>
                             {/* Access level badge */}
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, padding: 12, backgroundColor: '#eff6ff', borderRadius: 14 }}>
-                                <ShieldCheck size={22} color={SiagaColors.info} weight="duotone" />
+                                <ShieldCheck size={24} color={SiagaColors.info} weight="duotone" />
                                 <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: 11, fontWeight: '800', color: SiagaColors.primary }}>Level: {USER.accessLevel}</Text>
-                                    <Text style={{ fontSize: 10, color: SiagaColors.secondary, marginTop: 1 }}>Login terakhir: {USER.lastLogin}</Text>
+                                    <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>Level: {USER.accessLevel}</Text>
+                                    <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 1 }}>Login terakhir: {USER.lastLogin}</Text>
                                 </View>
                             </View>
 
@@ -359,13 +360,13 @@ export default function GovProfilScreen() {
                                 {ACCESS_PERMISSIONS.map((p, i) => (
                                     <View key={i} style={{
                                         flexDirection: 'row', alignItems: 'center', gap: 5,
-                                        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+                                        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
                                         backgroundColor: p.granted ? '#ecfdf5' : '#fef2f2',
                                         borderWidth: 1,
                                         borderColor: p.granted ? 'rgba(39,174,96,0.2)' : 'rgba(231,76,60,0.15)',
                                     }}>
                                         <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: p.granted ? SiagaColors.success : SiagaColors.danger }} />
-                                        <Text style={{ fontSize: 10, fontWeight: '700', color: p.granted ? '#065f46' : '#9f1239' }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: p.granted ? '#065f46' : '#9f1239' }}>
                                             {p.label}
                                         </Text>
                                     </View>
@@ -398,14 +399,15 @@ export default function GovProfilScreen() {
                                             borderBottomWidth: isLast ? 0 : 1,
                                             borderBottomColor: '#f4f7fb',
                                         }}
+                                        onPress={() => item.action && router.push(item.action as any)}
                                     >
                                         <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: item.color + '15', alignItems: 'center', justifyContent: 'center' }}>
-                                            <IconComp size={18} color={item.color} weight="duotone" />
+                                            <IconComp size={20} color={item.color} weight="duotone" />
                                         </View>
-                                        <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: SiagaColors.primary }}>
+                                        <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: SiagaColors.primary }}>
                                             {item.label}
                                         </Text>
-                                        <CaretRight size={14} color={SiagaColors.secondary} weight="bold" />
+                                        <CaretRight size={16} color={SiagaColors.secondary} weight="bold" />
                                     </TouchableOpacity>
                                 );
                             })}
@@ -427,7 +429,7 @@ export default function GovProfilScreen() {
                             shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 4,
                         }}
                     >
-                        <SignOut size={18} color={SiagaColors.danger} weight="duotone" />
+                        <SignOut size={20} color={SiagaColors.danger} weight="duotone" />
                         <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.danger }}>Keluar dari Akun</Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -436,12 +438,12 @@ export default function GovProfilScreen() {
                 <View style={{ alignItems: 'center', paddingTop: 4, gap: 4 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <View style={{ width: 22, height: 22, borderRadius: 7, backgroundColor: SiagaColors.primary, alignItems: 'center', justifyContent: 'center' }}>
-                            <ShieldCheck size={11} color="#fff" weight="duotone" />
+                            <ShieldCheck size={13} color="#fff" weight="duotone" />
                         </View>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: SiagaColors.primary }}>SIAGA Gov Dashboard</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>SIAGA Gov Dashboard</Text>
                     </View>
-                    <Text style={{ fontSize: 9, color: SiagaColors.secondary }}>v1.0.0 · Smart Indonesia Adaptive Governance</Text>
-                    <Text style={{ fontSize: 9, color: SiagaColors.secondary }}>NIP: {USER.nip}</Text>
+                    <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>v1.0.0 · Smart Indonesia Adaptive Governance</Text>
+                    <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>NIP: {USER.nip}</Text>
                 </View>
 
             </ScrollView>
