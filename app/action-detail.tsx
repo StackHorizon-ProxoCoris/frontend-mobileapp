@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, Image,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, Alert, TextInput,
@@ -15,6 +15,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
+import { getActionById, type ActionData } from '@/services/action.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -28,9 +29,97 @@ export default function ActionDetailScreen() {
   const [joined, setJoined] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
+  const [action, setAction] = useState<ActionDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
-  const action = dummyActionDetails[id ?? ''];
+  // Fetch action dari API, fallback ke dummy
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      const result = await getActionById(id ?? '');
+      if (result.success && result.data) {
+        const a = result.data;
+        const statusColorMap: Record<string, { color: string; bg: string }> = {
+          'Terjadwal': { color: '#2563eb', bg: '#eff6ff' },
+          'Berlangsung': { color: '#d97706', bg: '#fffbeb' },
+          'Selesai': { color: '#059669', bg: '#ecfdf5' },
+        };
+        const sc = statusColorMap[a.status] || statusColorMap['Terjadwal'];
+        const mapped: ActionDetail = {
+          id: a.id,
+          type: a.category === 'Kebersihan' ? 'Trash' : a.category === 'Penghijauan' ? 'Plant' : 'Tree',
+          bg: '#ecfdf5',
+          title: a.title,
+          time: new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+          points: a.points,
+          gradient: '#10b981',
+          description: a.description || '',
+          category: a.category,
+          status: (a.status as 'Terjadwal' | 'Berlangsung' | 'Selesai') || 'Terjadwal',
+          statusColor: sc.color,
+          statusBg: sc.bg,
+          date: a.date || new Date(a.createdAt).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          duration: a.duration || '-',
+          location: {
+            address: a.address,
+            district: a.district,
+            city: a.city,
+          },
+          organizer: {
+            name: a.organizer?.fullName || 'Organizer',
+            initials: a.organizer?.initials || '??',
+            badge: a.organizer?.currentBadge || 'Warga',
+            actionsCount: a.organizer?.totalActions || 0,
+          },
+          participants: [],
+          totalParticipants: a.totalParticipants,
+          maxParticipants: a.maxParticipants,
+          photoUrls: a.photoUrls || [],
+          impact: [
+            { label: 'Peserta', value: `${a.totalParticipants}/${a.maxParticipants}`, type: 'Users' },
+            { label: 'Durasi', value: a.duration || '-', type: 'Clock' },
+            { label: 'Eco Points', value: `+${a.points}`, type: 'Tree' },
+          ],
+          milestones: [
+            { id: 'm1', title: 'Aksi Dibuat', desc: 'Aksi positif terdaftar', time: new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
+            ...(a.status === 'Berlangsung' || a.status === 'Selesai' ? [{ id: 'm2', title: 'Berlangsung', desc: 'Aksi sedang dilaksanakan', time: '-', status: (a.status === 'Berlangsung' ? 'active' : 'done') as 'active' | 'done' }] : []),
+            ...(a.status === 'Selesai' ? [{ id: 'm3', title: 'Selesai', desc: 'Aksi telah selesai dilaksanakan', time: new Date(a.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+            ...(a.status === 'Terjadwal' ? [{ id: 'm2p', title: 'Menunggu Pelaksanaan', desc: 'Aksi terjadwal', time: '-', status: 'active' as const }] : []),
+          ],
+          ecoPointsBreakdown: [
+            { label: 'Partisipasi', points: Math.round(a.points * 0.6) },
+            { label: 'Kontribusi', points: Math.round(a.points * 0.3) },
+            { label: 'Bonus', points: Math.round(a.points * 0.1) },
+          ],
+          comments: (a.comments || []).map((c: any) => ({
+            id: c.id,
+            user: c.user?.fullName || c.fullName || 'User',
+            initials: c.user?.initials || c.initials || '??',
+            text: c.text || c.content || '',
+            time: new Date(c.createdAt || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+            likes: c.likes || 0,
+          })),
+          verified: a.verified,
+          verifiedBy: a.verifiedBy || '',
+        };
+        setAction(mapped);
+      } else {
+        const dummy = dummyActionDetails[id ?? ''];
+        if (dummy) setAction(dummy);
+      }
+      setIsLoading(false);
+    }
+    load();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
+        <Text className="text-sm text-secondary">Memuat aksi...</Text>
+      </View>
+    );
+  }
 
   if (!action) {
     return (
