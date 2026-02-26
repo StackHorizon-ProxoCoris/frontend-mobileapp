@@ -153,13 +153,13 @@ function SummaryCard({
             }}
         >
             <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <IconComp size={18} color={color} weight="duotone" />
+                <IconComp size={20} color={color} weight="duotone" />
             </View>
             <Text style={{ fontSize: 20, fontWeight: '800', color: SiagaColors.primary, lineHeight: 24 }}>{value}</Text>
-            <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.secondary, marginTop: 2 }}>{label}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.secondary, marginTop: 2 }}>{label}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 6 }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
-                <Text style={{ fontSize: 9, fontWeight: '700', color }}>{sub}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '700', color }}>{sub}</Text>
             </View>
         </Animated.View>
     );
@@ -187,18 +187,18 @@ function AnomalyBanner() {
             <View style={{ padding: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center' }}>
-                        <WarningDiamond size={17} color={SiagaColors.danger} weight="duotone" />
+                        <WarningDiamond size={19} color={SiagaColors.danger} weight="duotone" />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: SiagaColors.danger, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.danger, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Perhatian Khusus
                         </Text>
-                        <Text style={{ fontSize: 10, color: SiagaColors.secondary, marginTop: 1 }}>
+                        <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 1 }}>
                             {ANOMALI_COUNT} proyek terdeteksi anomali anggaran
                         </Text>
                     </View>
                     <View style={{ backgroundColor: SiagaColors.danger, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{ANOMALI_COUNT}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff' }}>{ANOMALI_COUNT}</Text>
                     </View>
                 </View>
                 {PROJECTS.filter(p => p.status === 'Anomali').map((p, i) => (
@@ -210,14 +210,14 @@ function AnomalyBanner() {
                     }}>
                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: SiagaColors.danger }} />
                         <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>
                                 {p.title}
                             </Text>
-                            <Text style={{ fontSize: 9, color: SiagaColors.secondary, marginTop: 1 }}>
+                            <Text style={{ fontSize: 10, color: SiagaColors.secondary, marginTop: 1 }}>
                                 {p.anomaliNote}
                             </Text>
                         </View>
-                        <CaretRight size={12} color={SiagaColors.secondary} weight="bold" />
+                        <CaretRight size={14} color={SiagaColors.secondary} weight="bold" />
                     </View>
                 ))}
             </View>
@@ -263,28 +263,28 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                 {/* Header row */}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
                     <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: project.bgColor, alignItems: 'center', justifyContent: 'center' }}>
-                        <IconComp size={22} color={project.iconColor} weight="duotone" />
+                        <IconComp size={24} color={project.iconColor} weight="duotone" />
                     </View>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                            <Text style={{ fontSize: 9, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 {project.id}
                             </Text>
                         </View>
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary, lineHeight: 17 }} numberOfLines={2}>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: SiagaColors.primary, lineHeight: 17 }} numberOfLines={2}>
                             {project.title}
                         </Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                            <Buildings size={10} color={SiagaColors.secondary} weight="duotone" />
-                            <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>
+                            <Buildings size={12} color={SiagaColors.secondary} weight="duotone" />
+                            <Text style={{ fontSize: 12, color: SiagaColors.secondary }}>
                                 {project.org} · {project.kec}
                             </Text>
                         </View>
                     </View>
                     {/* Status badge */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: st.bg }}>
-                        <StIcon size={9} color={st.text} weight="fill" />
-                        <Text style={{ fontSize: 8, fontWeight: '800', color: st.text }}>{st.label}</Text>
+                        <StIcon size={11} color={st.text} weight="fill" />
+                        <Text style={{ fontSize: 9, fontWeight: '800', color: st.text }}>{st.label}</Text>
                     </View>
                 </View>
 
@@ -296,10 +296,10 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                         { label: 'Fisik', value: `${project.fisik}%`, color: project.fisik >= 70 ? SiagaColors.success : project.fisik >= 50 ? '#f59e0b' : SiagaColors.danger, bg: '#f8fafd' },
                     ].map((m, i) => (
                         <View key={i} style={{ flex: 1, backgroundColor: '#f8fafd', borderRadius: 10, padding: 10, alignItems: 'center' }}>
-                            <Text style={{ fontSize: 8, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 3 }}>
+                            <Text style={{ fontSize: 9, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 3 }}>
                                 {m.label}
                             </Text>
-                            <Text style={{ fontSize: 13, fontWeight: '800', color: m.color }}>{m.value}</Text>
+                            <Text style={{ fontSize: 15, fontWeight: '800', color: m.color }}>{m.value}</Text>
                         </View>
                     ))}
                 </View>
@@ -311,8 +311,8 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                         backgroundColor: '#fef2f2', borderRadius: 10,
                         paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12,
                     }}>
-                        <Info size={13} color={SiagaColors.danger} weight="duotone" />
-                        <Text style={{ flex: 1, fontSize: 10, color: '#9f1239', fontWeight: '600' }}>
+                        <Info size={15} color={SiagaColors.danger} weight="duotone" />
+                        <Text style={{ flex: 1, fontSize: 12, color: '#9f1239', fontWeight: '600' }}>
                             Gap Realisasi vs Fisik: <Text style={{ fontWeight: '800' }}>{gap}%</Text> — perlu investigasi
                         </Text>
                     </View>
@@ -321,8 +321,8 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                 {/* Progress bar fisik */}
                 <View style={{ marginBottom: 10 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <Text style={{ fontSize: 10, color: SiagaColors.secondary, fontWeight: '600' }}>Progress Fisik</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: barColor }}>{project.fisik}%</Text>
+                        <Text style={{ fontSize: 12, color: SiagaColors.secondary, fontWeight: '600' }}>Progress Fisik</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: barColor }}>{project.fisik}%</Text>
                     </View>
                     <View style={{ height: 7, backgroundColor: '#f1f5f9', borderRadius: 5, overflow: 'hidden' }}>
                         <View style={{ height: '100%', borderRadius: 5, backgroundColor: barColor, width: `${project.fisik}%` }} />
@@ -332,8 +332,8 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                 {/* Footer row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Clock size={11} color={SiagaColors.secondary} weight="duotone" />
-                        <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>
+                        <Clock size={13} color={SiagaColors.secondary} weight="duotone" />
+                        <Text style={{ fontSize: 12, color: SiagaColors.secondary }}>
                             Deadline: <Text style={{ fontWeight: '700', color: isAnomali && project.deadline === 'Feb 2026' ? SiagaColors.danger : SiagaColors.primary }}>{project.deadline}</Text>
                         </Text>
                     </View>
@@ -344,9 +344,14 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                             paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
                             backgroundColor: isAnomali ? SiagaColors.danger : SiagaColors.primary,
                         }}
+                        onPress={() => {
+                            // Ideally navigate to project detail, fallback to action-detail
+                            const router = require('expo-router').useRouter();
+                            router.push('/action-detail');
+                        }}
                     >
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>Detail</Text>
-                        <ArrowRight size={10} color="#fff" weight="bold" />
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>Detail</Text>
+                        <ArrowRight size={12} color="#fff" weight="bold" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -389,11 +394,11 @@ export default function GovBudgetScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: SiagaColors.info, alignItems: 'center', justifyContent: 'center' }}>
-                                <ChartPieSlice size={19} color="#fff" weight="duotone" />
+                                <ChartPieSlice size={21} color="#fff" weight="duotone" />
                             </View>
                             <View>
-                                <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: -0.3 }}>Budget Watch</Text>
-                                <Text style={{ fontSize: 9, fontWeight: '600', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                                <Text style={{ fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3 }}>Budget Watch</Text>
+                                <Text style={{ fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>
                                     APBD 2026 · Q1
                                 </Text>
                             </View>
@@ -403,12 +408,12 @@ export default function GovBudgetScreen() {
                                 activeOpacity={0.7}
                                 style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
                             >
-                                <ArrowClockwise size={17} color="rgba(255,255,255,0.75)" weight="duotone" />
+                                <ArrowClockwise size={19} color="rgba(255,255,255,0.75)" weight="duotone" />
                             </TouchableOpacity>
                             {ANOMALI_COUNT > 0 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(231,76,60,0.2)', borderWidth: 1, borderColor: 'rgba(231,76,60,0.35)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                    <WarningDiamond size={13} color="#fca5a5" weight="fill" />
-                                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#fca5a5' }}>{ANOMALI_COUNT} Anomali</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(231,76,60,0.2)', borderWidth: 1, borderColor: 'rgba(231,76,60,0.35)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 }}>
+                                    <WarningDiamond size={15} color="#fca5a5" weight="fill" />
+                                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#fca5a5' }}>{ANOMALI_COUNT} Anomali</Text>
                                 </View>
                             )}
                         </View>
@@ -417,11 +422,11 @@ export default function GovBudgetScreen() {
                     {/* Period + updated info */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: SiagaColors.success }} />
-                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' }}>
+                        <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' }}>
                             Periode: <Text style={{ color: '#fff', fontWeight: '700' }}>Jan — Mar 2026</Text>
                         </Text>
                         <View style={{ flex: 1 }} />
-                        <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Update: 25 Feb 2026</Text>
+                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Update: 25 Feb 2026</Text>
                     </View>
                 </View>
             </View>
@@ -438,7 +443,7 @@ export default function GovBudgetScreen() {
 
                 {/* ── STAT CARDS 2×2 ───────────────────────────────── */}
                 <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-                    <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: SiagaColors.primary, marginBottom: 10 }}>
                         Ringkasan Anggaran
                     </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -490,7 +495,7 @@ export default function GovBudgetScreen() {
                 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: SiagaColors.info }} />
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>Serapan Anggaran Keseluruhan</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: SiagaColors.primary }}>Serapan Anggaran Keseluruhan</Text>
                     </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
@@ -518,7 +523,7 @@ export default function GovBudgetScreen() {
                             </Svg>
                             <View style={{ position: 'absolute', alignItems: 'center' }}>
                                 <Text style={{ fontSize: 22, fontWeight: '900', color: SiagaColors.primary }}>{PCT_SERAP}%</Text>
-                                <Text style={{ fontSize: 9, fontWeight: '600', color: SiagaColors.secondary, marginTop: 1 }}>Terserap</Text>
+                                <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.secondary, marginTop: 1 }}>Terserap</Text>
                             </View>
                         </View>
 
@@ -532,17 +537,17 @@ export default function GovBudgetScreen() {
                                 <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                         <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: item.color, borderWidth: item.color === '#edf2f9' ? 1 : 0, borderColor: '#cbd5e1' }} />
-                                        <Text style={{ fontSize: 11, color: SiagaColors.secondary }}>{item.label}</Text>
+                                        <Text style={{ fontSize: 13, color: SiagaColors.secondary }}>{item.label}</Text>
                                     </View>
-                                    <Text style={{ fontSize: 11, fontWeight: '800', color: item.textColor ?? SiagaColors.primary }}>{item.value}</Text>
+                                    <Text style={{ fontSize: 13, fontWeight: '800', color: item.textColor ?? SiagaColors.primary }}>{item.value}</Text>
                                 </View>
                             ))}
 
                             <View style={{ height: 1, backgroundColor: '#f1f5f9' }} />
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Text style={{ fontSize: 11, fontWeight: '600', color: SiagaColors.secondary }}>Total APBD</Text>
-                                <Text style={{ fontSize: 11, fontWeight: '800', color: SiagaColors.primary }}>{formatRp(TOTAL_APBD)}</Text>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: SiagaColors.secondary }}>Total APBD</Text>
+                                <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>{formatRp(TOTAL_APBD)}</Text>
                             </View>
                         </View>
                     </View>
@@ -557,7 +562,7 @@ export default function GovBudgetScreen() {
                 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: SiagaColors.success }} />
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>Serapan per Dinas</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: SiagaColors.primary }}>Serapan per Dinas</Text>
                     </View>
 
                     <View style={{ gap: 12 }}>
@@ -568,14 +573,14 @@ export default function GovBudgetScreen() {
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                                         {/* Avatar */}
                                         <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: d.bg, alignItems: 'center', justifyContent: 'center' }}>
-                                            <Text style={{ fontSize: 10, fontWeight: '800', color: d.color }}>{d.short}</Text>
+                                            <Text style={{ fontSize: 12, fontWeight: '800', color: d.color }}>{d.short}</Text>
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                                <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>{d.name}</Text>
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>{d.name}</Text>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                                    <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>{d.budget}</Text>
-                                                    <Text style={{ fontSize: 12, fontWeight: '800', color: d.color }}>{d.serap}%</Text>
+                                                    <Text style={{ fontSize: 12, color: SiagaColors.secondary }}>{d.budget}</Text>
+                                                    <Text style={{ fontSize: 14, fontWeight: '800', color: d.color }}>{d.serap}%</Text>
                                                 </View>
                                             </View>
                                             <ProgressBar pct={d.serap} color={d.color} />
@@ -595,9 +600,9 @@ export default function GovBudgetScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: '#7c3aed' }} />
-                            <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>Daftar Proyek</Text>
+                            <Text style={{ fontSize: 15, fontWeight: '800', color: SiagaColors.primary }}>Daftar Proyek</Text>
                         </View>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: SiagaColors.secondary }}>{filteredProjects.length} proyek</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: SiagaColors.secondary }}>{filteredProjects.length} proyek</Text>
                     </View>
 
                     {/* Filter tabs */}
@@ -625,11 +630,11 @@ export default function GovBudgetScreen() {
                                         shadowRadius: 4,
                                     }}
                                 >
-                                    <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? '#fff' : SiagaColors.secondary }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: isActive ? '#fff' : SiagaColors.secondary }}>
                                         {tab.key}
                                     </Text>
                                     <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#f1f5f9' }}>
-                                        <Text style={{ fontSize: 9, fontWeight: '800', color: isActive ? '#fff' : SiagaColors.secondary }}>
+                                        <Text style={{ fontSize: 10, fontWeight: '800', color: isActive ? '#fff' : SiagaColors.secondary }}>
                                             {tab.count}
                                         </Text>
                                     </View>
@@ -648,7 +653,7 @@ export default function GovBudgetScreen() {
 
                 {/* ── FOOTER NOTE ──────────────────────────────────── */}
                 <View style={{ alignItems: 'center', paddingTop: 4 }}>
-                    <Text style={{ fontSize: 9, color: SiagaColors.secondary }}>
+                    <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>
                         Data diperbarui dari SIPD · 25 Feb 2026 · 18:00 WIB
                     </Text>
                 </View>
