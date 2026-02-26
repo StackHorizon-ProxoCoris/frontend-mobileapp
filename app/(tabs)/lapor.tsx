@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     CaretLeft, ClockCounterClockwise, WarningCircle, HandsClapping, Microphone,
@@ -12,6 +12,9 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
+import { useAuth } from '@/context/auth';
+import { createReport } from '@/services/report.service';
+import { createAction } from '@/services/action.service';
 
 type TabType = 'masalah' | 'aksi' | 'voice';
 
@@ -36,7 +39,12 @@ export default function LaporScreen() {
     const [selectedCat, setSelectedCat] = useState<string | null>(null);
     const [selectedAksi, setSelectedAksi] = useState<string | null>(null);
     const [sosVisible, setSosVisible] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [description, setDescription] = useState('');
+    const [title, setTitle] = useState('');
+    const [aksiDesc, setAksiDesc] = useState('');
     const insets = useSafeAreaInsets();
+    const { user } = useAuth();
 
     const tabs: { key: TabType; label: string; icon: any }[] = [
         { key: 'masalah', label: 'Lapor Masalah', icon: WarningCircle },
@@ -152,16 +160,36 @@ export default function LaporScreen() {
                             <View className="bg-white border border-slate-100 rounded-2xl overflow-hidden" style={{ elevation: 1 }}>
                                 <TextInput
                                     className="px-4 py-3 text-[12px] text-primary"
+                                    placeholder="Judul singkat laporan Anda..."
+                                    placeholderTextColor="rgba(152,172,195,0.6)"
+                                    value={title}
+                                    onChangeText={setTitle}
+                                    maxLength={100}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Description */}
+                        <View>
+                            <View className="flex-row items-center gap-1.5 mb-3">
+                                <TextAlignLeft size={14} color={SiagaColors.info} weight="duotone" />
+                                <Text className="text-[11px] font-bold text-primary uppercase tracking-wider">Deskripsi</Text>
+                            </View>
+                            <View className="bg-white border border-slate-100 rounded-2xl overflow-hidden" style={{ elevation: 1 }}>
+                                <TextInput
+                                    className="px-4 py-3 text-[12px] text-primary"
                                     placeholder="Ceritakan masalah yang Anda temui..."
                                     placeholderTextColor="rgba(152,172,195,0.6)"
                                     multiline numberOfLines={4}
                                     textAlignVertical="top"
                                     maxLength={500}
+                                    value={description}
+                                    onChangeText={setDescription}
                                     style={{ minHeight: 100 }}
                                 />
                                 <View className="px-4 py-2 border-t border-slate-50 flex-row items-center justify-between">
                                     <Text className="text-[9px] text-secondary">Maks. 500 karakter</Text>
-                                    <Text className="text-[9px] font-semibold text-secondary">0 / 500</Text>
+                                    <Text className="text-[9px] font-semibold text-secondary">{description.length} / 500</Text>
                                 </View>
                             </View>
                         </View>
@@ -217,7 +245,36 @@ export default function LaporScreen() {
                         </View>
 
                         {/* Submit */}
-                        <TouchableOpacity className="py-3.5 rounded-2xl flex-row items-center justify-center gap-2" style={{ backgroundColor: SiagaColors.primary, elevation: 4 }}>
+                        <TouchableOpacity
+                            className="py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
+                            style={{ backgroundColor: SiagaColors.primary, elevation: 4, opacity: isSubmitting ? 0.7 : 1 }}
+                            disabled={isSubmitting}
+                            onPress={async () => {
+                                if (!selectedCat) { Alert.alert('Error', 'Pilih kategori terlebih dahulu.'); return; }
+                                if (!title.trim()) { Alert.alert('Error', 'Masukkan judul laporan.'); return; }
+                                if (!description.trim()) { Alert.alert('Error', 'Masukkan deskripsi.'); return; }
+                                setIsSubmitting(true);
+                                const result = await createReport({
+                                    category: selectedCat,
+                                    type: selectedCat,
+                                    title: title.trim(),
+                                    description: description.trim(),
+                                    address: 'Jl. Ir. H. Juanda No. 45, Kec. Coblong, Bandung',
+                                    district: user?.district || 'Coblong',
+                                    city: user?.city || 'Bandung',
+                                    lat: -6.8915,
+                                    lng: 107.6107,
+                                    urgency: 50,
+                                });
+                                setIsSubmitting(false);
+                                if (result.success) {
+                                    Alert.alert('Berhasil! 🎉', 'Laporan Anda berhasil dikirim dan akan segera divalidasi.', [{ text: 'OK' }]);
+                                    setSelectedCat(null); setTitle(''); setDescription('');
+                                } else {
+                                    Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat mengirim laporan.');
+                                }
+                            }}
+                        >
                             <PaperPlaneTilt size={18} color="#fff" weight="duotone" />
                             <Text className="text-[13px] font-bold text-white">Kirim Laporan</Text>
                         </TouchableOpacity>
@@ -293,10 +350,37 @@ export default function LaporScreen() {
                         </View>
 
                         <View className="bg-white border border-slate-100 rounded-2xl overflow-hidden" style={{ elevation: 1 }}>
-                            <TextInput className="px-4 py-3 text-[12px] text-primary" placeholder="Ceritakan kegiatan apa yang dilakukan..." placeholderTextColor="rgba(152,172,195,0.6)" multiline numberOfLines={3} textAlignVertical="top" style={{ minHeight: 80 }} />
+                            <TextInput className="px-4 py-3 text-[12px] text-primary" placeholder="Ceritakan kegiatan apa yang dilakukan..." placeholderTextColor="rgba(152,172,195,0.6)" multiline numberOfLines={3} textAlignVertical="top" style={{ minHeight: 80 }} value={aksiDesc} onChangeText={setAksiDesc} />
                         </View>
 
-                        <TouchableOpacity className="py-3.5 rounded-2xl flex-row items-center justify-center gap-2" style={{ backgroundColor: '#10b981', elevation: 4 }}>
+                        <TouchableOpacity
+                            className="py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
+                            style={{ backgroundColor: '#10b981', elevation: 4, opacity: isSubmitting ? 0.7 : 1 }}
+                            disabled={isSubmitting}
+                            onPress={async () => {
+                                if (!selectedAksi) { Alert.alert('Error', 'Pilih jenis aksi terlebih dahulu.'); return; }
+                                if (!aksiDesc.trim()) { Alert.alert('Error', 'Masukkan deskripsi aksi.'); return; }
+                                setIsSubmitting(true);
+                                const result = await createAction({
+                                    category: selectedAksi,
+                                    type: selectedAksi,
+                                    title: `${selectedAksi} — ${user?.district || 'Area'}`,
+                                    description: aksiDesc.trim(),
+                                    address: user?.district || 'Area lokal',
+                                    district: user?.district || '',
+                                    city: user?.city || '',
+                                    lat: -6.8915,
+                                    lng: 107.6107,
+                                });
+                                setIsSubmitting(false);
+                                if (result.success) {
+                                    Alert.alert('Berhasil! 🎉', 'Aksi positif Anda berhasil dikirim!', [{ text: 'OK' }]);
+                                    setSelectedAksi(null); setAksiDesc('');
+                                } else {
+                                    Alert.alert('Gagal', result.message || 'Terjadi kesalahan.');
+                                }
+                            }}
+                        >
                             <PaperPlaneTilt size={18} color="#fff" weight="duotone" />
                             <Text className="text-[13px] font-bold text-white">Kirim Laporan Aksi</Text>
                         </TouchableOpacity>
