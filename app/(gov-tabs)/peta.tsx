@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
     MapTrifold, X, ArrowRight,
     Clock, MapPin, Users, WarningDiamond, ArrowClockwise,
@@ -39,7 +39,7 @@ const SEVERITY_COLOR: Record<SeverityLevel, string> = {
 const REPORT_MARKERS = [
     { id: '#1045', title: 'Banjir Jl. Merdeka', category: 'Banjir' as CategoryKey, severity: 'Kritis' as SeverityLevel, lat: -6.9218, lng: 107.6070, area: 'Kec. Dayeuhkolot', cluster: 15, time: '10 menit lalu', desc: 'Ketinggian air mencapai 60cm, warga kesulitan beraktivitas.' },
     { id: '#1044', title: 'Longsor Tebing Jl. Dago', category: 'Longsor' as CategoryKey, severity: 'Kritis' as SeverityLevel, lat: -6.8869, lng: 107.6101, area: 'Kec. Cibeunying', cluster: 5, time: '30 menit lalu', desc: 'Material longsor menutup sebagian badan jalan.' },
-    { id: '#1043', title: 'Kebakaran Warung Jl. ABC', category: 'Kebakaran' as CategoryKey, severity: 'Tinggi' as SeverityLevel, lat: -6.9330, lng: 107.6018, area: 'Kec. Regol', cluster: 2, time: '1 jam lalu', desc: 'Api sudah terkendalikan, butuh pembersihan lokasi.' },
+    { id: '#1043', title: 'Kebakaran Warung Jl. ABC', category: 'Kebakaran' as CategoryKey, severity: 'Kritis' as SeverityLevel, lat: -6.9330, lng: 107.6018, area: 'Kec. Regol', cluster: 2, time: '1 jam lalu', desc: 'Api membesar dekati permukiman padat.' },
     { id: '#1042', title: 'Jalan Berlubang Jl. Sudirman', category: 'Jalan Rusak' as CategoryKey, severity: 'Sedang' as SeverityLevel, lat: -6.9050, lng: 107.6150, area: 'Kec. Coblong', cluster: 3, time: '2 jam lalu', desc: 'Lubang besar berdiameter ±80cm, berbahaya untuk kendaraan.' },
     { id: '#1041', title: 'Tumpukan Sampah Gg. Melati', category: 'Sampah' as CategoryKey, severity: 'Rendah' as SeverityLevel, lat: -6.9080, lng: 107.6200, area: 'Kec. Coblong', cluster: 8, time: '3 jam lalu', desc: 'Sampah menumpuk selama 4 hari, menimbulkan bau tidak sedap.' },
     { id: '#1039', title: 'Banjir Kec. Antapani', category: 'Banjir' as CategoryKey, severity: 'Tinggi' as SeverityLevel, lat: -6.9153, lng: 107.6545, area: 'Kec. Antapani', cluster: 10, time: '4 jam lalu', desc: 'Drainase tersumbat menyebabkan genangan di pemukiman.' },
@@ -57,13 +57,16 @@ const HOTSPOTS = [
     { lat: -6.9153, lng: 107.6545, radius: 400, count: 10, label: 'Antapani' },
 ];
 
-const FILTER_CATEGORIES: (CategoryKey | 'Semua')[] = ['Semua', 'Banjir', 'Longsor', 'Jalan Rusak', 'Kebakaran', 'Sampah'];
+type FilterKey = CategoryKey | 'Semua' | 'Darurat';
+const FILTER_CATEGORIES: FilterKey[] = ['Semua', 'Darurat', 'Banjir', 'Longsor', 'Jalan Rusak', 'Kebakaran', 'Sampah'];
 
 // ─── Map HTML Generator ───────────────────────────────────────────────────────
 function buildMapHtml(activeFilter: string, showHotspot: boolean) {
     const filtered = activeFilter === 'Semua'
         ? REPORT_MARKERS
-        : REPORT_MARKERS.filter(r => r.category === activeFilter);
+        : activeFilter === 'Darurat'
+            ? REPORT_MARKERS.filter(r => r.severity === 'Kritis')
+            : REPORT_MARKERS.filter(r => r.category === activeFilter);
 
     const markersJS = filtered.map((m, i) => {
         const cat = CATEGORY_MAP[m.category];
@@ -145,7 +148,34 @@ function buildMapHtml(activeFilter: string, showHotspot: boolean) {
 }
 
 // ─── Category Legend Item ─────────────────────────────────────────────────────
-function LegendChip({ cat, active, onPress }: { cat: CategoryKey | 'Semua'; active: boolean; onPress: () => void }) {
+function LegendChip({ cat, active, onPress }: { cat: FilterKey; active: boolean; onPress: () => void }) {
+    if (cat === 'Darurat') {
+        return (
+            <TouchableOpacity
+                onPress={onPress}
+                activeOpacity={0.75}
+                style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 14, paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: active ? '#ef4444' : '#fff',
+                    borderWidth: 1,
+                    borderColor: active ? '#ef4444' : '#edf2f9',
+                    elevation: active ? 3 : 1,
+                    shadowColor: '#ef4444',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: active ? 0.22 : 0.04,
+                    shadowRadius: 4,
+                }}
+            >
+                <Text style={{ fontSize: 14 }}>🚨</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : '#ef4444' }}>
+                    Darurat
+                </Text>
+            </TouchableOpacity>
+        );
+    }
+
     const cfg = cat === 'Semua' ? null : CATEGORY_MAP[cat as CategoryKey];
     return (
         <TouchableOpacity
@@ -297,9 +327,12 @@ function ReportBottomSheet({
 export default function GovPetaScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { filter } = useLocalSearchParams<{ filter?: string }>();
     const webviewRef = useRef<WebView>(null);
 
-    const [activeFilter, setActiveFilter] = useState<CategoryKey | 'Semua'>('Semua');
+    const [activeFilter, setActiveFilter] = useState<FilterKey>(
+        (filter as FilterKey) || 'Semua'
+    );
     const [showHotspot, setShowHotspot] = useState(true);
     const [showLegend, setShowLegend] = useState(false);
     const [selectedReport, setSelectedReport] = useState<typeof REPORT_MARKERS[0] | null>(null);
@@ -332,7 +365,7 @@ export default function GovPetaScreen() {
         } catch (_) { }
     }, [openSheet, closeSheet]);
 
-    const handleFilterChange = (cat: CategoryKey | 'Semua') => {
+    const handleFilterChange = (cat: FilterKey) => {
         setActiveFilter(cat);
         setMapKey(k => k + 1);
         closeSheet();
@@ -344,7 +377,11 @@ export default function GovPetaScreen() {
     };
 
     const criticalCount = REPORT_MARKERS.filter(r => r.severity === 'Kritis').length;
-    const filteredCount = activeFilter === 'Semua' ? REPORT_MARKERS.length : REPORT_MARKERS.filter(r => r.category === activeFilter).length;
+    const filteredCount = activeFilter === 'Semua'
+        ? REPORT_MARKERS.length
+        : activeFilter === 'Darurat'
+            ? REPORT_MARKERS.filter(r => r.severity === 'Kritis').length
+            : REPORT_MARKERS.filter(r => r.category === activeFilter).length;
 
     return (
         <View style={{ flex: 1, backgroundColor: '#f4f7fb' }}>
