@@ -13,6 +13,7 @@ import {
     Buildings, Check, Warning as WarningIcon,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
 
 type Step = 1 | 2 | 3;
 
@@ -36,6 +37,7 @@ const PASSWORD_RULES = [
 export default function RegisterScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { register } = useAuth();
 
     const [step, setStep] = useState<Step>(1);
     const [isLoading, setIsLoading] = useState(false);
@@ -106,24 +108,26 @@ export default function RegisterScreen() {
         else router.back();
     };
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            Alert.alert(
-                'Registrasi Berhasil! 🎉',
-                `Selamat datang, ${form.fullName.split(' ')[0]}! Akun Anda telah berhasil dibuat. Silakan masuk untuk melanjutkan.`,
-                [{ text: 'Masuk Sekarang', onPress: () => router.replace('/(auth)/login') }]
-            );
-        }, 2000);
+        const result = await register({
+            email: form.email.trim(),
+            password: form.password,
+            fullName: form.fullName.trim(),
+            phone: form.phone.trim(),
+            district: form.district.trim(),
+            city: form.city.trim(),
+        });
+        setIsLoading(false);
+
+        if (!result.success) {
+            Alert.alert('Registrasi Gagal', result.message);
+        }
+        // Jika sukses, AuthGuard otomatis redirect ke (tabs)
     };
 
     const handleGoogleRegister = () => {
-        setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            router.replace('/(tabs)');
-        }, 1500);
+        Alert.alert('Segera Hadir', 'Daftar dengan Google akan tersedia di versi berikutnya.');
     };
 
     const renderInput = (

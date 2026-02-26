@@ -13,12 +13,14 @@ import {
     Users, Buildings, UserGear,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
 
 const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { login } = useAuth();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -54,7 +56,7 @@ export default function LoginScreen() {
         }
     };
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!email.trim()) {
             Alert.alert('Error', 'Masukkan alamat email Anda.');
             return;
@@ -69,18 +71,17 @@ export default function LoginScreen() {
         }
 
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            router.replace(getTargetRoute());
-        }, 1500);
+        const result = await login(email.trim(), password, selectedRole);
+        setIsLoading(false);
+
+        if (!result.success) {
+            Alert.alert('Login Gagal', result.message);
+        }
+        // Jika sukses, AuthGuard otomatis redirect sesuai role
     };
 
     const handleGoogleLogin = () => {
-        setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            router.replace(getTargetRoute());
-        }, 1500);
+        Alert.alert('Segera Hadir', 'Login dengan Google akan tersedia di versi berikutnya.');
     };
 
     return (
