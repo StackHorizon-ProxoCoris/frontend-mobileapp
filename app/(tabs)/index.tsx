@@ -15,8 +15,8 @@ import { SiagaColors } from '@/constants/theme';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 import SectionHeader from '@/components/ui/SectionHeader';
+import { useAuth } from '@/context/auth';
 import {
-  dummyUser,
   dummyAreaStatus,
   dummyReports,
   dummyPositiveActions,
@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const [reports, setReports] = useState<Report[]>(dummyReports);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
   const greeting = useMemo(() => getGreeting(), []);
 
   const handleSupport = (reportId: string) => {
@@ -74,26 +75,23 @@ export default function HomeScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-              <Text className="text-white font-bold text-base">{dummyUser.initials}</Text>
+              <Text className="text-white font-bold text-base">{user?.initials || 'U'}</Text>
             </View>
             <View>
               <View className="flex-row items-center gap-1">
                 <Text className="text-xs text-secondary">{greeting.text} </Text>
                 <greeting.Icon size={16} color="#fbbf24" weight="duotone" />
               </View>
-              <Text className="text-base font-bold text-primary">{dummyUser.name}</Text>
+              <Text className="text-base font-bold text-primary">{user?.fullName || 'User'}</Text>
             </View>
           </View>
           <View className="flex-row items-center gap-2">
             <TouchableOpacity
               className="relative w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
               style={{ elevation: 1 }}
-              onPress={() => Alert.alert('Notifikasi', `Anda memiliki ${dummyUser.notifCount} notifikasi baru.`)}
+              onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
             >
               <Bell size={20} color={SiagaColors.primary} weight="duotone" />
-              {dummyUser.notifCount > 0 && (
-                <View className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-danger rounded-full border-2 border-white" />
-              )}
             </TouchableOpacity>
             <TouchableOpacity
               className="w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
@@ -117,9 +115,9 @@ export default function HomeScreen() {
             <View>
               <View className="flex-row items-center gap-1.5">
                 <MapPin size={18} color="rgba(255,255,255,0.8)" weight="duotone" />
-                <Text className="text-xl font-bold text-white">{dummyUser.location.district}</Text>
+                <Text className="text-xl font-bold text-white">{user?.district || 'Kecamatan'}</Text>
               </View>
-              <Text className="text-xs text-white/60 ml-7">{dummyUser.location.city}, {dummyUser.location.province}</Text>
+              <Text className="text-xs text-white/60 ml-7">{user?.city || 'Kota'}, {user?.province || 'Provinsi'}</Text>
             </View>
             <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: 'rgba(243,156,18,0.2)', borderWidth: 1, borderColor: 'rgba(243,156,18,0.3)' }}>
               <ShieldWarning size={16} color={SiagaColors.warning} weight="duotone" />
@@ -288,29 +286,29 @@ export default function HomeScreen() {
             </View>
             <View className="bg-white rounded-xl px-3 py-2 flex-row items-center gap-1.5" style={{ elevation: 1 }}>
               <Star size={16} color="#fbbf24" weight="duotone" />
-              <Text className="text-sm font-bold text-primary">{dummyUser.ecoPoints} pts</Text>
+              <Text className="text-sm font-bold text-primary">{user?.ecoPoints || 0} pts</Text>
             </View>
           </View>
           <View className="flex-row gap-2 mb-3">
             <View className="flex-row items-center gap-1.5 bg-white/80 rounded-lg px-2.5 py-1.5" style={{ elevation: 1 }}>
               <Medal size={16} color="#f59e0b" weight="duotone" />
-              <Text className="text-[10px] font-semibold text-primary">{dummyUser.currentBadge}</Text>
+              <Text className="text-[10px] font-semibold text-primary">{user?.currentBadge || 'Warga Baru'}</Text>
             </View>
             <View className="flex-row items-center gap-1.5 bg-white/50 rounded-lg px-2.5 py-1.5 border border-dashed border-accent">
               <Trophy size={16} color="rgba(152,172,195,0.4)" weight="duotone" />
-              <Text className="text-[10px] font-medium text-secondary">{dummyUser.pointsToNextBadge} pts lagi</Text>
+              <Text className="text-[10px] font-medium text-secondary">Terus berkontribusi!</Text>
             </View>
           </View>
           <View className="bg-white/60 rounded-lg p-2.5">
             <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-[10px] font-medium text-secondary">Menuju {dummyUser.nextBadge}</Text>
-              <Text className="text-[10px] font-bold text-primary">{dummyUser.ecoPoints} / {dummyUser.nextBadgeThreshold}</Text>
+              <Text className="text-[10px] font-medium text-secondary">Level berikutnya</Text>
+              <Text className="text-[10px] font-bold text-primary">{user?.ecoPoints || 0} pts</Text>
             </View>
             <View className="w-full h-1.5 bg-white rounded-full overflow-hidden">
               <View
                 className="h-full rounded-full"
                 style={{
-                  width: `${Math.round((dummyUser.ecoPoints / dummyUser.nextBadgeThreshold) * 100)}%`,
+                  width: `${Math.min(((user?.ecoPoints || 0) / 300) * 100, 100)}%`,
                   backgroundColor: SiagaColors.info,
                 }}
               />
