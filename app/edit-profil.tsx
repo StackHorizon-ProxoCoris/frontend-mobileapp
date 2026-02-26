@@ -8,7 +8,7 @@ import {
   FloppyDisk, IdentificationCard,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyUserProfile } from '@/data/dummy';
+import { useAuth } from '@/context/auth';
 
 interface FormField {
   key: string;
@@ -25,18 +25,18 @@ interface FormField {
 export default function EditProfilScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const user = dummyUserProfile;
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
-    name: user.name,
-    bio: user.bio,
-    email: user.email,
-    phone: user.phone,
-    birthDate: user.birthDate,
-    gender: user.gender,
-    address: user.address,
-    district: user.location.district,
-    city: user.location.city,
+    name: user?.fullName || '',
+    bio: 'Warga aktif yang peduli lingkungan dan infrastruktur kota.',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    birthDate: '',
+    gender: '',
+    address: '',
+    district: user?.district || '',
+    city: user?.city || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -110,7 +110,7 @@ export default function EditProfilScreen() {
                 className="w-24 h-24 rounded-full items-center justify-center"
                 style={{ backgroundColor: SiagaColors.primary, elevation: 4, shadowColor: SiagaColors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }}
               >
-                <Text className="text-3xl font-bold text-white">{user.initials}</Text>
+                <Text className="text-3xl font-bold text-white">{user?.initials || 'U'}</Text>
               </View>
               <TouchableOpacity
                 className="absolute bottom-0 right-0 w-8 h-8 rounded-full items-center justify-center border-2 border-white"
@@ -177,19 +177,19 @@ export default function EditProfilScreen() {
             <View className="gap-2">
               <View className="flex-row items-center justify-between">
                 <Text className="text-xs text-secondary">Bergabung sejak</Text>
-                <Text className="text-xs font-semibold text-primary">{user.joinedDate}</Text>
+                <Text className="text-xs font-semibold text-primary">-</Text>
               </View>
               <View className="flex-row items-center justify-between">
                 <Text className="text-xs text-secondary">ID Pengguna</Text>
-                <Text className="text-xs font-semibold text-primary font-mono">{user.id}</Text>
+                <Text className="text-xs font-semibold text-primary font-mono">{user?.id?.slice(0, 8) || '-'}...</Text>
               </View>
               <View className="flex-row items-center justify-between">
                 <Text className="text-xs text-secondary">Total Laporan</Text>
-                <Text className="text-xs font-semibold text-primary">{user.totalReports}</Text>
+                <Text className="text-xs font-semibold text-primary">{user?.totalReports || 0}</Text>
               </View>
               <View className="flex-row items-center justify-between">
                 <Text className="text-xs text-secondary">Total Aksi</Text>
-                <Text className="text-xs font-semibold text-primary">{user.totalActions}</Text>
+                <Text className="text-xs font-semibold text-primary">{user?.totalActions || 0}</Text>
               </View>
             </View>
           </View>
