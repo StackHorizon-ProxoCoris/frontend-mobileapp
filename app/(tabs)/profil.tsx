@@ -12,7 +12,8 @@ import {
     ChartBar, Eye, ShieldCheckered,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyUserProfile, dummyActivities } from '@/data/dummy';
+import { dummyActivities } from '@/data/dummy';
+import { useAuth } from '@/context/auth';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
@@ -33,7 +34,7 @@ export default function ProfilScreen() {
     const [sosVisible, setSosVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const user = dummyUserProfile;
+    const { user, logout } = useAuth();
 
     // Show only 3 most recent activities
     const recentActivities = dummyActivities.slice(0, 3);
@@ -59,15 +60,11 @@ export default function ProfilScreen() {
                             <View className="flex-row items-center gap-2">
                                 <TouchableOpacity
                                     className="w-8 h-8 rounded-full bg-white/10 items-center justify-center"
-                                    onPress={() => Alert.alert('Notifikasi', `Anda memiliki ${user.notifCount} notifikasi baru.`)}
+                                    onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
                                     activeOpacity={0.7}
                                 >
                                     <Bell size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
-                                    {user.notifCount > 0 && (
-                                        <View className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-danger rounded-full border border-white/30 items-center justify-center">
-                                            <Text className="text-[6px] font-bold text-white">{user.notifCount}</Text>
-                                        </View>
-                                    )}
+
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     className="w-8 h-8 rounded-full bg-white/10 items-center justify-center"
@@ -90,7 +87,7 @@ export default function ProfilScreen() {
                                 className="w-[68px] h-[68px] rounded-2xl items-center justify-center"
                                 style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}
                             >
-                                <Text className="text-2xl font-bold text-white">{user.initials}</Text>
+                                <Text className="text-2xl font-bold text-white">{user?.initials || 'U'}</Text>
                             </View>
                             <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white items-center justify-center">
                                 <CheckCircle size={10} color="#fff" weight="fill" />
@@ -99,10 +96,10 @@ export default function ProfilScreen() {
 
                         {/* Info */}
                         <View className="flex-1">
-                            <Text className="text-[16px] font-bold text-primary">{user.name}</Text>
+                            <Text className="text-[16px] font-bold text-primary">{user?.fullName || 'User'}</Text>
                             <View className="flex-row items-center gap-1 mt-0.5">
                                 <MapPin size={11} color={SiagaColors.secondary} weight="duotone" />
-                                <Text className="text-xs text-secondary">{user.location.district}, {user.location.city}</Text>
+                                <Text className="text-xs text-secondary">{user?.district || '-'}, {user?.city || '-'}</Text>
                             </View>
                             <View className="flex-row items-center gap-1.5 mt-2">
                                 <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
@@ -111,7 +108,7 @@ export default function ProfilScreen() {
                                 </View>
                                 <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50">
                                     <Medal size={10} color="#f59e0b" weight="duotone" />
-                                    <Text className="text-[10px] font-bold" style={{ color: '#b45309' }}>{user.currentBadge}</Text>
+                                    <Text className="text-[10px] font-bold" style={{ color: '#b45309' }}>{user?.currentBadge || 'Warga Baru'}</Text>
                                 </View>
                             </View>
                         </View>
@@ -127,15 +124,15 @@ export default function ProfilScreen() {
                     </View>
 
                     {/* Bio */}
-                    <Text className="text-[13px] text-secondary mt-3 leading-5">{user.bio}</Text>
+                    <Text className="text-[13px] text-secondary mt-3 leading-5">Warga aktif yang peduli terhadap lingkungan dan infrastruktur kota.</Text>
 
                     {/* Stats Row */}
                     <View className="flex-row gap-2 mt-4">
                         {[
-                            { value: user.totalReports.toString(), label: 'Laporan', color: SiagaColors.info },
-                            { value: user.totalActions.toString(), label: 'Aksi', color: SiagaColors.success },
-                            { value: user.ecoPoints.toString(), label: 'Eco-Points', color: '#f59e0b' },
-                            { value: `#${user.rank}`, label: 'Rank', color: '#7c3aed' },
+                            { value: (user?.totalReports || 0).toString(), label: 'Laporan', color: SiagaColors.info },
+                            { value: (user?.totalActions || 0).toString(), label: 'Aksi', color: SiagaColors.success },
+                            { value: (user?.ecoPoints || 0).toString(), label: 'Eco-Points', color: '#f59e0b' },
+                            { value: '#-', label: 'Rank', color: '#7c3aed' },
                         ].map((s, i) => (
                             <View key={i} className="flex-1 bg-slate-50 rounded-xl p-2.5 items-center">
                                 <Text className="text-base font-bold" style={{ color: s.color }}>{s.value}</Text>
@@ -158,21 +155,21 @@ export default function ProfilScreen() {
                         </View>
                     </View>
                     <View className="flex-row items-end gap-1 mb-2">
-                        <Text className="text-3xl font-extrabold text-white">{user.ecoPoints}</Text>
+                        <Text className="text-3xl font-extrabold text-white">{user?.ecoPoints || 0}</Text>
                         <Text className="text-xs text-white/50 pb-1">points</Text>
                     </View>
                     <View className="mb-2">
                         <View className="flex-row items-center justify-between mb-1">
-                            <Text className="text-[11px] font-medium text-white/60">Menuju {user.nextBadge}</Text>
-                            <Text className="text-[11px] font-bold text-white">{user.ecoPoints} / {user.nextBadgeThreshold}</Text>
+                            <Text className="text-[11px] font-medium text-white/60">Level berikutnya</Text>
+                            <Text className="text-[11px] font-bold text-white">{user?.ecoPoints || 0} pts</Text>
                         </View>
                         <View className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <View
                                 className="h-full rounded-full"
-                                style={{ width: `${(user.ecoPoints / user.nextBadgeThreshold) * 100}%`, backgroundColor: '#10b981' }}
+                                style={{ width: `${Math.min(((user?.ecoPoints || 0) / 300) * 100, 100)}%`, backgroundColor: '#10b981' }}
                             />
                         </View>
-                        <Text className="text-[10px] text-white/40 mt-1">{user.pointsToNextBadge} poin lagi untuk badge berikutnya</Text>
+                        <Text className="text-[10px] text-white/40 mt-1">Terus berkontribusi untuk badge berikutnya!</Text>
                     </View>
                     <View className="flex-row gap-2 mt-1">
                         {[
@@ -332,7 +329,7 @@ export default function ProfilScreen() {
                                 'Apakah Anda yakin ingin keluar dari akun ini?',
                                 [
                                     { text: 'Batal', style: 'cancel' },
-                                    { text: 'Keluar', style: 'destructive', onPress: () => Alert.alert('Info', 'Fitur logout memerlukan backend.') },
+                                    { text: 'Keluar', style: 'destructive', onPress: async () => { await logout(); } },
                                 ]
                             );
                         }}
@@ -342,7 +339,7 @@ export default function ProfilScreen() {
                         <Text className="text-sm font-bold text-danger">Keluar</Text>
                     </TouchableOpacity>
                     <Text className="text-center text-[11px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
-                    <Text className="text-center text-[10px] text-secondary/50 mt-0.5">Bergabung sejak {user.joinedDate}</Text>
+                    <Text className="text-center text-[10px] text-secondary/50 mt-0.5">SIAGA — ProxoCoris</Text>
                 </View>
             </ScrollView>
 

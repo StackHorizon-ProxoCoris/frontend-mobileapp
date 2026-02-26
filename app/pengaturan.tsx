@@ -10,7 +10,7 @@ import {
   ShieldCheck, Lock, Key, DeviceMobile,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyUserProfile } from '@/data/dummy';
+import { useAuth } from '@/context/auth';
 
 interface SettingItem {
   icon: any;
@@ -27,7 +27,7 @@ interface SettingItem {
 export default function PengaturanScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const user = dummyUserProfile;
+  const { user, logout } = useAuth();
 
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
     'Push Notification': true,
@@ -49,7 +49,7 @@ export default function PengaturanScreen() {
       'Apakah Anda yakin ingin keluar dari akun ini?',
       [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Keluar', style: 'destructive', onPress: () => Alert.alert('Info', 'Fitur logout memerlukan backend.') },
+        { text: 'Keluar', style: 'destructive', onPress: async () => { await logout(); } },
       ]
     );
   };
@@ -64,13 +64,13 @@ export default function PengaturanScreen() {
         },
         {
           icon: Envelope, label: 'Email', color: '#3b82f6',
-          extra: user.email,
-          onPress: () => Alert.alert('Email', `Email Anda: ${user.email}\n\nUntuk mengganti email, silakan verifikasi melalui email lama.`),
+          extra: user?.email || '-',
+          onPress: () => Alert.alert('Email', `Email Anda: ${user?.email || '-'}`),
         },
         {
           icon: Phone, label: 'No. Telepon', color: '#059669',
-          extra: user.phone.slice(0, 8) + '****',
-          onPress: () => Alert.alert('Telepon', `No. Telepon: ${user.phone}\n\nUntuk mengganti nomor, diperlukan verifikasi OTP.`),
+          extra: (user?.phone || '').slice(0, 8) + '****',
+          onPress: () => Alert.alert('Telepon', `No. Telepon: ${user?.phone || '-'}`),
         },
         {
           icon: Fingerprint, label: 'Verifikasi Identitas', color: '#059669',
@@ -166,13 +166,13 @@ export default function PengaturanScreen() {
           activeOpacity={0.7}
         >
           <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-            <Text className="text-lg font-bold text-white">{user.initials}</Text>
+            <Text className="text-lg font-bold text-white">{user?.initials || 'U'}</Text>
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-bold text-primary">{user.name}</Text>
+            <Text className="text-sm font-bold text-primary">{user?.fullName || 'User'}</Text>
             <View className="flex-row items-center gap-1.5 mt-0.5">
               <CheckCircle size={10} color="#059669" weight="fill" />
-              <Text className="text-xs text-secondary">{user.email}</Text>
+              <Text className="text-xs text-secondary">{user?.email || '-'}</Text>
             </View>
           </View>
           <CaretRight size={16} color={SiagaColors.secondary} />

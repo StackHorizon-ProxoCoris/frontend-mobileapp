@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/auth';
 import {
     ShieldCheck, Envelope, Lock, Eye, EyeSlash,
     GoogleLogo, ArrowRight, CaretRight,
@@ -18,6 +19,7 @@ const { width } = Dimensions.get('window');
 export default function LoginScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { login } = useAuth();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -38,7 +40,7 @@ export default function LoginScreen() {
         ]).start();
     }, []);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!email.trim()) {
             Alert.alert('Error', 'Masukkan alamat email Anda.');
             return;
@@ -53,18 +55,17 @@ export default function LoginScreen() {
         }
 
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            router.replace('/(tabs)');
-        }, 1500);
+        const result = await login(email.trim(), password);
+        setIsLoading(false);
+
+        if (!result.success) {
+            Alert.alert('Login Gagal', result.message);
+        }
+        // Jika sukses, AuthGuard otomatis redirect ke (tabs)
     };
 
     const handleGoogleLogin = () => {
-        setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            router.replace('/(tabs)');
-        }, 1500);
+        Alert.alert('Segera Hadir', 'Login dengan Google akan tersedia di versi berikutnya.');
     };
 
     return (
