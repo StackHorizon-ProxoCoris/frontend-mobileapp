@@ -16,6 +16,7 @@ import { SiagaColors } from '@/constants/theme';
 import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
 import { getActionById, type ActionData } from '@/services/action.service';
+import { getComments, addComment } from '@/services/comment.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -111,6 +112,26 @@ export default function ActionDetailScreen() {
       setIsLoading(false);
     }
     load();
+  }, [id]);
+
+  // Load comments dari API
+  useEffect(() => {
+    async function loadComments() {
+      if (!id) return;
+      const result = await getComments('action', id);
+      if (result.success && result.data) {
+        const mapped = result.data.map(c => ({
+          id: c.id,
+          user: c.user?.fullName || 'User',
+          initials: c.user?.initials || '??',
+          text: c.text,
+          time: new Date(c.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+          likes: c.likes || 0,
+        }));
+        setLocalComments(mapped);
+      }
+    }
+    loadComments();
   }, [id]);
 
   if (isLoading) {
@@ -562,18 +583,32 @@ export default function ActionDetailScreen() {
                     style={{ backgroundColor: commentText.trim() ? SiagaColors.primary : '#e2e8f0' }}
                     disabled={!commentText.trim()}
                     activeOpacity={0.7}
-                    onPress={() => {
+                    onPress={async () => {
                       if (!commentText.trim()) return;
-                      const newComment = {
-                        id: `c_new_${Date.now()}`,
-                        user: user?.fullName || 'User',
-                        initials: user?.initials || 'U',
-                        text: commentText.trim(),
-                        time: 'Baru saja',
-                        likes: 0,
-                      };
-                      setLocalComments(prev => [newComment, ...prev]);
-                      setCommentText('');
+                      const result = await addComment(action.id, 'action', commentText.trim());
+                      if (result.success && result.data) {
+                        const newComment = {
+                          id: result.data.id,
+                          user: user?.fullName || 'User',
+                          initials: user?.initials || 'U',
+                          text: commentText.trim(),
+                          time: 'Baru saja',
+                          likes: 0,
+                        };
+                        setLocalComments(prev => [newComment, ...prev]);
+                        setCommentText('');
+                      } else {
+                        const newComment = {
+                          id: `c_new_${Date.now()}`,
+                          user: user?.fullName || 'User',
+                          initials: user?.initials || 'U',
+                          text: commentText.trim(),
+                          time: 'Baru saja',
+                          likes: 0,
+                        };
+                        setLocalComments(prev => [newComment, ...prev]);
+                        setCommentText('');
+                      }
                     }}
                   >
                     <PaperPlaneTilt size={12} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
