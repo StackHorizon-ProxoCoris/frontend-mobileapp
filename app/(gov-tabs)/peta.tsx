@@ -153,7 +153,7 @@ function LegendChip({ cat, active, onPress }: { cat: CategoryKey | 'Semua'; acti
             activeOpacity={0.75}
             style={{
                 flexDirection: 'row', alignItems: 'center', gap: 5,
-                paddingHorizontal: 10, paddingVertical: 6,
+                paddingHorizontal: 14, paddingVertical: 8,
                 borderRadius: 20,
                 backgroundColor: active ? (cfg?.color ?? SiagaColors.primary) : '#fff',
                 borderWidth: 1,
@@ -165,8 +165,8 @@ function LegendChip({ cat, active, onPress }: { cat: CategoryKey | 'Semua'; acti
                 shadowRadius: 4,
             }}
         >
-            {cfg && <Text style={{ fontSize: 12 }}>{cfg.emoji}</Text>}
-            <Text style={{ fontSize: 10, fontWeight: '700', color: active ? '#fff' : SiagaColors.secondary }}>
+            {cfg && <Text style={{ fontSize: 14 }}>{cfg.emoji}</Text>}
+            <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : SiagaColors.secondary }}>
                 {cat}
             </Text>
         </TouchableOpacity>
@@ -211,48 +211,48 @@ function ReportBottomSheet({
                 </View>
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: SiagaColors.secondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {report.id}
                         </Text>
                         <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: sevColor + '20' }}>
-                            <Text style={{ fontSize: 8, fontWeight: '800', color: sevColor }}>{report.severity}</Text>
+                            <Text style={{ fontSize: 9, fontWeight: '800', color: sevColor }}>{report.severity}</Text>
                         </View>
                     </View>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: SiagaColors.primary, lineHeight: 18 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: SiagaColors.primary, lineHeight: 18 }}>
                         {report.title}
                     </Text>
                 </View>
                 <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f7fb' }}>
-                    <X size={14} color={SiagaColors.secondary} weight="bold" />
+                    <X size={16} color={SiagaColors.secondary} weight="bold" />
                 </TouchableOpacity>
             </View>
 
             {/* Description */}
-            <Text style={{ fontSize: 11, color: SiagaColors.secondary, lineHeight: 16, marginBottom: 12 }} numberOfLines={2}>
+            <Text style={{ fontSize: 13, color: SiagaColors.secondary, lineHeight: 16, marginBottom: 12 }} numberOfLines={2}>
                 {report.desc}
             </Text>
 
             {/* Meta chips */}
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: '#f4f7fb' }}>
-                    <MapPin size={11} color={SiagaColors.info} weight="duotone" />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.primary }}>{report.area}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#f4f7fb' }}>
+                    <MapPin size={13} color={SiagaColors.info} weight="duotone" />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary }}>{report.area}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: '#f4f7fb' }}>
-                    <Users size={11} color={SiagaColors.warning} weight="duotone" />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.primary }}>{report.cluster} serupa</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#f4f7fb' }}>
+                    <Users size={13} color={SiagaColors.warning} weight="duotone" />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary }}>{report.cluster} serupa</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: '#f4f7fb' }}>
-                    <Clock size={11} color={SiagaColors.secondary} weight="duotone" />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.primary }}>{report.time}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#f4f7fb' }}>
+                    <Clock size={13} color={SiagaColors.secondary} weight="duotone" />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary }}>{report.time}</Text>
                 </View>
             </View>
 
             {/* Urgency bar */}
             <View style={{ marginBottom: 14 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 9, color: SiagaColors.secondary, fontWeight: '600' }}>Tingkat Urgensi</Text>
-                    <Text style={{ fontSize: 9, fontWeight: '700', color: sevColor }}>{report.severity}</Text>
+                    <Text style={{ fontSize: 10, color: SiagaColors.secondary, fontWeight: '600' }}>Tingkat Urgensi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: sevColor }}>{report.severity}</Text>
                 </View>
                 <View style={{ height: 5, backgroundColor: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
                     <View style={{
@@ -274,7 +274,7 @@ function ReportBottomSheet({
                     }}
                     onPress={onClose}
                 >
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: SiagaColors.secondary }}>Tutup</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.secondary }}>Tutup</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     activeOpacity={0.8}
@@ -285,8 +285,8 @@ function ReportBottomSheet({
                         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}
                 >
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>Lihat Detail Laporan</Text>
-                    <ArrowRight size={13} color="#fff" weight="bold" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff' }}>Lihat Detail Laporan</Text>
+                    <ArrowRight size={15} color="#fff" weight="bold" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -358,11 +358,11 @@ export default function GovPetaScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: SiagaColors.info, alignItems: 'center', justifyContent: 'center' }}>
-                                <MapTrifold size={18} color="#fff" weight="duotone" />
+                                <MapTrifold size={20} color="#fff" weight="duotone" />
                             </View>
                             <View>
-                                <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: -0.3 }}>Peta Laporan</Text>
-                                <Text style={{ fontSize: 9, fontWeight: '600', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                                <Text style={{ fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3 }}>Peta Laporan</Text>
+                                <Text style={{ fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>
                                     Kota Bandung · {filteredCount} titik
                                 </Text>
                             </View>
@@ -378,7 +378,7 @@ export default function GovPetaScreen() {
                                     backgroundColor: showStats ? SiagaColors.info : 'rgba(255,255,255,0.1)',
                                 }}
                             >
-                                <ChartBar size={17} color="#fff" weight="duotone" />
+                                <ChartBar size={19} color="#fff" weight="duotone" />
                             </TouchableOpacity>
                             {/* Reload */}
                             <TouchableOpacity
@@ -386,7 +386,7 @@ export default function GovPetaScreen() {
                                 activeOpacity={0.7}
                                 style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.1)' }}
                             >
-                                <ArrowClockwise size={17} color="rgba(255,255,255,0.75)" weight="duotone" />
+                                <ArrowClockwise size={19} color="rgba(255,255,255,0.75)" weight="duotone" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -403,12 +403,12 @@ export default function GovPetaScreen() {
                                 borderWidth: 1, borderColor: 'rgba(231,76,60,0.3)',
                             }}
                         >
-                            <WarningDiamond size={15} color="#ef4444" weight="fill" />
-                            <Text style={{ flex: 1, fontSize: 11, fontWeight: '700', color: '#fca5a5' }}>
+                            <WarningDiamond size={17} color="#ef4444" weight="fill" />
+                            <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: '#fca5a5' }}>
                                 {criticalCount} titik <Text style={{ color: '#fff' }}>Kritis</Text> terdeteksi di peta
                             </Text>
                             <View style={{ backgroundColor: '#ef4444', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}>
-                                <Text style={{ fontSize: 8, fontWeight: '800', color: '#fff' }}>DARURAT</Text>
+                                <Text style={{ fontSize: 9, fontWeight: '800', color: '#fff' }}>DARURAT</Text>
                             </View>
                         </TouchableOpacity>
                     )}
@@ -429,7 +429,7 @@ export default function GovPetaScreen() {
                     ].map((s, i) => (
                         <View key={i} style={{ flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, backgroundColor: s.bg }}>
                             <Text style={{ fontSize: 18, fontWeight: '800', color: s.color }}>{s.value}</Text>
-                            <Text style={{ fontSize: 9, fontWeight: '600', color: SiagaColors.secondary, marginTop: 1 }}>{s.label}</Text>
+                            <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.secondary, marginTop: 1 }}>{s.label}</Text>
                         </View>
                     ))}
                 </View>
@@ -458,13 +458,13 @@ export default function GovPetaScreen() {
                         activeOpacity={0.75}
                         style={{
                             flexDirection: 'row', alignItems: 'center', gap: 5,
-                            paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+                            paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
                             backgroundColor: showHotspot ? 'rgba(239,68,68,0.12)' : '#fff',
                             borderWidth: 1, borderColor: showHotspot ? '#ef4444' : '#edf2f9',
                         }}
                     >
                         <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: showHotspot ? '#ef4444' : '#cbd5e1' }} />
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: showHotspot ? '#ef4444' : SiagaColors.secondary }}>Hotspot</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: showHotspot ? '#ef4444' : SiagaColors.secondary }}>Hotspot</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </View>
@@ -487,10 +487,10 @@ export default function GovPetaScreen() {
                             backgroundColor: '#f4f7fb', alignItems: 'center', justifyContent: 'center',
                         }}>
                             <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                                <MapTrifold size={28} color={SiagaColors.info} weight="duotone" />
+                                <MapTrifold size={30} color={SiagaColors.info} weight="duotone" />
                             </View>
                             <ActivityIndicator size="large" color={SiagaColors.info} style={{ marginBottom: 8 }} />
-                            <Text style={{ fontSize: 11, color: SiagaColors.secondary, fontWeight: '600' }}>Memuat peta laporan...</Text>
+                            <Text style={{ fontSize: 13, color: SiagaColors.secondary, fontWeight: '600' }}>Memuat peta laporan...</Text>
                         </View>
                     )}
                 />
@@ -510,9 +510,9 @@ export default function GovPetaScreen() {
                             shadowOpacity: 0.12, shadowRadius: 6,
                         }}
                     >
-                        <Stack size={14} color={SiagaColors.primary} weight="duotone" />
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: SiagaColors.primary }}>Legenda</Text>
-                        {showLegend ? <CaretUp size={10} color={SiagaColors.secondary} weight="bold" /> : <CaretDown size={10} color={SiagaColors.secondary} weight="bold" />}
+                        <Stack size={16} color={SiagaColors.primary} weight="duotone" />
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.primary }}>Legenda</Text>
+                        {showLegend ? <CaretUp size={12} color={SiagaColors.secondary} weight="bold" /> : <CaretDown size={12} color={SiagaColors.secondary} weight="bold" />}
                     </TouchableOpacity>
 
                     {showLegend && (
@@ -523,15 +523,15 @@ export default function GovPetaScreen() {
                         }}>
                             {(Object.entries(CATEGORY_MAP) as [CategoryKey, typeof CATEGORY_MAP[CategoryKey]][]).map(([name, cfg]) => (
                                 <View key={name} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                    <Text style={{ fontSize: 14 }}>{cfg.emoji}</Text>
+                                    <Text style={{ fontSize: 16 }}>{cfg.emoji}</Text>
                                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cfg.color }} />
-                                    <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.primary }}>{name}</Text>
+                                    <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary }}>{name}</Text>
                                 </View>
                             ))}
                             <View style={{ height: 1, backgroundColor: '#f1f5f9', marginVertical: 2 }} />
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.18)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.5)' }} />
-                                <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.primary }}>Hotspot</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary }}>Hotspot</Text>
                             </View>
                         </View>
                     )}
@@ -545,13 +545,13 @@ export default function GovPetaScreen() {
                     shadowColor: SiagaColors.primary, shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.25, shadowRadius: 8,
                 }}>
-                    <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '600', textTransform: 'uppercase' }}>
+                    <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: '600', textTransform: 'uppercase' }}>
                         Tampil
                     </Text>
                     <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff', lineHeight: 20 }}>
                         {filteredCount}
                     </Text>
-                    <Text style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', fontWeight: '600' }}>
+                    <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '600' }}>
                         titik laporan
                     </Text>
                 </View>
