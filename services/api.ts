@@ -5,13 +5,43 @@
 
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// Base URL: Android Emulator menggunakan 10.0.2.2, device/iOS menggunakan IP lokal
-const BASE_URL = Platform.select({
-  android: 'http://10.0.2.2:3000/api',
-  ios: 'http://localhost:3000/api',
-  default: 'http://localhost:3000/api',
-});
+// ─── Flexible Base URL ────────────────────────────────────────────────────────
+// Prioritas:
+// 1. app.json > expo.extra.apiUrl  (production .apk/.ipa)
+// 2. Auto-detect dari Expo debuggerHost (physical device dev)
+// 3. Platform-specific fallback    (emulator/simulator)
+//
+// Tidak perlu set manual saat development!
+// Untuk production: set "apiUrl" di app.json > expo.extra
+// ──────────────────────────────────────────────────────────────────────────────
+
+const BACKEND_PORT = 3000;
+
+function getBaseUrl(): string {
+  // 1. Production: pakai apiUrl dari app.json extra
+  const envUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
+  if (envUrl) return envUrl;
+
+  // 2. Web: selalu localhost
+  if (Platform.OS === 'web') return `http://localhost:${BACKEND_PORT}/api`;
+
+  // 3. Auto-detect IP dari Expo dev server (works di Expo Go & physical device)
+  const debuggerHost = Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0]; // "192.168.1.5:8081" → "192.168.1.5"
+    return `http://${ip}:${BACKEND_PORT}/api`;
+  }
+
+  // 4. Fallback: Android emulator → 10.0.2.2, iOS → localhost
+  return Platform.select({
+    android: `http://10.0.2.2:${BACKEND_PORT}/api`,
+    default: `http://localhost:${BACKEND_PORT}/api`,
+  }) as string;
+}
+
+const BASE_URL = getBaseUrl();
 
 // Key untuk menyimpan token di SecureStore
 export const TOKEN_KEY = 'siaga_auth_token';
