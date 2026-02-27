@@ -8,6 +8,7 @@ import {
     Sparkle, CheckCircle,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { apiPost } from '@/services/api';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
@@ -43,7 +44,7 @@ export default function AIChatScreen() {
     const flatListRef = useRef<FlatList>(null);
     const insets = useSafeAreaInsets();
 
-    const sendMessage = (text?: string) => {
+    const sendMessage = async (text?: string) => {
         const msg = text || inputText.trim();
         if (!msg) return;
 
@@ -55,27 +56,21 @@ export default function AIChatScreen() {
         setInputText('');
         setIsTyping(true);
 
-        setTimeout(() => {
-            setIsTyping(false);
-            const aiMsg: Message = {
-                id: (Date.now() + 1).toString(),
-                type: 'ai',
-                text: getAIResponse(msg),
-                time,
-            };
-            setMessages(prev => [...prev, aiMsg]);
-        }, 1500);
-    };
+        // Call backend AI
+        const result = await apiPost<{ response: string }>('/chat', { message: msg });
+        setIsTyping(false);
 
-    const getAIResponse = (q: string): string => {
-        const lower = q.toLowerCase();
-        if (lower.includes('banjir') || lower.includes('mitigasi')) {
-            return '🌊 **Tips Mitigasi Banjir:**\n\n1. Pantau peringatan BMKG via aplikasi SIAGA\n2. Siapkan tas darurat (dokumen, obat, senter)\n3. Ketahui rute evakuasi terdekat\n4. Pastikan saluran air di sekitar rumah tidak tersumbat\n5. Simpan nomor darurat: 112\n\nJika air sudah naik, segera ke tempat tinggi dan hubungi SAR (115).';
-        }
-        if (lower.includes('lapor') || lower.includes('cara')) {
-            return '📝 **Cara Membuat Laporan:**\n\n1. Buka tab "Lapor"\n2. Pilih kategori masalah\n3. Ambil foto bukti (min. 1 foto)\n4. Tulis deskripsi singkat\n5. Lokasi otomatis terdeteksi GPS\n6. Tap "Kirim Laporan"\n\n✅ Laporan akan divalidasi AI dalam 1-3 menit.\n⭐ Dapatkan Eco-Points untuk setiap laporan valid!';
-        }
-        return '✨ Terima kasih atas pertanyaan Anda! Saya sedang memproses informasi terkait.\n\nUntuk informasi darurat, gunakan tombol SOS atau hubungi:\n📞 112 (Darurat Umum)\n📞 113 (Pemadam)\n📞 118 (Ambulance)\n\nAda pertanyaan lain yang bisa saya bantu?';
+        const aiText = result.success && result.data?.response
+            ? result.data.response
+            : '✨ Terima kasih atas pertanyaan Anda! Saya sedang memproses informasi terkait.\n\nUntuk informasi darurat, gunakan tombol SOS atau hubungi:\n📞 112 (Darurat Umum)\n📞 113 (Pemadam)\n📞 118 (Ambulance)\n\nAda pertanyaan lain yang bisa saya bantu?';
+
+        const aiMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            type: 'ai',
+            text: aiText,
+            time,
+        };
+        setMessages(prev => [...prev, aiMsg]);
     };
 
     const renderMessage = ({ item }: { item: Message }) => (

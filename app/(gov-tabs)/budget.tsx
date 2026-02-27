@@ -11,21 +11,23 @@ import {
     WarningDiamond, SealCheck, HourglassMedium, Info,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import {
+  getBudgetProjects, getBudgetDinas,
+  type BudgetProject, type BudgetDinas, type BudgetSummary, type FilterCounts,
+} from '@/services/budget.service';
 
 const { width } = Dimensions.get('window');
+
+// Icon mapping — API returns string names, map to Phosphor components
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  RoadHorizon, Tree, Drop, Heartbeat, Briefcase, Buildings,
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ProjectStatus = 'Normal' | 'Anomali' | 'Selesai' | 'Tunda';
 type FilterKey = 'Semua' | 'Normal' | 'Anomali' | 'Selesai';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const FILTER_TABS: { key: FilterKey; count: number }[] = [
-    { key: 'Semua', count: 8 },
-    { key: 'Normal', count: 4 },
-    { key: 'Anomali', count: 3 },
-    { key: 'Selesai', count: 1 },
-];
-
 const STATUS_CONFIG: Record<ProjectStatus, { text: string; bg: string; icon: any; label: string }> = {
     Normal: { text: SiagaColors.success, bg: '#d1fae5', icon: SealCheck, label: 'Normal' },
     Anomali: { text: '#92400e', bg: '#fef3c7', icon: Warning, label: 'Anomali' },
@@ -33,80 +35,7 @@ const STATUS_CONFIG: Record<ProjectStatus, { text: string; bg: string; icon: any
     Tunda: { text: SiagaColors.secondary, bg: '#f1f5f9', icon: HourglassMedium, label: 'Ditunda' },
 };
 
-const DINAS_DATA = [
-    { name: 'Dinas PU', short: 'PU', budget: 'Rp 7.2M', serap: 82, color: SiagaColors.info, bg: '#eff6ff', status: 'Normal' as ProjectStatus },
-    { name: 'Dinas Kesehatan', short: 'DK', budget: 'Rp 5.8M', serap: 71, color: SiagaColors.success, bg: '#ecfdf5', status: 'Normal' as ProjectStatus },
-    { name: 'Dinas LH', short: 'LH', budget: 'Rp 4.1M', serap: 58, color: '#f59e0b', bg: '#fffbeb', status: 'Anomali' as ProjectStatus },
-    { name: 'Dinas Sosial', short: 'DS', budget: 'Rp 3.9M', serap: 43, color: SiagaColors.danger, bg: '#fef2f2', status: 'Anomali' as ProjectStatus },
-    { name: 'Dinas Pendidikan', short: 'DP', budget: 'Rp 3.8M', serap: 65, color: '#7c3aed', bg: '#f5f3ff', status: 'Normal' as ProjectStatus },
-];
 
-const PROJECTS = [
-    {
-        id: 'P-001', title: 'Perbaikan Jl. Merdeka & Jl. Braga',
-        org: 'Dinas PU', kec: 'Kec. Coblong',
-        icon: RoadHorizon, iconColor: SiagaColors.info, bgColor: '#eff6ff',
-        status: 'Anomali' as ProjectStatus,
-        budget: 850_000_000, realisasi: 95, fisik: 80,
-        deadline: 'Mar 2026', anomaliNote: 'Gap realisasi vs fisik: 15%',
-    },
-    {
-        id: 'P-002', title: 'Penataan Taman Kota Selatan',
-        org: 'Dinas LH', kec: 'Kec. Bandung Wetan',
-        icon: Tree, iconColor: '#059669', bgColor: '#ecfdf5',
-        status: 'Normal' as ProjectStatus,
-        budget: 1_200_000_000, realisasi: 58, fisik: 55,
-        deadline: 'Jun 2026', anomaliNote: null,
-    },
-    {
-        id: 'P-003', title: 'Pembangunan Sarana Air Bersih',
-        org: 'Dinas PU', kec: 'Kec. Cibeunying',
-        icon: Drop, iconColor: '#0ea5e9', bgColor: '#f0f9ff',
-        status: 'Anomali' as ProjectStatus,
-        budget: 2_100_000_000, realisasi: 88, fisik: 60,
-        deadline: 'Apr 2026', anomaliNote: 'Gap realisasi vs fisik: 28%',
-    },
-    {
-        id: 'P-004', title: 'Pengadaan Alat Kesehatan Puskesmas',
-        org: 'Dinas Kesehatan', kec: 'Kota Bandung',
-        icon: Heartbeat, iconColor: '#ec4899', bgColor: '#fdf2f8',
-        status: 'Normal' as ProjectStatus,
-        budget: 1_750_000_000, realisasi: 72, fisik: 70,
-        deadline: 'Mei 2026', anomaliNote: null,
-    },
-    {
-        id: 'P-005', title: 'Digitalisasi Pelayanan Publik',
-        org: 'Dinas Kominfo', kec: 'Kota Bandung',
-        icon: Briefcase, iconColor: '#7c3aed', bgColor: '#f5f3ff',
-        status: 'Selesai' as ProjectStatus,
-        budget: 650_000_000, realisasi: 100, fisik: 100,
-        deadline: 'Jan 2026', anomaliNote: null,
-    },
-    {
-        id: 'P-006', title: 'Normalisasi Sungai Cikapundung',
-        org: 'Dinas PU', kec: 'Kec. Dayeuhkolot',
-        icon: Drop, iconColor: '#2563eb', bgColor: '#eff6ff',
-        status: 'Anomali' as ProjectStatus,
-        budget: 3_400_000_000, realisasi: 91, fisik: 65,
-        deadline: 'Feb 2026', anomaliNote: 'Gap realisasi vs fisik: 26% — lewat deadline',
-    },
-    {
-        id: 'P-007', title: 'Renovasi Gedung Pelayanan Dinas Sosial',
-        org: 'Dinas Sosial', kec: 'Kec. Sumur Bandung',
-        icon: Buildings, iconColor: '#d97706', bgColor: '#fffbeb',
-        status: 'Normal' as ProjectStatus,
-        budget: 980_000_000, realisasi: 44, fisik: 40,
-        deadline: 'Ags 2026', anomaliNote: null,
-    },
-    {
-        id: 'P-008', title: 'Peningkatan Kualitas Sekolah Dasar',
-        org: 'Dinas Pendidikan', kec: 'Kota Bandung',
-        icon: Briefcase, iconColor: '#7c3aed', bgColor: '#f5f3ff',
-        status: 'Normal' as ProjectStatus,
-        budget: 2_850_000_000, realisasi: 63, fisik: 61,
-        deadline: 'Des 2026', anomaliNote: null,
-    },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatRp = (n: number): string => {
@@ -115,13 +44,6 @@ const formatRp = (n: number): string => {
     return `Rp ${n.toLocaleString()}`;
 };
 
-const TOTAL_APBD = PROJECTS.reduce((s, p) => s + p.budget, 0);
-const TOTAL_TERSERAP = PROJECTS.reduce((s, p) => s + p.budget * p.realisasi / 100, 0);
-const TOTAL_SISA = TOTAL_APBD - TOTAL_TERSERAP;
-const PCT_SERAP = Math.round((TOTAL_TERSERAP / TOTAL_APBD) * 100);
-const ANOMALI_COUNT = PROJECTS.filter(p => p.status === 'Anomali').length;
-
-// SVG donut sizes
 const DONUT_SIZE = 120;
 const DONUT_R = 48;
 const DONUT_CIRC = 2 * Math.PI * DONUT_R;
@@ -173,7 +95,7 @@ function ProgressBar({ pct, color }: { pct: number; color: string }) {
     );
 }
 
-function AnomalyBanner() {
+function AnomalyBanner({ anomaliCount, anomaliProjects }: { anomaliCount: number; anomaliProjects: BudgetProject[] }) {
     return (
         <View style={{
             borderRadius: 18, overflow: 'hidden',
@@ -194,14 +116,14 @@ function AnomalyBanner() {
                             Perhatian Khusus
                         </Text>
                         <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 1 }}>
-                            {ANOMALI_COUNT} proyek terdeteksi anomali anggaran
+                            {anomaliCount} proyek terdeteksi anomali anggaran
                         </Text>
                     </View>
                     <View style={{ backgroundColor: SiagaColors.danger, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff' }}>{ANOMALI_COUNT}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff' }}>{anomaliCount}</Text>
                     </View>
                 </View>
-                {PROJECTS.filter(p => p.status === 'Anomali').map((p, i) => (
+                {anomaliProjects.map((p: BudgetProject, i: number) => (
                     <View key={p.id} style={{
                         flexDirection: 'row', alignItems: 'center', gap: 8,
                         paddingVertical: 8,
@@ -214,7 +136,7 @@ function AnomalyBanner() {
                                 {p.title}
                             </Text>
                             <Text style={{ fontSize: 10, color: SiagaColors.secondary, marginTop: 1 }}>
-                                {p.anomaliNote}
+                                {p.anomali_note}
                             </Text>
                         </View>
                         <CaretRight size={14} color={SiagaColors.secondary} weight="bold" />
@@ -225,8 +147,8 @@ function AnomalyBanner() {
     );
 }
 
-function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
-    const IconComp = project.icon;
+function ProjectCard({ project }: { project: BudgetProject }) {
+    const IconComp = ICON_MAP[project.icon] || Briefcase;
     const st = STATUS_CONFIG[project.status];
     const StIcon = st.icon;
     const isAnomali = project.status === 'Anomali';
@@ -262,8 +184,8 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
             <View style={{ padding: 14 }}>
                 {/* Header row */}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                    <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: project.bgColor, alignItems: 'center', justifyContent: 'center' }}>
-                        <IconComp size={24} color={project.iconColor} weight="duotone" />
+                    <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: project.bg_color, alignItems: 'center', justifyContent: 'center' }}>
+                        <IconComp size={24} color={project.icon_color} weight="duotone" />
                     </View>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
@@ -313,7 +235,7 @@ function ProjectCard({ project }: { project: typeof PROJECTS[0] }) {
                     }}>
                         <Info size={15} color={SiagaColors.danger} weight="duotone" />
                         <Text style={{ flex: 1, fontSize: 12, color: '#9f1239', fontWeight: '600' }}>
-                            Gap Realisasi vs Fisik: <Text style={{ fontWeight: '800' }}>{gap}%</Text> — perlu investigasi
+                            {project.anomali_note || `Gap Realisasi vs Fisik: ${gap}%`}
                         </Text>
                     </View>
                 )}
@@ -366,6 +288,30 @@ export default function GovBudgetScreen() {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
 
+    // API state
+    const [projects, setProjects] = useState<BudgetProject[]>([]);
+    const [dinasData, setDinasData] = useState<BudgetDinas[]>([]);
+    const [summary, setSummary] = useState<BudgetSummary>({ totalApbd: 0, totalTerserap: 0, totalSisa: 0, pctSerap: 0, anomaliCount: 0, totalProjects: 0 });
+    const [filterCounts, setFilterCounts] = useState<FilterCounts>({ Semua: 0, Normal: 0, Anomali: 0, Selesai: 0 });
+
+    useEffect(() => {
+        async function load() {
+            const [projResult, dinasResult] = await Promise.all([
+                getBudgetProjects(),
+                getBudgetDinas(),
+            ]);
+            if (projResult.success && projResult.data) {
+                setProjects(projResult.data.projects);
+                setSummary(projResult.data.summary);
+                setFilterCounts(projResult.data.filterCounts);
+            }
+            if (dinasResult.success && dinasResult.data) {
+                setDinasData(dinasResult.data);
+            }
+        }
+        load();
+    }, []);
+
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
@@ -373,12 +319,19 @@ export default function GovBudgetScreen() {
         ]).start();
     }, []);
 
-    const filteredProjects = PROJECTS.filter(p =>
+    const filteredProjects = projects.filter(p =>
         activeFilter === 'Semua' ? true : p.status === activeFilter
     );
 
+    const FILTER_TABS: { key: FilterKey; count: number }[] = [
+        { key: 'Semua', count: filterCounts.Semua },
+        { key: 'Normal', count: filterCounts.Normal },
+        { key: 'Anomali', count: filterCounts.Anomali },
+        { key: 'Selesai', count: filterCounts.Selesai },
+    ];
+
     // Donut
-    const dashOffset = DONUT_CIRC * (1 - PCT_SERAP / 100);
+    const dashOffset = DONUT_CIRC * (1 - summary.pctSerap / 100);
 
     return (
         <View style={{ flex: 1, backgroundColor: '#f4f7fb' }}>
@@ -410,10 +363,10 @@ export default function GovBudgetScreen() {
                             >
                                 <ArrowClockwise size={19} color="rgba(255,255,255,0.75)" weight="duotone" />
                             </TouchableOpacity>
-                            {ANOMALI_COUNT > 0 && (
+                            {summary.anomaliCount > 0 && (
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(231,76,60,0.2)', borderWidth: 1, borderColor: 'rgba(231,76,60,0.35)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 }}>
                                     <WarningDiamond size={15} color="#fca5a5" weight="fill" />
-                                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#fca5a5' }}>{ANOMALI_COUNT} Anomali</Text>
+                                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#fca5a5' }}>{summary.anomaliCount} Anomali</Text>
                                 </View>
                             )}
                         </View>
@@ -438,7 +391,7 @@ export default function GovBudgetScreen() {
             >
                 {/* ── ANOMALI BANNER ────────────────────────────────── */}
                 <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-                    <AnomalyBanner />
+                    <AnomalyBanner anomaliCount={summary.anomaliCount} anomaliProjects={projects.filter(p => p.status === 'Anomali')} />
                 </Animated.View>
 
                 {/* ── STAT CARDS 2×2 ───────────────────────────────── */}
@@ -448,7 +401,7 @@ export default function GovBudgetScreen() {
                     </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                         <SummaryCard
-                            value={formatRp(TOTAL_APBD)}
+                            value={formatRp(summary.totalApbd)}
                             label="Total APBD"
                             sub="Tahun 2026"
                             color={SiagaColors.primary}
@@ -457,25 +410,25 @@ export default function GovBudgetScreen() {
                             animate={fadeAnim}
                         />
                         <SummaryCard
-                            value={formatRp(TOTAL_TERSERAP)}
+                            value={formatRp(summary.totalTerserap)}
                             label="Terserap"
-                            sub={`${PCT_SERAP}% dari total`}
+                            sub={`${summary.pctSerap}% dari total`}
                             color={SiagaColors.success}
                             bg="#ecfdf5"
                             IconComp={TrendUp}
                             animate={fadeAnim}
                         />
                         <SummaryCard
-                            value={formatRp(TOTAL_SISA)}
+                            value={formatRp(summary.totalSisa)}
                             label="Sisa Anggaran"
-                            sub={`${100 - PCT_SERAP}% belum terserap`}
+                            sub={`${100 - summary.pctSerap}% belum terserap`}
                             color={SiagaColors.secondary}
                             bg="#f1f5f9"
                             IconComp={TrendDown}
                             animate={fadeAnim}
                         />
                         <SummaryCard
-                            value={`${ANOMALI_COUNT}`}
+                            value={`${summary.anomaliCount}`}
                             label="Proyek Anomali"
                             sub="Gap > 15%"
                             color={SiagaColors.danger}
@@ -517,12 +470,12 @@ export default function GovBudgetScreen() {
                                     stroke={SiagaColors.danger}
                                     strokeWidth={12}
                                     strokeDasharray={`${DONUT_CIRC * 0.12} ${DONUT_CIRC}`}
-                                    strokeDashoffset={-DONUT_CIRC * (PCT_SERAP / 100 - 0.12)}
+                                    strokeDashoffset={-DONUT_CIRC * (summary.pctSerap / 100 - 0.12)}
                                     strokeLinecap="round"
                                 />
                             </Svg>
                             <View style={{ position: 'absolute', alignItems: 'center' }}>
-                                <Text style={{ fontSize: 22, fontWeight: '900', color: SiagaColors.primary }}>{PCT_SERAP}%</Text>
+                                <Text style={{ fontSize: 22, fontWeight: '900', color: SiagaColors.primary }}>{summary.pctSerap}%</Text>
                                 <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.secondary, marginTop: 1 }}>Terserap</Text>
                             </View>
                         </View>
@@ -530,9 +483,9 @@ export default function GovBudgetScreen() {
                         {/* Legend */}
                         <View style={{ flex: 1, gap: 10 }}>
                             {[
-                                { label: 'Terserap Normal', value: `${PCT_SERAP - 12}%`, color: SiagaColors.info },
+                                { label: 'Terserap Normal', value: `${Math.max(0, summary.pctSerap - 12)}%`, color: SiagaColors.info },
                                 { label: 'Terserap Anomali', value: '12%', color: SiagaColors.danger },
-                                { label: 'Belum Terserap', value: `${100 - PCT_SERAP}%`, color: '#edf2f9', textColor: SiagaColors.secondary },
+                                { label: 'Belum Terserap', value: `${100 - summary.pctSerap}%`, color: '#edf2f9', textColor: SiagaColors.secondary },
                             ].map((item, i) => (
                                 <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -547,7 +500,7 @@ export default function GovBudgetScreen() {
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Text style={{ fontSize: 13, fontWeight: '600', color: SiagaColors.secondary }}>Total APBD</Text>
-                                <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>{formatRp(TOTAL_APBD)}</Text>
+                                <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>{formatRp(summary.totalApbd)}</Text>
                             </View>
                         </View>
                     </View>
@@ -566,8 +519,8 @@ export default function GovBudgetScreen() {
                     </View>
 
                     <View style={{ gap: 12 }}>
-                        {DINAS_DATA.map((d, i) => {
-                            const stCfg = STATUS_CONFIG[d.status];
+                        {dinasData.map((d, i) => {
+                            const stCfg = STATUS_CONFIG[d.status as ProjectStatus];
                             return (
                                 <View key={i}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -586,7 +539,7 @@ export default function GovBudgetScreen() {
                                             <ProgressBar pct={d.serap} color={d.color} />
                                         </View>
                                     </View>
-                                    {i < DINAS_DATA.length - 1 && (
+                                    {i < dinasData.length - 1 && (
                                         <View style={{ height: 1, backgroundColor: '#f8fafd', marginLeft: 42 }} />
                                     )}
                                 </View>
