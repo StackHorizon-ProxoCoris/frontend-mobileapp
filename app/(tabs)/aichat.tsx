@@ -201,7 +201,7 @@ export default function AIChatScreen() {
             />
 
             {/* Input Area */}
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
                 <View className="px-4 py-3 bg-white border-t border-slate-100" style={{ elevation: 3 }}>
                     <View className="flex-row items-end gap-2">
                         <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
