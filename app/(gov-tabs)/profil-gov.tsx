@@ -13,21 +13,17 @@ import {
     Eye, ChatCircle, Warning, ArrowRight,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const USER = {
-    name: 'Budi Santoso, S.T.',
-    initials: 'BS',
+// Fields yang tidak ada di auth context tetap sebagai defaults
+const GOV_DEFAULTS = {
     nip: '198001012005011001',
     jabatan: 'Kepala Seksi Jalan & Jembatan',
     instansi: 'Dinas Pekerjaan Umum',
     unit: 'Bidang Bina Marga',
-    wilayah: 'Kota Bandung',
     golongan: 'III/d',
-    email: 'b.santoso@bandung.go.id',
-    phone: '+62 812-3456-7890',
     tmt: '01 Januari 2005',
-    lastLogin: '25 Feb 2026, 07:14 WIB',
     accessLevel: 'Supervisor',
 };
 
@@ -121,7 +117,25 @@ function SectionLabel({ title }: { title: string }) {
 export default function GovProfilScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { user, logout } = useAuth();
     const [showAccess, setShowAccess] = useState(false);
+
+    // Derive USER from auth context + gov defaults
+    const USER = {
+        name: user?.fullName || 'Gov User',
+        initials: user?.initials || 'GU',
+        nip: GOV_DEFAULTS.nip,
+        jabatan: GOV_DEFAULTS.jabatan,
+        instansi: GOV_DEFAULTS.instansi,
+        unit: GOV_DEFAULTS.unit,
+        wilayah: user?.city || 'Kota Bandung',
+        golongan: GOV_DEFAULTS.golongan,
+        email: user?.email || 'gov@bandung.go.id',
+        phone: user?.phone || '-',
+        tmt: GOV_DEFAULTS.tmt,
+        lastLogin: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB',
+        accessLevel: GOV_DEFAULTS.accessLevel,
+    };
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
@@ -419,7 +433,10 @@ export default function GovProfilScreen() {
                 <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                     <TouchableOpacity
                         activeOpacity={0.8}
-                        onPress={() => router.replace('/(auth)/login')}
+                        onPress={async () => {
+                            await logout();
+                            router.replace('/(auth)/login');
+                        }}
                         style={{
                             flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
                             paddingVertical: 14, borderRadius: 20,

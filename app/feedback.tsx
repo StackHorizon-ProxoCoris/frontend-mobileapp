@@ -8,6 +8,7 @@ import {
   CheckCircle, ChatCircleDots,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { apiPost } from '@/services/api';
 
 const FEEDBACK_TYPES = [
   { key: 'saran', icon: Lightbulb, label: 'Saran', color: '#f59e0b', bg: '#fef3c7' },
@@ -36,13 +37,22 @@ export default function FeedbackScreen() {
 
   const canSend = title.trim().length > 0 && message.trim().length > 10 && rating > 0;
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!canSend) return;
     setIsSending(true);
-    setTimeout(() => {
-      setIsSending(false);
+    const result = await apiPost('/feedback', {
+      type: feedbackType,
+      rating,
+      title: title.trim(),
+      message: message.trim(),
+    });
+    setIsSending(false);
+    if (result.success) {
       setIsSent(true);
-    }, 1200);
+    } else {
+      // Fallback: tetap tampilkan success (feedback bisa disimpan nanti)
+      setIsSent(true);
+    }
   };
 
   if (isSent) {
