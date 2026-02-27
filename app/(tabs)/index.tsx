@@ -19,9 +19,9 @@ import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
 import { getReports, toggleReportVote, type ReportData } from '@/services/report.service';
 import { getActions, type ActionData } from '@/services/action.service';
+import { getAreaStatus, type AreaStatusData } from '@/services/area-status.service';
+import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import {
-  dummyAreaStatus,
-  dummyInfoFeed,
   dummyEmergencyContacts,
   type Report,
 } from '@/data/dummy';
@@ -39,6 +39,8 @@ export default function HomeScreen() {
   const [sosVisible, setSosVisible] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [actions, setActions] = useState<ActionData[]>([]);
+  const [areaStatus, setAreaStatus] = useState<AreaStatusData | null>(null);
+  const [infoFeed, setInfoFeed] = useState<InfoFeedData[]>([]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
@@ -66,15 +68,23 @@ export default function HomeScreen() {
 
   // Fungsi load data (reusable untuk refresh)
   const loadData = useCallback(async () => {
-    const [reportsResult, actionsResult] = await Promise.all([
+    const [reportsResult, actionsResult, areaStatusResult, infoResult] = await Promise.all([
       getReports({ limit: 5 }),
       getActions({ limit: 5 }),
+      getAreaStatus(),
+      getInfoList({ limit: 3 }),
     ]);
     if (reportsResult.success && reportsResult.data) {
       setReports(reportsResult.data.map(mapReportToUI));
     }
     if (actionsResult.success && actionsResult.data) {
       setActions(actionsResult.data);
+    }
+    if (areaStatusResult.success && areaStatusResult.data) {
+      setAreaStatus(areaStatusResult.data);
+    }
+    if (infoResult.success && infoResult.data) {
+      setInfoFeed(infoResult.data);
     }
   }, [mapReportToUI]);
 
@@ -109,14 +119,14 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-[#f8fafd]" style={{ paddingTop: insets.top }}>
       {/* Warning Banner */}
-      {showWarning && (
-        <View className="flex-row items-center gap-3 px-4 py-3" style={{ backgroundColor: '#f59e0b' }}>
+      {showWarning && areaStatus?.hasWarning && (
+        <View className="flex-row items-center gap-3 px-4 py-3" style={{ backgroundColor: areaStatus.levelColor || '#f59e0b' }}>
           <View className="w-8 h-8 rounded-full bg-white/20 items-center justify-center">
             <Warning size={18} color="#fff" weight="duotone" />
           </View>
           <View className="flex-1">
-            <Text className="text-[14px] font-bold text-white uppercase tracking-wider">Peringatan — {dummyAreaStatus.warningType}</Text>
-            <Text className="text-[13px] text-white/90">{dummyAreaStatus.warningMessage}</Text>
+            <Text className="text-xs font-bold text-white uppercase tracking-wider">Peringatan — {areaStatus.warningType}</Text>
+            <Text className="text-[11px] text-white/90">{areaStatus.warningMessage}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowWarning(false)} className="p-1.5">
             <X size={18} color="rgba(255,255,255,0.7)" />
@@ -143,14 +153,14 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="relative w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
               style={{ elevation: 1 }}
-              onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
+              onPress={() => router.push('/notifikasi')}
             >
               <Bell size={22} color={SiagaColors.primary} weight="duotone" />
             </TouchableOpacity>
             <TouchableOpacity
               className="w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
               style={{ elevation: 1 }}
-              onPress={() => Alert.alert('Pencarian', 'Fitur pencarian akan segera hadir.')}
+              onPress={() => showToast({ type: 'info', title: 'Pencarian', message: 'Fitur pencarian akan segera hadir.' })}
             >
               <MagnifyingGlass size={22} color={SiagaColors.primary} weight="duotone" />
             </TouchableOpacity>
@@ -173,16 +183,16 @@ export default function HomeScreen() {
               </View>
               <Text className="text-[14px] text-white/60 ml-7">{user?.city || 'Kota'}, {user?.province || 'Provinsi'}</Text>
             </View>
-            <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: 'rgba(243,156,18,0.2)', borderWidth: 1, borderColor: 'rgba(243,156,18,0.3)' }}>
-              <ShieldWarning size={18} color={SiagaColors.warning} weight="duotone" />
-              <Text className="text-[13px] font-bold" style={{ color: SiagaColors.warning }}>{dummyAreaStatus.level}</Text>
+            <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: areaStatus?.levelBg || 'rgba(5,150,105,0.2)', borderWidth: 1, borderColor: (areaStatus?.levelColor || '#059669') + '4D' }}>
+              <ShieldWarning size={16} color={areaStatus?.levelColor || '#059669'} weight="duotone" />
+              <Text className="text-[11px] font-bold" style={{ color: areaStatus?.levelColor || '#059669' }}>{areaStatus?.level || 'AMAN'}</Text>
             </View>
           </View>
           <View className="flex-row gap-2">
             {[
-              { icon: <FileText size={24} color="rgba(255,255,255,0.6)" weight="duotone" />, value: String(dummyAreaStatus.activeReports), label: 'Laporan Aktif' },
-              { icon: <ChartLineUp size={24} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.responseRate}%`, label: 'Respon Rate' },
-              { icon: <Clock size={24} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.avgResponseHours}j`, label: 'Avg. Respons' },
+              { icon: <FileText size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: String(areaStatus?.activeReports ?? '-'), label: 'Laporan Aktif' },
+              { icon: <ChartLineUp size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: areaStatus ? `${areaStatus.responseRate}%` : '-%', label: 'Respon Rate' },
+              { icon: <Clock size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: areaStatus ? `${areaStatus.avgResponseHours}j` : '-j', label: 'Avg. Respons' },
             ].map((stat, i) => (
               <View key={i} className="flex-1 rounded-xl p-3 items-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                 {stat.icon}
@@ -410,9 +420,9 @@ export default function HomeScreen() {
 
         {/* Info Feed */}
         <View>
-          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={18} color={SiagaColors.info} weight="duotone" />} onAction={() => Alert.alert('Info & Edukasi', 'Halaman lengkap akan segera hadir.')} actionLabel="Semua" />
+          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={16} color={SiagaColors.info} weight="duotone" />} onAction={() => showToast({ type: 'info', title: 'Info & Edukasi', message: 'Halaman lengkap akan segera hadir.' })} actionLabel="Semua" />
           <View className="gap-2.5">
-            {dummyInfoFeed.map((info) => {
+            {infoFeed.map((info) => {
               const infoIcon = info.type === 'CloudRain'
                 ? <CloudRain size={26} color={info.color} weight="duotone" />
                 : info.type === 'BookOpenText'
