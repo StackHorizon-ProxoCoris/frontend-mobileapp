@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Linking, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -62,27 +62,33 @@ export default function HomeScreen() {
     supported: r.hasVoted || false,
   }), []);
 
-  // Ambil reports dari API
-  useEffect(() => {
-    async function loadReports() {
-      const result = await getReports({ limit: 5 });
-      if (result.success && result.data) {
-        setReports(result.data.map(mapReportToUI));
-      }
+  // Fungsi load data (reusable untuk refresh)
+  const loadData = useCallback(async () => {
+    const [reportsResult, actionsResult] = await Promise.all([
+      getReports({ limit: 5 }),
+      getActions({ limit: 5 }),
+    ]);
+    if (reportsResult.success && reportsResult.data) {
+      setReports(reportsResult.data.map(mapReportToUI));
     }
-    loadReports();
+    if (actionsResult.success && actionsResult.data) {
+      setActions(actionsResult.data);
+    }
   }, [mapReportToUI]);
 
-  // Ambil actions dari API
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Load awal
   useEffect(() => {
-    async function loadActions() {
-      const result = await getActions({ limit: 5 });
-      if (result.success && result.data) {
-        setActions(result.data);
-      }
-    }
-    loadActions();
-  }, []);
+    loadData();
+  }, [loadData]);
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadData();
+    setIsRefreshing(false);
+  }, [loadData]);
 
   const handleSupport = async (reportId: string) => {
     const result = await toggleReportVote(reportId);
@@ -149,7 +155,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-5 pb-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingBottom: 80 }}>
+      <ScrollView className="flex-1 px-5 pb-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingBottom: 80 }} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={SiagaColors.primary} colors={[SiagaColors.primary]} />}>
         {/* Status Card */}
         <View className="rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary }}>
           <View className="flex-row items-center gap-1.5 mb-3">

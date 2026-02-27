@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Dimensions, FlatList, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Dimensions, FlatList, Animated, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -49,17 +49,25 @@ export default function PantauScreen() {
     const [expanded, setExpanded] = useState(false);
     const [sosVisible, setSosVisible] = useState(false);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
     // Fetch reports dari API
-    useEffect(() => {
-        async function load() {
-            const result = await getReports({ limit: 20 });
-            if (result.success && result.data) setApiReports(result.data);
-        }
-        load();
+    const loadReports = useCallback(async () => {
+        const result = await getReports({ limit: 20 });
+        if (result.success && result.data) setApiReports(result.data);
     }, []);
+
+    useEffect(() => {
+        loadReports();
+    }, [loadReports]);
+
+    const onRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await loadReports();
+        setIsRefreshing(false);
+    }, [loadReports]);
 
     // Konversi API data ke Report UI type
     const reportsUI = useMemo((): Report[] => {
@@ -235,6 +243,13 @@ export default function PantauScreen() {
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, gap: 10 }}
+                    refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={SiagaColors.primary} colors={[SiagaColors.primary]} />}
+                    ListEmptyComponent={
+                        <View className="items-center justify-center py-12">
+                            <Text className="text-sm font-semibold text-secondary">Belum ada laporan</Text>
+                            <Text className="text-[11px] text-secondary/60 mt-1">Tarik ke bawah untuk memuat ulang</Text>
+                        </View>
+                    }
                     renderItem={({ item: r }) => {
                         const info = typeInfo(r.type);
                         const urgency = getUrgencyLabel(r.urgency);
