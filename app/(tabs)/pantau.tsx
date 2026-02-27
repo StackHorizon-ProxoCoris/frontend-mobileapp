@@ -168,16 +168,16 @@ export default function PantauScreen() {
                         <View className="flex-row items-center gap-2.5">
                             <View className="flex-row items-center gap-1.5">
                                 <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                                    <Eye size={14} color="#fff" weight="bold" />
+                                    <Eye size={16} color="#fff" weight="bold" />
                                 </View>
-                                <Text className="text-sm font-bold text-primary">Pantau</Text>
+                                <Text className="text-[16px] font-bold text-primary">Pantau</Text>
                             </View>
                             <View className="flex-1 flex-row items-center gap-2 bg-[#f1f6fc] rounded-xl px-3 py-2">
-                                <MagnifyingGlass size={13} color={SiagaColors.secondary} weight="duotone" />
-                                <Text className="flex-1 text-[11px] text-secondary/50">Cari lokasi atau laporan...</Text>
+                                <MagnifyingGlass size={15} color={SiagaColors.secondary} weight="duotone" />
+                                <Text className="flex-1 text-[13px] text-secondary/50">Cari lokasi atau laporan...</Text>
                             </View>
                             <TouchableOpacity className="w-8 h-8 rounded-xl bg-surface items-center justify-center" activeOpacity={0.7}>
-                                <Funnel size={13} color={SiagaColors.primary} weight="duotone" />
+                                <Funnel size={15} color={SiagaColors.primary} weight="duotone" />
                             </TouchableOpacity>
                         </View>
                         {/* Filter chips */}
@@ -196,8 +196,8 @@ export default function PantauScreen() {
                                         onPress={() => setActiveFilter(fc.label)}
                                         activeOpacity={0.7}
                                     >
-                                        <fc.icon size={11} color={isActive ? '#fff' : fc.color} weight="duotone" />
-                                        <Text className="text-[10px] font-semibold" style={{ color: isActive ? '#fff' : SiagaColors.primary }}>{fc.label}</Text>
+                                        <fc.icon size={13} color={isActive ? '#fff' : fc.color} weight="duotone" />
+                                        <Text className="text-[12px] font-semibold" style={{ color: isActive ? '#fff' : SiagaColors.primary }}>{fc.label}</Text>
                                     </TouchableOpacity>
                                 );
                             })}
@@ -210,10 +210,10 @@ export default function PantauScreen() {
                     {stats.map((s, i) => (
                         <View key={i} className="flex-1 bg-white/95 rounded-xl px-2 py-2 items-center" style={{ elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
                             <View className="w-6 h-6 rounded-lg items-center justify-center mb-1" style={{ backgroundColor: s.bg }}>
-                                <s.icon size={12} color={s.color} weight="duotone" />
+                                <s.icon size={14} color={s.color} weight="duotone" />
                             </View>
-                            <Text className="text-[14px] font-bold" style={{ color: s.color }}>{s.value}</Text>
-                            <Text className="text-[10px] font-semibold text-secondary mt-0.5">{s.label}</Text>
+                            <Text className="text-[16px] font-bold" style={{ color: s.color }}>{s.value}</Text>
+                            <Text className="text-[12px] font-semibold text-secondary mt-0.5">{s.label}</Text>
                         </View>
                     ))}
                 </View>
@@ -228,16 +228,16 @@ export default function PantauScreen() {
                 <View className="px-4 py-2.5 flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
                         <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                            <ListBullets size={14} color={SiagaColors.primary} weight="bold" />
+                            <ListBullets size={16} color={SiagaColors.primary} weight="bold" />
                         </View>
-                        <Text className="text-sm font-bold text-primary">Daftar Laporan</Text>
-                        <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: SiagaColors.primary }}>
-                            <Text className="text-[11px] font-bold text-white">{filteredReports.length}</Text>
+                        <Text className="text-[16px] font-bold text-primary">Daftar Laporan</Text>
+                        <View className="px-3 py-1 rounded-md" style={{ backgroundColor: SiagaColors.primary }}>
+                            <Text className="text-[13px] font-bold text-white">{filteredReports.length}</Text>
                         </View>
                     </View>
-                    <TouchableOpacity className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg" onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-                        {expanded ? <CaretDown size={12} color={SiagaColors.info} weight="bold" /> : <CaretUp size={12} color={SiagaColors.info} weight="bold" />}
-                        <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>{expanded ? 'Kecilkan' : 'Perbesar'}</Text>
+                    <TouchableOpacity className="flex-row items-center gap-1 bg-blue-50 px-3 py-1.5.5 rounded-lg" onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
+                        {expanded ? <CaretDown size={14} color={SiagaColors.info} weight="bold" /> : <CaretUp size={14} color={SiagaColors.info} weight="bold" />}
+                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>{expanded ? 'Kecilkan' : 'Perbesar'}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -249,8 +249,8 @@ export default function PantauScreen() {
                     refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={SiagaColors.primary} colors={[SiagaColors.primary]} />}
                     ListEmptyComponent={
                         <View className="items-center justify-center py-12">
-                            <Text className="text-sm font-semibold text-secondary">Belum ada laporan</Text>
-                            <Text className="text-[11px] text-secondary/60 mt-1">Tarik ke bawah untuk memuat ulang</Text>
+                            <Text className="text-[16px] font-semibold text-secondary">Belum ada laporan</Text>
+                            <Text className="text-[13px] text-secondary/60 mt-1">Tarik ke bawah untuk memuat ulang</Text>
                         </View>
                     }
                     renderItem={({ item: r }) => {
@@ -270,46 +270,46 @@ export default function PantauScreen() {
                                     <View className="flex-row items-start gap-3">
                                         {/* Icon */}
                                         <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: info.bg }}>
-                                            <IconComp size={22} color={info.color} weight="duotone" />
+                                            <IconComp size={24} color={info.color} weight="duotone" />
                                         </View>
 
                                         {/* Content */}
                                         <View className="flex-1">
                                             {/* Badges row */}
                                             <View className="flex-row items-center gap-1.5 mb-1">
-                                                <View className="px-2 py-0.5 rounded-md flex-row items-center gap-1" style={{ backgroundColor: urgency.bg }}>
+                                                <View className="px-3 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: urgency.bg }}>
                                                     <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: urgency.color }} />
-                                                    <Text className="text-[10px] font-bold uppercase" style={{ color: urgency.color }}>{urgency.label}</Text>
+                                                    <Text className="text-[12px] font-bold uppercase" style={{ color: urgency.color }}>{urgency.label}</Text>
                                                 </View>
-                                                <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: info.bg }}>
-                                                    <Text className="text-[10px] font-semibold" style={{ color: info.color }}>{info.label}</Text>
+                                                <View className="px-3 py-1 rounded-md" style={{ backgroundColor: info.bg }}>
+                                                    <Text className="text-[12px] font-semibold" style={{ color: info.color }}>{info.label}</Text>
                                                 </View>
                                             </View>
 
                                             {/* Title */}
-                                            <Text className="text-sm font-bold text-primary" numberOfLines={1}>{r.title}</Text>
-                                            <Text className="text-[10px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
+                                            <Text className="text-[16px] font-bold text-primary" numberOfLines={1}>{r.title}</Text>
+                                            <Text className="text-[12px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
 
                                             {/* Meta row */}
                                             <View className="flex-row items-center gap-3 mt-2">
                                                 <View className="flex-row items-center gap-1">
-                                                    <Clock size={10} color={SiagaColors.secondary} />
-                                                    <Text className="text-[11px] text-secondary font-medium">{r.time}</Text>
+                                                    <Clock size={12} color={SiagaColors.secondary} />
+                                                    <Text className="text-[13px] text-secondary font-medium">{r.time}</Text>
                                                 </View>
                                                 <View className="flex-row items-center gap-1">
-                                                    <MapPin size={10} color={SiagaColors.secondary} weight="duotone" />
-                                                    <Text className="text-[11px] text-secondary font-medium">{r.distance}</Text>
+                                                    <MapPin size={12} color={SiagaColors.secondary} weight="duotone" />
+                                                    <Text className="text-[13px] text-secondary font-medium">{r.distance}</Text>
                                                 </View>
                                                 <View className="flex-row items-center gap-1">
-                                                    <Users size={10} color={SiagaColors.primary} weight="duotone" />
-                                                    <Text className="text-[11px] font-bold text-primary">{r.votes} dukungan</Text>
+                                                    <Users size={12} color={SiagaColors.primary} weight="duotone" />
+                                                    <Text className="text-[13px] font-bold text-primary">{r.votes} dukungan</Text>
                                                 </View>
                                             </View>
                                         </View>
 
                                         {/* Arrow */}
                                         <View className="w-7 h-7 rounded-lg bg-slate-50 items-center justify-center self-center">
-                                            <CaretRight size={12} color={SiagaColors.secondary} weight="bold" />
+                                            <CaretRight size={14} color={SiagaColors.secondary} weight="bold" />
                                         </View>
                                     </View>
                                 </View>

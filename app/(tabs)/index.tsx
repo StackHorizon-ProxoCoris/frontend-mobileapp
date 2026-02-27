@@ -112,14 +112,14 @@ export default function HomeScreen() {
       {showWarning && (
         <View className="flex-row items-center gap-3 px-4 py-3" style={{ backgroundColor: '#f59e0b' }}>
           <View className="w-8 h-8 rounded-full bg-white/20 items-center justify-center">
-            <Warning size={16} color="#fff" weight="duotone" />
+            <Warning size={18} color="#fff" weight="duotone" />
           </View>
           <View className="flex-1">
-            <Text className="text-xs font-bold text-white uppercase tracking-wider">Peringatan — {dummyAreaStatus.warningType}</Text>
-            <Text className="text-[11px] text-white/90">{dummyAreaStatus.warningMessage}</Text>
+            <Text className="text-[14px] font-bold text-white uppercase tracking-wider">Peringatan — {dummyAreaStatus.warningType}</Text>
+            <Text className="text-[13px] text-white/90">{dummyAreaStatus.warningMessage}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowWarning(false)} className="p-1.5">
-            <X size={16} color="rgba(255,255,255,0.7)" />
+            <X size={18} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
         </View>
       )}
@@ -133,8 +133,8 @@ export default function HomeScreen() {
             </View>
             <View>
               <View className="flex-row items-center gap-1">
-                <Text className="text-xs text-secondary">{greeting.text} </Text>
-                <greeting.Icon size={16} color="#fbbf24" weight="duotone" />
+                <Text className="text-[14px] text-secondary">{greeting.text} </Text>
+                <greeting.Icon size={18} color="#fbbf24" weight="duotone" />
               </View>
               <Text className="text-base font-bold text-primary">{user?.fullName || 'User'}</Text>
             </View>
@@ -145,14 +145,14 @@ export default function HomeScreen() {
               style={{ elevation: 1 }}
               onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
             >
-              <Bell size={20} color={SiagaColors.primary} weight="duotone" />
+              <Bell size={22} color={SiagaColors.primary} weight="duotone" />
             </TouchableOpacity>
             <TouchableOpacity
               className="w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
               style={{ elevation: 1 }}
               onPress={() => Alert.alert('Pencarian', 'Fitur pencarian akan segera hadir.')}
             >
-              <MagnifyingGlass size={20} color={SiagaColors.primary} weight="duotone" />
+              <MagnifyingGlass size={22} color={SiagaColors.primary} weight="duotone" />
             </TouchableOpacity>
           </View>
         </View>
@@ -163,31 +163,31 @@ export default function HomeScreen() {
         <View className="rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary }}>
           <View className="flex-row items-center gap-1.5 mb-3">
             <View className="w-2.5 h-2.5 rounded-full bg-success" />
-            <Text className="text-[11px] font-medium text-white/70 uppercase tracking-wider">Status Area Anda</Text>
+            <Text className="text-[13px] font-medium text-white/70 uppercase tracking-wider">Status Area Anda</Text>
           </View>
           <View className="flex-row items-center justify-between mb-4">
             <View>
               <View className="flex-row items-center gap-1.5">
-                <MapPin size={18} color="rgba(255,255,255,0.8)" weight="duotone" />
+                <MapPin size={20} color="rgba(255,255,255,0.8)" weight="duotone" />
                 <Text className="text-xl font-bold text-white">{user?.district || 'Kecamatan'}</Text>
               </View>
-              <Text className="text-xs text-white/60 ml-7">{user?.city || 'Kota'}, {user?.province || 'Provinsi'}</Text>
+              <Text className="text-[14px] text-white/60 ml-7">{user?.city || 'Kota'}, {user?.province || 'Provinsi'}</Text>
             </View>
             <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: 'rgba(243,156,18,0.2)', borderWidth: 1, borderColor: 'rgba(243,156,18,0.3)' }}>
-              <ShieldWarning size={16} color={SiagaColors.warning} weight="duotone" />
-              <Text className="text-[11px] font-bold" style={{ color: SiagaColors.warning }}>{dummyAreaStatus.level}</Text>
+              <ShieldWarning size={18} color={SiagaColors.warning} weight="duotone" />
+              <Text className="text-[13px] font-bold" style={{ color: SiagaColors.warning }}>{dummyAreaStatus.level}</Text>
             </View>
           </View>
           <View className="flex-row gap-2">
             {[
-              { icon: <FileText size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: String(dummyAreaStatus.activeReports), label: 'Laporan Aktif' },
-              { icon: <ChartLineUp size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.responseRate}%`, label: 'Respon Rate' },
-              { icon: <Clock size={22} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.avgResponseHours}j`, label: 'Avg. Respons' },
+              { icon: <FileText size={24} color="rgba(255,255,255,0.6)" weight="duotone" />, value: String(dummyAreaStatus.activeReports), label: 'Laporan Aktif' },
+              { icon: <ChartLineUp size={24} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.responseRate}%`, label: 'Respon Rate' },
+              { icon: <Clock size={24} color="rgba(255,255,255,0.6)" weight="duotone" />, value: `${dummyAreaStatus.avgResponseHours}j`, label: 'Avg. Respons' },
             ].map((stat, i) => (
               <View key={i} className="flex-1 rounded-xl p-3 items-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                 {stat.icon}
                 <Text className="text-xl font-bold text-white mt-1">{stat.value}</Text>
-                <Text className="text-[10px] text-white/60 font-medium">{stat.label}</Text>
+                <Text className="text-[12px] text-white/60 font-medium">{stat.label}</Text>
               </View>
             ))}
           </View>
@@ -198,10 +198,10 @@ export default function HomeScreen() {
           <Text className="text-base font-bold text-primary mb-3">Menu Utama</Text>
           <View className="flex-row justify-between">
             {[
-              { icon: <Megaphone size={28} color="#2563eb" weight="duotone" />, label: 'Lapor', bg: '#dbeafe', border: '#bfdbfe', onPress: () => router.push('/(tabs)/lapor') },
-              { icon: <MapTrifold size={28} color="#059669" weight="duotone" />, label: 'Pantau', bg: '#d1fae5', border: '#a7f3d0', onPress: () => router.push('/(tabs)/pantau') },
-              { icon: <Siren size={28} color={SiagaColors.danger} weight="duotone" />, label: 'SOS', bg: '#fee2e2', border: '#fecaca', sos: true, onPress: () => setSosVisible(true) },
-              { icon: <Robot size={28} color="#7c3aed" weight="duotone" />, label: 'AI Chat', bg: '#ede9fe', border: '#ddd6fe', onPress: () => router.push('/(tabs)/aichat') },
+              { icon: <Megaphone size={30} color="#2563eb" weight="duotone" />, label: 'Lapor', bg: '#dbeafe', border: '#bfdbfe', onPress: () => router.push('/(tabs)/lapor') },
+              { icon: <MapTrifold size={30} color="#059669" weight="duotone" />, label: 'Pantau', bg: '#d1fae5', border: '#a7f3d0', onPress: () => router.push('/(tabs)/pantau') },
+              { icon: <Siren size={30} color={SiagaColors.danger} weight="duotone" />, label: 'SOS', bg: '#fee2e2', border: '#fecaca', sos: true, onPress: () => setSosVisible(true) },
+              { icon: <Robot size={30} color="#7c3aed" weight="duotone" />, label: 'AI Chat', bg: '#ede9fe', border: '#ddd6fe', onPress: () => router.push('/(tabs)/aichat') },
             ].map((item, i) => (
               <TouchableOpacity
                 key={i}
@@ -212,7 +212,7 @@ export default function HomeScreen() {
                 <View className="w-16 h-16 rounded-2xl items-center justify-center" style={{ backgroundColor: item.bg, borderWidth: 1, borderColor: item.border }}>
                   {item.icon}
                 </View>
-                <Text className="text-[11px] font-semibold" style={{ color: item.sos ? SiagaColors.danger : 'rgba(8,42,76,0.8)' }}>{item.label}</Text>
+                <Text className="text-[13px] font-semibold" style={{ color: item.sos ? SiagaColors.danger : 'rgba(8,42,76,0.8)' }}>{item.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -223,11 +223,11 @@ export default function HomeScreen() {
           <SectionHeader title="Panggilan Darurat" onAction={() => setSosVisible(true)} actionLabel="SOS" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {[
-              { icon: <FireTruck size={22} color={SiagaColors.danger} weight="duotone" />, name: 'Pemadam', num: '113', color: SiagaColors.danger, bg: '#fef2f2' },
-              { icon: <Ambulance size={22} color={SiagaColors.info} weight="duotone" />, name: 'Ambulance', num: '118', color: SiagaColors.info, bg: '#eff6ff' },
-              { icon: <PoliceCar size={22} color={SiagaColors.primary} weight="duotone" />, name: 'Polisi', num: '110', color: SiagaColors.primary, bg: '#f8fafc' },
-              { icon: <Binoculars size={22} color="#d97706" weight="duotone" />, name: 'SAR', num: '115', color: '#d97706', bg: '#fffbeb' },
-              { icon: <PhoneCall size={22} color="#059669" weight="duotone" />, name: 'Darurat', num: '112', color: '#059669', bg: '#ecfdf5' },
+              { icon: <FireTruck size={24} color={SiagaColors.danger} weight="duotone" />, name: 'Pemadam', num: '113', color: SiagaColors.danger, bg: '#fef2f2' },
+              { icon: <Ambulance size={24} color={SiagaColors.info} weight="duotone" />, name: 'Ambulance', num: '118', color: SiagaColors.info, bg: '#eff6ff' },
+              { icon: <PoliceCar size={24} color={SiagaColors.primary} weight="duotone" />, name: 'Polisi', num: '110', color: SiagaColors.primary, bg: '#f8fafc' },
+              { icon: <Binoculars size={24} color="#d97706" weight="duotone" />, name: 'SAR', num: '115', color: '#d97706', bg: '#fffbeb' },
+              { icon: <PhoneCall size={24} color="#059669" weight="duotone" />, name: 'Darurat', num: '112', color: '#059669', bg: '#ecfdf5' },
             ].map((c, i) => (
               <TouchableOpacity
                 key={i}
@@ -238,8 +238,8 @@ export default function HomeScreen() {
               >
                 <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: c.bg }}>{c.icon}</View>
                 <View>
-                  <Text className="text-[11px] font-bold text-primary">{c.name}</Text>
-                  <Text className="text-sm font-extrabold tracking-wider" style={{ color: c.color }}>{c.num}</Text>
+                  <Text className="text-[13px] font-bold text-primary">{c.name}</Text>
+                  <Text className="text-[16px] font-extrabold tracking-wider" style={{ color: c.color }}>{c.num}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -252,10 +252,10 @@ export default function HomeScreen() {
           <View className="gap-2.5">
             {reports.map((r) => {
               const reportIcon = r.type === 'Waves'
-                ? <Waves size={28} color="#fff" weight="duotone" />
+                ? <Waves size={30} color="#fff" weight="duotone" />
                 : r.type === 'RoadHorizon'
-                  ? <RoadHorizon size={28} color="#fff" weight="duotone" />
-                  : <Trash size={28} color="#fff" weight="duotone" />;
+                  ? <RoadHorizon size={30} color="#fff" weight="duotone" />
+                  : <Trash size={30} color="#fff" weight="duotone" />;
               return (
                 <TouchableOpacity
                   key={r.id}
@@ -270,29 +270,29 @@ export default function HomeScreen() {
                     </View>
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2 mb-1">
-                        <View className="px-2 py-0.5 rounded flex-row items-center gap-1" style={{ backgroundColor: r.badgeBg }}>
+                        <View className="px-3 py-1 rounded flex-row items-center gap-1" style={{ backgroundColor: r.badgeBg }}>
                           <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.badgeColor }} />
-                          <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: r.badgeColor }}>{r.badge}</Text>
+                          <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: r.badgeColor }}>{r.badge}</Text>
                         </View>
                         <View className="flex-row items-center gap-1">
-                          <Clock size={12} color={SiagaColors.secondary} />
-                          <Text className="text-[10px] text-secondary">{r.time}</Text>
+                          <Clock size={14} color={SiagaColors.secondary} />
+                          <Text className="text-[12px] text-secondary">{r.time}</Text>
                         </View>
                       </View>
-                      <Text className="text-sm font-bold text-primary">{r.title}</Text>
-                      <Text className="text-[11px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
+                      <Text className="text-[16px] font-bold text-primary">{r.title}</Text>
+                      <Text className="text-[13px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
                       <View className="flex-row items-center gap-3 mt-2">
                         <View className="flex-row items-center gap-1">
-                          <MapPin size={13} color={SiagaColors.secondary} weight="duotone" />
-                          <Text className="text-[10px] text-secondary">{r.distance}</Text>
+                          <MapPin size={15} color={SiagaColors.secondary} weight="duotone" />
+                          <Text className="text-[12px] text-secondary">{r.distance}</Text>
                         </View>
                         <View className="flex-row items-center gap-1">
-                          <Users size={13} color={SiagaColors.primary} weight="duotone" />
-                          <Text className="text-[10px] font-semibold text-primary">{r.votes} dukungan</Text>
+                          <Users size={15} color={SiagaColors.primary} weight="duotone" />
+                          <Text className="text-[12px] font-semibold text-primary">{r.votes} dukungan</Text>
                         </View>
                         <View className="flex-row items-center gap-1">
-                          <Camera size={13} color={SiagaColors.secondary} weight="duotone" />
-                          <Text className="text-[10px] text-secondary">{r.photos} foto</Text>
+                          <Camera size={15} color={SiagaColors.secondary} weight="duotone" />
+                          <Text className="text-[12px] text-secondary">{r.photos} foto</Text>
                         </View>
                       </View>
                     </View>
@@ -300,7 +300,7 @@ export default function HomeScreen() {
                   <View className="flex-row items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
                     <View className="flex-row items-center gap-2">
                       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.urgencyColor }} />
-                      <Text className="text-[10px] font-semibold" style={{ color: r.urgencyColor }}>Urgensi: {r.urgency} poin</Text>
+                      <Text className="text-[12px] font-semibold" style={{ color: r.urgencyColor }}>Urgensi: {r.urgency} poin</Text>
                       <View className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <View className="h-full rounded-full" style={{ width: `${Math.min(r.urgency, 100)}%`, backgroundColor: r.urgencyColor }} />
                       </View>
@@ -311,8 +311,8 @@ export default function HomeScreen() {
                       onPress={(e) => { e.stopPropagation?.(); handleSupport(r.id); }}
                       activeOpacity={0.7}
                     >
-                      <ThumbsUp size={12} color={r.supported ? '#15803d' : '#fff'} weight={r.supported ? 'fill' : 'bold'} />
-                      <Text className="text-[11px] font-semibold" style={{ color: r.supported ? '#15803d' : '#fff' }}>
+                      <ThumbsUp size={14} color={r.supported ? '#15803d' : '#fff'} weight={r.supported ? 'fill' : 'bold'} />
+                      <Text className="text-[13px] font-semibold" style={{ color: r.supported ? '#15803d' : '#fff' }}>
                         {r.supported ? 'Didukung' : 'Dukung'}
                       </Text>
                     </TouchableOpacity>
@@ -333,30 +333,30 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between mb-3">
             <View>
               <View className="flex-row items-center gap-1.5">
-                <Leaf size={18} color={SiagaColors.success} weight="duotone" />
+                <Leaf size={20} color={SiagaColors.success} weight="duotone" />
                 <Text className="text-base font-bold text-primary">Eco-Points Saya</Text>
               </View>
-              <Text className="text-[11px] text-secondary mt-0.5">Terus berkontribusi untuk komunitasmu!</Text>
+              <Text className="text-[13px] text-secondary mt-0.5">Terus berkontribusi untuk komunitasmu!</Text>
             </View>
             <View className="bg-white rounded-xl px-3 py-2 flex-row items-center gap-1.5" style={{ elevation: 1 }}>
-              <Star size={16} color="#fbbf24" weight="duotone" />
-              <Text className="text-sm font-bold text-primary">{user?.ecoPoints || 0} pts</Text>
+              <Star size={18} color="#fbbf24" weight="duotone" />
+              <Text className="text-[16px] font-bold text-primary">{user?.ecoPoints || 0} pts</Text>
             </View>
           </View>
           <View className="flex-row gap-2 mb-3">
-            <View className="flex-row items-center gap-1.5 bg-white/80 rounded-lg px-2.5 py-1.5" style={{ elevation: 1 }}>
-              <Medal size={16} color="#f59e0b" weight="duotone" />
-              <Text className="text-[10px] font-semibold text-primary">{user?.currentBadge || 'Warga Baru'}</Text>
+            <View className="flex-row items-center gap-1.5 bg-white/80 rounded-lg px-3 py-1.5.5" style={{ elevation: 1 }}>
+              <Medal size={18} color="#f59e0b" weight="duotone" />
+              <Text className="text-[12px] font-semibold text-primary">{user?.currentBadge || 'Warga Baru'}</Text>
             </View>
-            <View className="flex-row items-center gap-1.5 bg-white/50 rounded-lg px-2.5 py-1.5 border border-dashed border-accent">
-              <Trophy size={16} color="rgba(152,172,195,0.4)" weight="duotone" />
-              <Text className="text-[10px] font-medium text-secondary">Terus berkontribusi!</Text>
+            <View className="flex-row items-center gap-1.5 bg-white/50 rounded-lg px-3 py-1.5.5 border border-dashed border-accent">
+              <Trophy size={18} color="rgba(152,172,195,0.4)" weight="duotone" />
+              <Text className="text-[12px] font-medium text-secondary">Terus berkontribusi!</Text>
             </View>
           </View>
           <View className="bg-white/60 rounded-lg p-2.5">
             <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-[10px] font-medium text-secondary">Level berikutnya</Text>
-              <Text className="text-[10px] font-bold text-primary">{user?.ecoPoints || 0} pts</Text>
+              <Text className="text-[12px] font-medium text-secondary">Level berikutnya</Text>
+              <Text className="text-[12px] font-bold text-primary">{user?.ecoPoints || 0} pts</Text>
             </View>
             <View className="w-full h-1.5 bg-white rounded-full overflow-hidden">
               <View
@@ -372,7 +372,7 @@ export default function HomeScreen() {
 
         {/* Positive Actions */}
         <View>
-          <SectionHeader title="Aksi Positif" icon={<HandsClapping size={16} color="#f59e0b" weight="duotone" />} onAction={() => router.push('/(tabs)/lapor')} actionLabel="Ikut Aksi" />
+          <SectionHeader title="Aksi Positif" icon={<HandsClapping size={18} color="#f59e0b" weight="duotone" />} onAction={() => router.push('/(tabs)/lapor')} actionLabel="Ikut Aksi" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
             {actions.map((a) => {
               return (
@@ -388,18 +388,18 @@ export default function HomeScreen() {
                   </View>
                   <View className="p-3.5">
                     <View className="flex-row items-center gap-1 mb-1">
-                      <View className="flex-row items-center gap-1 px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(39,174,96,0.1)' }}>
-                        <CheckCircle size={11} color={SiagaColors.success} weight="fill" />
-                        <Text className="text-[10px] font-semibold text-success">{a.status}</Text>
+                      <View className="flex-row items-center gap-1 px-3 py-1 rounded" style={{ backgroundColor: 'rgba(39,174,96,0.1)' }}>
+                        <CheckCircle size={13} color={SiagaColors.success} weight="fill" />
+                        <Text className="text-[12px] font-semibold text-success">{a.status}</Text>
                       </View>
                     </View>
-                    <Text className="text-xs font-bold text-primary leading-tight">{a.title}</Text>
+                    <Text className="text-[14px] font-bold text-primary leading-tight">{a.title}</Text>
                     <View className="flex-row items-center gap-2 mt-2">
                       <View className="flex-row items-center gap-1">
-                        <Clock size={11} color={SiagaColors.secondary} />
-                        <Text className="text-[10px] text-secondary">{new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
+                        <Clock size={13} color={SiagaColors.secondary} />
+                        <Text className="text-[12px] text-secondary">{new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
                       </View>
-                      <Text className="text-[10px] text-success font-semibold">+{a.points} pts</Text>
+                      <Text className="text-[12px] text-success font-semibold">+{a.points} pts</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -410,14 +410,14 @@ export default function HomeScreen() {
 
         {/* Info Feed */}
         <View>
-          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={16} color={SiagaColors.info} weight="duotone" />} onAction={() => Alert.alert('Info & Edukasi', 'Halaman lengkap akan segera hadir.')} actionLabel="Semua" />
+          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={18} color={SiagaColors.info} weight="duotone" />} onAction={() => Alert.alert('Info & Edukasi', 'Halaman lengkap akan segera hadir.')} actionLabel="Semua" />
           <View className="gap-2.5">
             {dummyInfoFeed.map((info) => {
               const infoIcon = info.type === 'CloudRain'
-                ? <CloudRain size={24} color={info.color} weight="duotone" />
+                ? <CloudRain size={26} color={info.color} weight="duotone" />
                 : info.type === 'BookOpenText'
-                  ? <BookOpenText size={24} color={info.color} weight="duotone" />
-                  : <MegaphoneSimple size={24} color={info.color} weight="duotone" />;
+                  ? <BookOpenText size={26} color={info.color} weight="duotone" />
+                  : <MegaphoneSimple size={26} color={info.color} weight="duotone" />;
               return (
                 <TouchableOpacity
                   key={info.id}
@@ -428,10 +428,10 @@ export default function HomeScreen() {
                 >
                   <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: info.bg }}>{infoIcon}</View>
                   <View className="flex-1">
-                    <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: info.color }}>{info.source}</Text>
-                    <Text className="text-xs font-bold text-primary leading-tight mt-0.5">{info.title}</Text>
+                    <Text className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: info.color }}>{info.source}</Text>
+                    <Text className="text-[14px] font-bold text-primary leading-tight mt-0.5">{info.title}</Text>
                   </View>
-                  <CaretRight size={16} color={SiagaColors.secondary} />
+                  <CaretRight size={18} color={SiagaColors.secondary} />
                 </TouchableOpacity>
               );
             })}

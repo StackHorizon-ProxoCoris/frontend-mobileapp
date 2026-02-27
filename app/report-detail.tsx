@@ -150,7 +150,7 @@ export default function ReportDetailScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-sm text-secondary">Memuat laporan...</Text>
+        <Text className="text-[16px] text-secondary">Memuat laporan...</Text>
       </View>
     );
   }
@@ -158,19 +158,19 @@ export default function ReportDetailScreen() {
   if (!report) {
     return (
       <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-sm text-secondary">Laporan tidak ditemukan</Text>
+        <Text className="text-[16px] text-secondary">Laporan tidak ditemukan</Text>
         <TouchableOpacity className="mt-4 px-4 py-2 rounded-lg" style={{ backgroundColor: SiagaColors.primary }} onPress={() => router.back()}>
-          <Text className="text-white text-xs font-semibold">Kembali</Text>
+          <Text className="text-white text-[14px] font-semibold">Kembali</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const reportIcon = report.type === 'Waves'
-    ? <Waves size={28} color="#fff" weight="duotone" />
+    ? <Waves size={30} color="#fff" weight="duotone" />
     : report.type === 'RoadHorizon'
-      ? <RoadHorizon size={28} color="#fff" weight="duotone" />
-      : <Trash size={28} color="#fff" weight="duotone" />;
+      ? <RoadHorizon size={30} color="#fff" weight="duotone" />
+      : <Trash size={30} color="#fff" weight="duotone" />;
 
   const handleSupport = () => {
     setSupported(!supported);
@@ -190,8 +190,8 @@ export default function ReportDetailScreen() {
   };
 
   const getTimelineIcon = (status: string) => {
-    if (status === 'done') return <CheckCircle size={18} color={SiagaColors.success} weight="fill" />;
-    if (status === 'active') return <DotsThree size={18} color={SiagaColors.info} weight="bold" />;
+    if (status === 'done') return <CheckCircle size={20} color={SiagaColors.success} weight="fill" />;
+    if (status === 'active') return <DotsThree size={20} color={SiagaColors.info} weight="bold" />;
     return (
       <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#cbd5e1', backgroundColor: '#f1f5f9' }} />
     );
@@ -209,23 +209,23 @@ export default function ReportDetailScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
+          <ArrowLeft size={20} color={SiagaColors.primary} weight="bold" />
         </TouchableOpacity>
-        <Text className="text-sm font-bold text-primary">Detail Laporan</Text>
+        <Text className="text-[16px] font-bold text-primary">Detail Laporan</Text>
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
             onPress={() => setBookmarked(!bookmarked)}
             activeOpacity={0.7}
           >
-            <Bookmark size={18} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
+            <Bookmark size={20} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
           </TouchableOpacity>
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <ShareNetwork size={18} color={SiagaColors.primary} />
+            <ShareNetwork size={20} color={SiagaColors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -267,8 +267,8 @@ export default function ReportDetailScreen() {
             </View>
             {/* Photo Count */}
             <View className="absolute top-3 right-3 flex-row items-center gap-1 bg-black/50 rounded-lg px-2 py-1">
-              <Camera size={12} color="#fff" weight="bold" />
-              <Text className="text-[10px] font-bold text-white">{activePhoto + 1}/{report.photoUrls.length}</Text>
+              <Camera size={14} color="#fff" weight="bold" />
+              <Text className="text-[12px] font-bold text-white">{activePhoto + 1}/{report.photoUrls.length}</Text>
             </View>
           </View>
         </View>
@@ -278,28 +278,28 @@ export default function ReportDetailScreen() {
           <View className="flex-row items-center gap-2 mb-2">
             <View className="px-2 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: report.badgeBg }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: report.badgeColor }} />
-              <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: report.badgeColor }}>{report.badge}</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: report.badgeColor }}>{report.badge}</Text>
             </View>
             <View className="px-2 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: report.statusBg }}>
-              <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: report.statusColor }}>{report.status}</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: report.statusColor }}>{report.status}</Text>
             </View>
             <View className="px-2 py-1 rounded-md bg-slate-100 flex-row items-center gap-1">
-              <Text className="text-[9px] font-semibold text-secondary">{report.category}</Text>
+              <Text className="text-[10px] font-semibold text-secondary">{report.category}</Text>
             </View>
           </View>
           <Text className="text-lg font-bold text-primary leading-tight">{report.title}</Text>
           <View className="flex-row items-center gap-3 mt-2">
             <View className="flex-row items-center gap-1">
-              <Clock size={12} color={SiagaColors.secondary} />
-              <Text className="text-[10px] text-secondary">{report.time}</Text>
+              <Clock size={14} color={SiagaColors.secondary} />
+              <Text className="text-[12px] text-secondary">{report.time}</Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <MapPin size={12} color={SiagaColors.secondary} weight="duotone" />
-              <Text className="text-[10px] text-secondary">{report.distance}</Text>
+              <MapPin size={14} color={SiagaColors.secondary} weight="duotone" />
+              <Text className="text-[12px] text-secondary">{report.distance}</Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <ShieldCheck size={12} color={SiagaColors.success} weight="duotone" />
-              <Text className="text-[10px] text-success font-semibold">{report.verifiedCount} verifikasi</Text>
+              <ShieldCheck size={14} color={SiagaColors.success} weight="duotone" />
+              <Text className="text-[12px] text-success font-semibold">{report.verifiedCount} verifikasi</Text>
             </View>
           </View>
         </View>
@@ -308,39 +308,39 @@ export default function ReportDetailScreen() {
         <View className="px-5 pt-4">
           <View className="flex-row gap-2">
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <Users size={20} color={SiagaColors.primary} weight="duotone" />
+              <Users size={22} color={SiagaColors.primary} weight="duotone" />
               <Text className="text-lg font-bold text-primary mt-1">{votes}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Dukungan</Text>
+              <Text className="text-[10px] text-secondary font-medium">Dukungan</Text>
             </View>
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <ChatCircle size={20} color={SiagaColors.info} weight="duotone" />
+              <ChatCircle size={22} color={SiagaColors.info} weight="duotone" />
               <Text className="text-lg font-bold text-primary mt-1">{report.comments.length}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Komentar</Text>
+              <Text className="text-[10px] text-secondary font-medium">Komentar</Text>
             </View>
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <Camera size={20} color={SiagaColors.warning} weight="duotone" />
+              <Camera size={22} color={SiagaColors.warning} weight="duotone" />
               <Text className="text-lg font-bold text-primary mt-1">{report.photos}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Foto</Text>
+              <Text className="text-[10px] text-secondary font-medium">Foto</Text>
             </View>
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <Warning size={20} color={report.urgencyColor} weight="duotone" />
+              <Warning size={22} color={report.urgencyColor} weight="duotone" />
               <Text className="text-lg font-bold" style={{ color: report.urgencyColor, marginTop: 4 }}>{report.urgency}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Urgensi</Text>
+              <Text className="text-[10px] text-secondary font-medium">Urgensi</Text>
             </View>
           </View>
         </View>
 
         {/* Description */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Deskripsi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Deskripsi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
-            <Text className="text-[12px] text-primary/80 leading-5">{report.description}</Text>
+            <Text className="text-[14px] text-primary/80 leading-5">{report.description}</Text>
           </View>
         </View>
 
         {/* Location */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Lokasi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Lokasi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             {/* Embedded Map */}
             <View className="rounded-xl overflow-hidden mb-3">
@@ -363,10 +363,10 @@ export default function ReportDetailScreen() {
             </View>
             <View className="gap-2">
               <View className="flex-row items-start gap-2.5">
-                <MapPin size={14} color={SiagaColors.primary} weight="duotone" />
+                <MapPin size={16} color={SiagaColors.primary} weight="duotone" />
                 <View className="flex-1">
-                  <Text className="text-[11px] font-semibold text-primary">{report.location.address}</Text>
-                  <Text className="text-[10px] text-secondary mt-0.5">{report.location.district}, {report.location.city}</Text>
+                  <Text className="text-[13px] font-semibold text-primary">{report.location.address}</Text>
+                  <Text className="text-[12px] text-secondary mt-0.5">{report.location.district}, {report.location.city}</Text>
                 </View>
               </View>
             </View>
@@ -375,24 +375,24 @@ export default function ReportDetailScreen() {
 
         {/* Reporter */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Pelapor</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Pelapor</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4 flex-row items-center gap-3" style={{ elevation: 1 }}>
             <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-              <Text className="text-white font-bold text-sm">{report.reporter.initials}</Text>
+              <Text className="text-white font-bold text-[16px]">{report.reporter.initials}</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-[12px] font-bold text-primary">{report.reporter.name}</Text>
+              <Text className="text-[14px] font-bold text-primary">{report.reporter.name}</Text>
               <View className="flex-row items-center gap-2 mt-1">
                 <View className="flex-row items-center gap-1 bg-amber-50 rounded px-1.5 py-0.5">
-                  <Medal size={10} color="#f59e0b" weight="duotone" />
-                  <Text className="text-[9px] font-semibold" style={{ color: '#a16207' }}>{report.reporter.badge}</Text>
+                  <Medal size={12} color="#f59e0b" weight="duotone" />
+                  <Text className="text-[10px] font-semibold" style={{ color: '#a16207' }}>{report.reporter.badge}</Text>
                 </View>
-                <Text className="text-[9px] text-secondary">{report.reporter.reportsCount} laporan</Text>
+                <Text className="text-[10px] text-secondary">{report.reporter.reportsCount} laporan</Text>
               </View>
             </View>
             <View className="items-end">
-              <Text className="text-[9px] text-secondary">{report.createdAt.split(', ')[1]}</Text>
-              <Text className="text-[8px] text-secondary mt-0.5">{report.createdAt.split(', ')[0]}</Text>
+              <Text className="text-[10px] text-secondary">{report.createdAt.split(', ')[1]}</Text>
+              <Text className="text-[9px] text-secondary mt-0.5">{report.createdAt.split(', ')[0]}</Text>
             </View>
           </View>
         </View>
@@ -400,23 +400,23 @@ export default function ReportDetailScreen() {
         {/* Response Info */}
         {report.respondedBy && (
           <View className="px-5 pt-5">
-            <Text className="text-[13px] font-bold text-primary mb-2">Penanganan</Text>
+            <Text className="text-[15px] font-bold text-primary mb-2">Penanganan</Text>
             <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
               <View className="flex-row items-center gap-3 mb-3">
                 <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                  <Buildings size={20} color={SiagaColors.primary} weight="duotone" />
+                  <Buildings size={22} color={SiagaColors.primary} weight="duotone" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[11px] font-bold text-primary">{report.respondedBy}</Text>
-                  <Text className="text-[9px] text-secondary mt-0.5">Instansi Penanggung Jawab</Text>
+                  <Text className="text-[13px] font-bold text-primary">{report.respondedBy}</Text>
+                  <Text className="text-[10px] text-secondary mt-0.5">Instansi Penanggung Jawab</Text>
                 </View>
               </View>
               {report.estimatedCompletion && (
                 <View className="flex-row items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
-                  <CalendarBlank size={14} color={SiagaColors.info} weight="duotone" />
+                  <CalendarBlank size={16} color={SiagaColors.info} weight="duotone" />
                   <View>
-                    <Text className="text-[9px] text-secondary">Estimasi Selesai</Text>
-                    <Text className="text-[11px] font-semibold text-primary">{report.estimatedCompletion}</Text>
+                    <Text className="text-[10px] text-secondary">Estimasi Selesai</Text>
+                    <Text className="text-[13px] font-semibold text-primary">{report.estimatedCompletion}</Text>
                   </View>
                 </View>
               )}
@@ -426,7 +426,7 @@ export default function ReportDetailScreen() {
 
         {/* Timeline */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Timeline Progress</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Timeline Progress</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             {report.timeline.map((item, i) => (
               <View key={item.id} className="flex-row gap-3">
@@ -448,15 +448,15 @@ export default function ReportDetailScreen() {
                 <View className="flex-1 pb-4">
                   <View className="flex-row items-center justify-between">
                     <Text
-                      className="text-[11px] font-bold"
+                      className="text-[13px] font-bold"
                       style={{ color: item.status === 'pending' ? SiagaColors.secondary : SiagaColors.primary }}
                     >
                       {item.title}
                     </Text>
-                    <Text className="text-[9px] text-secondary">{item.time}</Text>
+                    <Text className="text-[10px] text-secondary">{item.time}</Text>
                   </View>
                   <Text
-                    className="text-[10px] mt-0.5"
+                    className="text-[12px] mt-0.5"
                     style={{ color: item.status === 'pending' ? SiagaColors.secondary : 'rgba(8,42,76,0.6)' }}
                   >
                     {item.desc}
@@ -469,16 +469,16 @@ export default function ReportDetailScreen() {
 
         {/* Urgency Meter */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Tingkat Urgensi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Tingkat Urgensi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center gap-1.5">
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: report.urgencyColor }} />
-                <Text className="text-[11px] font-bold" style={{ color: report.urgencyColor }}>
+                <Text className="text-[13px] font-bold" style={{ color: report.urgencyColor }}>
                   {report.urgency} poin
                 </Text>
               </View>
-              <Text className="text-[10px] font-semibold" style={{ color: report.urgencyColor }}>
+              <Text className="text-[12px] font-semibold" style={{ color: report.urgencyColor }}>
                 {report.badge === 'Kritis' ? 'Sangat Tinggi' : report.badge === 'Sedang' ? 'Sedang' : 'Rendah'}
               </Text>
             </View>
@@ -489,10 +489,10 @@ export default function ReportDetailScreen() {
               />
             </View>
             <View className="flex-row justify-between mt-1.5">
-              <Text className="text-[8px] text-secondary">0</Text>
-              <Text className="text-[8px] text-secondary">50</Text>
-              <Text className="text-[8px] text-secondary">100</Text>
-              <Text className="text-[8px] text-secondary">150</Text>
+              <Text className="text-[9px] text-secondary">0</Text>
+              <Text className="text-[9px] text-secondary">50</Text>
+              <Text className="text-[9px] text-secondary">100</Text>
+              <Text className="text-[9px] text-secondary">150</Text>
             </View>
           </View>
         </View>
@@ -500,26 +500,26 @@ export default function ReportDetailScreen() {
         {/* Comments */}
         <View className="px-5 pt-5">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-[13px] font-bold text-primary">Komentar ({report.comments.length + localComments.length})</Text>
+            <Text className="text-[15px] font-bold text-primary">Komentar ({report.comments.length + localComments.length})</Text>
           </View>
           <View className="gap-2.5">
             {localComments.map((comment) => (
               <View key={comment.id} className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
                 <View className="flex-row items-start gap-2.5">
                   <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                    <Text className="text-[10px] font-bold text-white">{comment.initials}</Text>
+                    <Text className="text-[12px] font-bold text-white">{comment.initials}</Text>
                   </View>
                   <View className="flex-1">
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-1.5">
-                        <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
+                        <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
                         <View className="bg-blue-100 rounded px-1.5 py-0.5">
-                          <Text className="text-[8px] font-bold text-info">Anda</Text>
+                          <Text className="text-[9px] font-bold text-info">Anda</Text>
                         </View>
                       </View>
-                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
+                      <Text className="text-[10px] text-secondary">{comment.time}</Text>
                     </View>
-                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                    <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
                   </View>
                 </View>
               </View>
@@ -528,17 +528,17 @@ export default function ReportDetailScreen() {
               <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
                 <View className="flex-row items-start gap-2.5">
                   <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                    <Text className="text-[10px] font-bold text-primary">{comment.initials}</Text>
+                    <Text className="text-[12px] font-bold text-primary">{comment.initials}</Text>
                   </View>
                   <View className="flex-1">
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
-                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
+                      <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
+                      <Text className="text-[10px] text-secondary">{comment.time}</Text>
                     </View>
-                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                    <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
                     <View className="flex-row items-center gap-1 mt-2">
-                      <Heart size={12} color={SiagaColors.secondary} weight="regular" />
-                      <Text className="text-[9px] text-secondary">{comment.likes}</Text>
+                      <Heart size={14} color={SiagaColors.secondary} weight="regular" />
+                      <Text className="text-[10px] text-secondary">{comment.likes}</Text>
                     </View>
                   </View>
                 </View>
@@ -549,11 +549,11 @@ export default function ReportDetailScreen() {
           <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
             <View className="flex-row items-start gap-2.5">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                <Text className="text-[10px] font-bold text-white">{user?.initials || 'U'}</Text>
+                <Text className="text-[12px] font-bold text-white">{user?.initials || 'U'}</Text>
               </View>
               <View className="flex-1">
                 <TextInput
-                  className="text-[11px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-[13px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
                   placeholder="Tulis komentar..."
                   placeholderTextColor={SiagaColors.secondary}
                   value={commentText}
@@ -563,7 +563,7 @@ export default function ReportDetailScreen() {
                   style={{ textAlignVertical: 'top' }}
                 />
                 <View className="flex-row items-center justify-between mt-2">
-                  <Text className="text-[9px] text-secondary">{commentText.length}/500</Text>
+                  <Text className="text-[10px] text-secondary">{commentText.length}/500</Text>
                   <TouchableOpacity
                     className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
                     style={{ backgroundColor: commentText.trim() ? SiagaColors.primary : '#e2e8f0' }}
@@ -600,8 +600,8 @@ export default function ReportDetailScreen() {
                       }
                     }}
                   >
-                    <PaperPlaneTilt size={12} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
-                    <Text className="text-[10px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
+                    <PaperPlaneTilt size={14} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
+                    <Text className="text-[12px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -621,8 +621,8 @@ export default function ReportDetailScreen() {
           onPress={handleSupport}
           activeOpacity={0.8}
         >
-          <ThumbsUp size={16} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
-          <Text className="text-[12px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
+          <ThumbsUp size={18} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
+          <Text className="text-[14px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
             {supported ? 'Didukung' : 'Dukung'} ({votes})
           </Text>
         </TouchableOpacity>
@@ -631,8 +631,8 @@ export default function ReportDetailScreen() {
           style={{ borderColor: SiagaColors.info, backgroundColor: '#eff6ff' }}
           activeOpacity={0.8}
         >
-          <Flag size={16} color={SiagaColors.info} weight="duotone" />
-          <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
+          <Flag size={18} color={SiagaColors.info} weight="duotone" />
+          <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
         </TouchableOpacity>
       </View>
     </View>

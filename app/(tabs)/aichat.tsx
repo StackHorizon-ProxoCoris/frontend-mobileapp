@@ -78,10 +78,10 @@ export default function AIChatScreen() {
             {item.type === 'ai' && (
                 <View className="flex-row items-center gap-1.5 mb-1 ml-1">
                     <View className="w-5 h-5 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
-                        <Robot size={10} color="#fff" weight="fill" />
+                        <Robot size={12} color="#fff" weight="fill" />
                     </View>
-                    <Text className="text-[9px] font-semibold text-secondary">SIAGA AI</Text>
-                    <Text className="text-[9px] text-secondary/50">{item.time}</Text>
+                    <Text className="text-[10px] font-semibold text-secondary">SIAGA AI</Text>
+                    <Text className="text-[10px] text-secondary/50">{item.time}</Text>
                 </View>
             )}
             <View
@@ -93,12 +93,12 @@ export default function AIChatScreen() {
                     elevation: item.type === 'ai' ? 1 : 0,
                 }}
             >
-                <Text className="text-[12px] leading-5" style={{ color: item.type === 'user' ? '#fff' : SiagaColors.primary }}>{item.text}</Text>
+                <Text className="text-[14px] leading-5" style={{ color: item.type === 'user' ? '#fff' : SiagaColors.primary }}>{item.text}</Text>
             </View>
             {item.type === 'user' && (
                 <View className="flex-row items-center gap-1 mt-0.5 mr-1">
-                    <Text className="text-[9px] text-secondary/50">{item.time}</Text>
-                    <CheckCircle size={10} color={SiagaColors.info} weight="fill" />
+                    <Text className="text-[10px] text-secondary/50">{item.time}</Text>
+                    <CheckCircle size={12} color={SiagaColors.info} weight="fill" />
                 </View>
             )}
         </View>
@@ -110,27 +110,27 @@ export default function AIChatScreen() {
             <View className="px-4 pt-3 pb-3 bg-white/90 border-b border-slate-100 z-30" style={{ elevation: 2 }}>
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center flex-shrink-0">
-                        <CaretLeft size={14} color={SiagaColors.primary} />
+                        <CaretLeft size={16} color={SiagaColors.primary} />
                     </TouchableOpacity>
                     <View className="relative flex-shrink-0">
                         <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
-                            <Robot size={20} color="#fff" weight="duotone" />
+                            <Robot size={22} color="#fff" weight="duotone" />
                         </View>
                         <View className="absolute -bottom-0 -right-0 w-3 h-3 bg-success rounded-full border-2 border-white" />
                     </View>
                     <View className="flex-1">
-                        <Text className="text-sm font-bold text-primary">SIAGA AI</Text>
+                        <Text className="text-[16px] font-bold text-primary">SIAGA AI</Text>
                         <View className="flex-row items-center gap-1">
                             <View className="w-1.5 h-1.5 rounded-full bg-success" />
-                            <Text className="text-[9px] font-medium text-success">Online · Civic AI Assistant</Text>
+                            <Text className="text-[10px] font-medium text-success">Online · Civic AI Assistant</Text>
                         </View>
                     </View>
                     <View className="flex-row gap-1.5">
                         <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                            <Info size={16} color={SiagaColors.primary} weight="duotone" />
+                            <Info size={18} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
                         <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                            <DotsThreeVertical size={16} color={SiagaColors.primary} weight="duotone" />
+                            <DotsThreeVertical size={18} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -141,11 +141,11 @@ export default function AIChatScreen() {
                 <View className="mx-4 mt-3 rounded-2xl p-3.5" style={{ backgroundColor: SiagaColors.info }}>
                     <View className="flex-row items-start gap-2.5">
                         <View className="w-9 h-9 rounded-xl bg-white/20 items-center justify-center mt-0.5">
-                            <Sparkle size={18} color="#fff" weight="fill" />
+                            <Sparkle size={20} color="#fff" weight="fill" />
                         </View>
                         <View className="flex-1">
-                            <Text className="text-[12px] font-bold text-white">AI Assistant Baru! ✨</Text>
-                            <Text className="text-[10px] text-white/80 leading-5 mt-0.5">
+                            <Text className="text-[14px] font-bold text-white">AI Assistant Baru! ✨</Text>
+                            <Text className="text-[12px] text-white/80 leading-5 mt-0.5">
                                 Tanyakan apa saja tentang mitigasi bencana, pelaporan warga, atau informasi keselamatan.
                             </Text>
                         </View>
@@ -156,7 +156,7 @@ export default function AIChatScreen() {
             {/* Quick Topics */}
             {messages.length <= 1 && (
                 <View className="px-4 mt-3 mb-1">
-                    <Text className="text-[10px] font-semibold text-secondary uppercase tracking-wider mb-2">Topik Populer</Text>
+                    <Text className="text-[12px] font-semibold text-secondary uppercase tracking-wider mb-2">Topik Populer</Text>
                     <View className="flex-row flex-wrap gap-2">
                         {QUICK_TOPICS.map((t, i) => (
                             <TouchableOpacity
@@ -164,8 +164,8 @@ export default function AIChatScreen() {
                                 className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-100 bg-white"
                                 onPress={() => sendMessage(t.label)}
                             >
-                                <t.icon size={12} color={t.color} weight="duotone" />
-                                <Text className="text-[10px] font-semibold text-primary">{t.label}</Text>
+                                <t.icon size={14} color={t.color} weight="duotone" />
+                                <Text className="text-[12px] font-semibold text-primary">{t.label}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -186,9 +186,9 @@ export default function AIChatScreen() {
                         <View className="items-start mb-3">
                             <View className="flex-row items-center gap-1.5 mb-1 ml-1">
                                 <View className="w-5 h-5 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
-                                    <Robot size={10} color="#fff" weight="fill" />
+                                    <Robot size={12} color="#fff" weight="fill" />
                                 </View>
-                                <Text className="text-[9px] font-semibold text-secondary">SIAGA AI</Text>
+                                <Text className="text-[10px] font-semibold text-secondary">SIAGA AI</Text>
                             </View>
                             <View className="bg-white border border-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex-row items-center gap-1.5" style={{ elevation: 1 }}>
                                 {[0, 1, 2].map(i => (
@@ -205,11 +205,11 @@ export default function AIChatScreen() {
                 <View className="px-4 py-3 bg-white border-t border-slate-100" style={{ elevation: 3 }}>
                     <View className="flex-row items-end gap-2">
                         <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                            <Paperclip size={16} color={SiagaColors.secondary} weight="duotone" />
+                            <Paperclip size={18} color={SiagaColors.secondary} weight="duotone" />
                         </TouchableOpacity>
                         <View className="flex-1 bg-[#f1f6fc] rounded-2xl px-4 py-2.5 flex-row items-center">
                             <TextInput
-                                className="flex-1 text-[12px] text-primary"
+                                className="flex-1 text-[14px] text-primary"
                                 placeholder="Ketik pesan..."
                                 placeholderTextColor="rgba(152,172,195,0.6)"
                                 value={inputText}
@@ -224,11 +224,11 @@ export default function AIChatScreen() {
                                 style={{ backgroundColor: SiagaColors.primary }}
                                 onPress={() => sendMessage()}
                             >
-                                <PaperPlaneRight size={16} color="#fff" weight="fill" />
+                                <PaperPlaneRight size={18} color="#fff" weight="fill" />
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                                <Microphone size={16} color={SiagaColors.primary} weight="duotone" />
+                                <Microphone size={18} color={SiagaColors.primary} weight="duotone" />
                             </TouchableOpacity>
                         )}
                     </View>

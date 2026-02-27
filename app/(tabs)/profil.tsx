@@ -71,7 +71,7 @@ export default function ProfilScreen() {
                                     onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
                                     activeOpacity={0.7}
                                 >
-                                    <Bell size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
+                                    <Bell size={16} color="rgba(255,255,255,0.8)" weight="duotone" />
 
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -79,7 +79,7 @@ export default function ProfilScreen() {
                                     onPress={() => router.push('/pengaturan')}
                                     activeOpacity={0.7}
                                 >
-                                    <Gear size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
+                                    <Gear size={16} color="rgba(255,255,255,0.8)" weight="duotone" />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -98,25 +98,25 @@ export default function ProfilScreen() {
                                 <Text className="text-2xl font-bold text-white">{user?.initials || 'U'}</Text>
                             </View>
                             <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white items-center justify-center">
-                                <CheckCircle size={10} color="#fff" weight="fill" />
+                                <CheckCircle size={12} color="#fff" weight="fill" />
                             </View>
                         </View>
 
                         {/* Info */}
                         <View className="flex-1">
-                            <Text className="text-[16px] font-bold text-primary">{user?.fullName || 'User'}</Text>
+                            <Text className="text-[18px] font-bold text-primary">{user?.fullName || 'User'}</Text>
                             <View className="flex-row items-center gap-1 mt-0.5">
-                                <MapPin size={11} color={SiagaColors.secondary} weight="duotone" />
-                                <Text className="text-xs text-secondary">{user?.district || '-'}, {user?.city || '-'}</Text>
+                                <MapPin size={13} color={SiagaColors.secondary} weight="duotone" />
+                                <Text className="text-[14px] text-secondary">{user?.district || '-'}, {user?.city || '-'}</Text>
                             </View>
                             <View className="flex-row items-center gap-1.5 mt-2">
-                                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
-                                    <CheckCircle size={10} color="#15803d" weight="fill" />
-                                    <Text className="text-[10px] font-bold text-success">Terverifikasi</Text>
+                                <View className="flex-row items-center gap-1 px-3 py-1 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
+                                    <CheckCircle size={12} color="#15803d" weight="fill" />
+                                    <Text className="text-[12px] font-bold text-success">Terverifikasi</Text>
                                 </View>
-                                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50">
-                                    <Medal size={10} color="#f59e0b" weight="duotone" />
-                                    <Text className="text-[10px] font-bold" style={{ color: '#b45309' }}>{user?.currentBadge || 'Warga Baru'}</Text>
+                                <View className="flex-row items-center gap-1 px-3 py-1 rounded-md bg-amber-50">
+                                    <Medal size={12} color="#f59e0b" weight="duotone" />
+                                    <Text className="text-[12px] font-bold" style={{ color: '#b45309' }}>{user?.currentBadge || 'Warga Baru'}</Text>
                                 </View>
                             </View>
                         </View>
@@ -127,12 +127,12 @@ export default function ProfilScreen() {
                             onPress={() => router.push('/edit-profil')}
                             activeOpacity={0.7}
                         >
-                            <PencilSimple size={14} color={SiagaColors.primary} weight="duotone" />
+                            <PencilSimple size={16} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
                     </View>
 
                     {/* Bio */}
-                    <Text className="text-[13px] text-secondary mt-3 leading-5">Warga aktif yang peduli terhadap lingkungan dan infrastruktur kota.</Text>
+                    <Text className="text-[15px] text-secondary mt-3 leading-5">Warga aktif yang peduli terhadap lingkungan dan infrastruktur kota.</Text>
 
                     {/* Stats Row */}
                     <View className="flex-row gap-2 mt-4">
@@ -144,7 +144,7 @@ export default function ProfilScreen() {
                         ].map((s, i) => (
                             <View key={i} className="flex-1 bg-slate-50 rounded-xl p-2.5 items-center">
                                 <Text className="text-base font-bold" style={{ color: s.color }}>{s.value}</Text>
-                                <Text className="text-[10px] font-medium text-secondary mt-0.5">{s.label}</Text>
+                                <Text className="text-[12px] font-medium text-secondary mt-0.5">{s.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -154,22 +154,22 @@ export default function ProfilScreen() {
                 <View className="mx-5 mt-4 rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}>
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-1.5">
-                            <Leaf size={16} color="#fff" weight="duotone" />
-                            <Text className="text-sm font-bold text-white">Eco-Points</Text>
+                            <Leaf size={18} color="#fff" weight="duotone" />
+                            <Text className="text-[16px] font-bold text-white">Eco-Points</Text>
                         </View>
                         <View className="bg-white/10 rounded-lg px-2 py-1 flex-row items-center gap-1">
-                            <TrendUp size={10} color="#10b981" weight="bold" />
-                            <Text className="text-[11px] font-bold text-success">+45 minggu ini</Text>
+                            <TrendUp size={12} color="#10b981" weight="bold" />
+                            <Text className="text-[13px] font-bold text-success">+45 minggu ini</Text>
                         </View>
                     </View>
                     <View className="flex-row items-end gap-1 mb-2">
                         <Text className="text-3xl font-extrabold text-white">{user?.ecoPoints || 0}</Text>
-                        <Text className="text-xs text-white/50 pb-1">points</Text>
+                        <Text className="text-[14px] text-white/50 pb-1">points</Text>
                     </View>
                     <View className="mb-2">
                         <View className="flex-row items-center justify-between mb-1">
-                            <Text className="text-[11px] font-medium text-white/60">Level berikutnya</Text>
-                            <Text className="text-[11px] font-bold text-white">{user?.ecoPoints || 0} pts</Text>
+                            <Text className="text-[13px] font-medium text-white/60">Level berikutnya</Text>
+                            <Text className="text-[13px] font-bold text-white">{user?.ecoPoints || 0} pts</Text>
                         </View>
                         <View className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <View
@@ -177,17 +177,17 @@ export default function ProfilScreen() {
                                 style={{ width: `${Math.min(((user?.ecoPoints || 0) / 300) * 100, 100)}%`, backgroundColor: '#10b981' }}
                             />
                         </View>
-                        <Text className="text-[10px] text-white/40 mt-1">Terus berkontribusi untuk badge berikutnya!</Text>
+                        <Text className="text-[12px] text-white/40 mt-1">Terus berkontribusi untuk badge berikutnya!</Text>
                     </View>
                     <View className="flex-row gap-2 mt-1">
                         {[
-                            { icon: <FileText size={10} color="#fff" weight="duotone" />, label: 'Lapor: +10 pts' },
-                            { icon: <HandsClapping size={10} color="#fff" weight="duotone" />, label: 'Aksi: +50 pts' },
-                            { icon: <Sparkle size={10} color="#fff" weight="duotone" />, label: 'Validasi: +5 pts' },
+                            { icon: <FileText size={12} color="#fff" weight="duotone" />, label: 'Lapor: +10 pts' },
+                            { icon: <HandsClapping size={12} color="#fff" weight="duotone" />, label: 'Aksi: +50 pts' },
+                            { icon: <Sparkle size={12} color="#fff" weight="duotone" />, label: 'Validasi: +5 pts' },
                         ].map((p, i) => (
                             <View key={i} className="flex-row items-center gap-1 bg-white/10 rounded-md px-2 py-1">
                                 {p.icon}
-                                <Text className="text-[10px] font-medium text-white/80">{p.label}</Text>
+                                <Text className="text-[12px] font-medium text-white/80">{p.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -198,12 +198,12 @@ export default function ProfilScreen() {
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-2">
                             <View className="w-7 h-7 rounded-lg bg-amber-50 items-center justify-center">
-                                <Trophy size={14} color="#f59e0b" weight="duotone" />
+                                <Trophy size={16} color="#f59e0b" weight="duotone" />
                             </View>
                             <Text className="text-base font-bold text-primary">Badge Saya</Text>
                         </View>
-                        <View className="bg-amber-50 rounded-md px-2 py-0.5">
-                            <Text className="text-[11px] font-semibold" style={{ color: '#b45309' }}>3 / 6 terkumpul</Text>
+                        <View className="bg-amber-50 rounded-md px-3 py-1">
+                            <Text className="text-[13px] font-semibold" style={{ color: '#b45309' }}>3 / 6 terkumpul</Text>
                         </View>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
@@ -226,12 +226,12 @@ export default function ProfilScreen() {
                                 activeOpacity={0.7}
                             >
                                 <View className="w-10 h-10 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: b.active ? `${b.color}15` : '#f1f5f9' }}>
-                                    <b.icon size={20} color={b.active ? b.color : '#c4c4c4'} weight="duotone" />
+                                    <b.icon size={22} color={b.active ? b.color : '#c4c4c4'} weight="duotone" />
                                 </View>
-                                <Text className="text-[10px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
+                                <Text className="text-[12px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
                                 {b.active && (
                                     <View className="absolute -top-1 -right-1">
-                                        <CheckCircle size={14} color={b.color} weight="fill" />
+                                        <CheckCircle size={16} color={b.color} weight="fill" />
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -244,17 +244,17 @@ export default function ProfilScreen() {
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-2">
                             <View className="w-7 h-7 rounded-lg bg-blue-50 items-center justify-center">
-                                <Clock size={14} color="#3b82f6" weight="duotone" />
+                                <Clock size={16} color="#3b82f6" weight="duotone" />
                             </View>
                             <Text className="text-base font-bold text-primary">Aktivitas Terkini</Text>
                         </View>
                         <TouchableOpacity
-                            className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg"
+                            className="flex-row items-center gap-1 bg-blue-50 px-3 py-1.5.5 rounded-lg"
                             onPress={() => router.push('/riwayat-aktivitas')}
                             activeOpacity={0.7}
                         >
-                            <Text className="text-[11px] font-bold text-info">Lihat Semua</Text>
-                            <ArrowRight size={10} color={SiagaColors.info} weight="bold" />
+                            <Text className="text-[13px] font-bold text-info">Lihat Semua</Text>
+                            <ArrowRight size={12} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
                     <View className="gap-2">
@@ -269,22 +269,22 @@ export default function ProfilScreen() {
                                     activeOpacity={a.refId ? 0.7 : 1}
                                 >
                                     <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: a.bgColor }}>
-                                        <IconComp size={18} color={a.color} weight="duotone" />
+                                        <IconComp size={20} color={a.color} weight="duotone" />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-sm font-bold text-primary" numberOfLines={1}>{a.title}</Text>
+                                        <Text className="text-[16px] font-bold text-primary" numberOfLines={1}>{a.title}</Text>
                                         <View className="flex-row items-center gap-2 mt-0.5">
                                             <View className="flex-row items-center gap-0.5">
-                                                <Clock size={9} color={SiagaColors.secondary} />
-                                                <Text className="text-[11px] text-secondary">{a.time}</Text>
+                                                <Clock size={11} color={SiagaColors.secondary} />
+                                                <Text className="text-[13px] text-secondary">{a.time}</Text>
                                             </View>
                                             <View className="flex-row items-center gap-0.5">
-                                                <Leaf size={9} color="#059669" weight="duotone" />
-                                                <Text className="text-[11px] font-bold text-success">+{a.points} pts</Text>
+                                                <Leaf size={11} color="#059669" weight="duotone" />
+                                                <Text className="text-[13px] font-bold text-success">+{a.points} pts</Text>
                                             </View>
                                         </View>
                                     </View>
-                                    {a.refId && <CaretRight size={14} color={SiagaColors.secondary} />}
+                                    {a.refId && <CaretRight size={16} color={SiagaColors.secondary} />}
                                 </TouchableOpacity>
                             );
                         })}
@@ -295,7 +295,7 @@ export default function ProfilScreen() {
                 <View className="mt-5 px-5">
                     <View className="flex-row items-center gap-2 mb-3">
                         <View className="w-7 h-7 rounded-lg bg-slate-100 items-center justify-center">
-                            <Gear size={14} color={SiagaColors.primary} weight="duotone" />
+                            <Gear size={16} color={SiagaColors.primary} weight="duotone" />
                         </View>
                         <Text className="text-base font-bold text-primary">Menu</Text>
                     </View>
@@ -318,10 +318,10 @@ export default function ProfilScreen() {
                                 activeOpacity={0.7}
                             >
                                 <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: `${item.color}12` }}>
-                                    <item.icon size={16} color={item.color} weight="duotone" />
+                                    <item.icon size={18} color={item.color} weight="duotone" />
                                 </View>
-                                <Text className="flex-1 text-sm font-semibold text-primary">{item.label}</Text>
-                                <CaretRight size={14} color={SiagaColors.secondary} />
+                                <Text className="flex-1 text-[16px] font-semibold text-primary">{item.label}</Text>
+                                <CaretRight size={16} color={SiagaColors.secondary} />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -346,11 +346,11 @@ export default function ProfilScreen() {
                         }}
                         activeOpacity={0.7}
                     >
-                        <SignOut size={18} color={SiagaColors.danger} weight="duotone" />
-                        <Text className="text-sm font-bold text-danger">Keluar</Text>
+                        <SignOut size={20} color={SiagaColors.danger} weight="duotone" />
+                        <Text className="text-[16px] font-bold text-danger">Keluar</Text>
                     </TouchableOpacity>
-                    <Text className="text-center text-[11px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
-                    <Text className="text-center text-[10px] text-secondary/50 mt-0.5">SIAGA — ProxoCoris</Text>
+                    <Text className="text-center text-[13px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
+                    <Text className="text-center text-[12px] text-secondary/50 mt-0.5">SIAGA — ProxoCoris</Text>
                 </View>
             </ScrollView>
 

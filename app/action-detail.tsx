@@ -139,7 +139,7 @@ export default function ActionDetailScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-sm text-secondary">Memuat aksi...</Text>
+        <Text className="text-[16px] text-secondary">Memuat aksi...</Text>
       </View>
     );
   }
@@ -147,29 +147,29 @@ export default function ActionDetailScreen() {
   if (!action) {
     return (
       <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-sm text-secondary">Aksi tidak ditemukan</Text>
+        <Text className="text-[16px] text-secondary">Aksi tidak ditemukan</Text>
         <TouchableOpacity className="mt-4 px-4 py-2 rounded-lg" style={{ backgroundColor: SiagaColors.primary }} onPress={() => router.back()}>
-          <Text className="text-white text-xs font-semibold">Kembali</Text>
+          <Text className="text-white text-[14px] font-semibold">Kembali</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const actionIcon = action.type === 'Plant'
-    ? <Plant size={28} color="#fff" weight="duotone" />
+    ? <Plant size={30} color="#fff" weight="duotone" />
     : action.type === 'RoadHorizon'
-      ? <RoadHorizon size={28} color="#fff" weight="duotone" />
-      : <Tree size={28} color="#fff" weight="duotone" />;
+      ? <RoadHorizon size={30} color="#fff" weight="duotone" />
+      : <Tree size={30} color="#fff" weight="duotone" />;
 
   const getImpactIcon = (type: string) => {
     switch (type) {
-      case 'Trash': return <Trash size={20} color={SiagaColors.success} weight="duotone" />;
-      case 'MapPin': return <MapPin size={20} color={SiagaColors.info} weight="duotone" />;
-      case 'Users': return <Users size={20} color={SiagaColors.primary} weight="duotone" />;
-      case 'Clock': return <Clock size={20} color={SiagaColors.warning} weight="duotone" />;
-      case 'RoadHorizon': return <RoadHorizon size={20} color={SiagaColors.info} weight="duotone" />;
-      case 'Tree': return <Tree size={20} color={SiagaColors.success} weight="duotone" />;
-      default: return <Star size={20} color={SiagaColors.primary} weight="duotone" />;
+      case 'Trash': return <Trash size={22} color={SiagaColors.success} weight="duotone" />;
+      case 'MapPin': return <MapPin size={22} color={SiagaColors.info} weight="duotone" />;
+      case 'Users': return <Users size={22} color={SiagaColors.primary} weight="duotone" />;
+      case 'Clock': return <Clock size={22} color={SiagaColors.warning} weight="duotone" />;
+      case 'RoadHorizon': return <RoadHorizon size={22} color={SiagaColors.info} weight="duotone" />;
+      case 'Tree': return <Tree size={22} color={SiagaColors.success} weight="duotone" />;
+      default: return <Star size={22} color={SiagaColors.primary} weight="duotone" />;
     }
   };
 
@@ -186,8 +186,8 @@ export default function ActionDetailScreen() {
   };
 
   const getMilestoneIcon = (status: string) => {
-    if (status === 'done') return <CheckCircle size={18} color={SiagaColors.success} weight="fill" />;
-    if (status === 'active') return <DotsThree size={18} color={SiagaColors.info} weight="bold" />;
+    if (status === 'done') return <CheckCircle size={20} color={SiagaColors.success} weight="fill" />;
+    if (status === 'active') return <DotsThree size={20} color={SiagaColors.info} weight="bold" />;
     return (
       <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#cbd5e1', backgroundColor: '#f1f5f9' }} />
     );
@@ -208,23 +208,23 @@ export default function ActionDetailScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
+          <ArrowLeft size={20} color={SiagaColors.primary} weight="bold" />
         </TouchableOpacity>
-        <Text className="text-sm font-bold text-primary">Detail Aksi Positif</Text>
+        <Text className="text-[16px] font-bold text-primary">Detail Aksi Positif</Text>
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
             onPress={() => setBookmarked(!bookmarked)}
             activeOpacity={0.7}
           >
-            <Bookmark size={18} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
+            <Bookmark size={20} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
           </TouchableOpacity>
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <ShareNetwork size={18} color={SiagaColors.primary} />
+            <ShareNetwork size={20} color={SiagaColors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -266,8 +266,8 @@ export default function ActionDetailScreen() {
             </View>
             {/* Photo Count */}
             <View className="absolute top-3 right-3 flex-row items-center gap-1 bg-black/50 rounded-lg px-2 py-1">
-              <Camera size={12} color="#fff" weight="bold" />
-              <Text className="text-[10px] font-bold text-white">{activePhoto + 1}/{action.photoUrls.length}</Text>
+              <Camera size={14} color="#fff" weight="bold" />
+              <Text className="text-[12px] font-bold text-white">{activePhoto + 1}/{action.photoUrls.length}</Text>
             </View>
           </View>
         </View>
@@ -277,31 +277,31 @@ export default function ActionDetailScreen() {
           <View className="flex-row items-center gap-2 mb-2">
             <View className="px-2 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: action.statusBg }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: action.statusColor }} />
-              <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: action.statusColor }}>{action.status}</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: action.statusColor }}>{action.status}</Text>
             </View>
             <View className="px-2 py-1 rounded-md bg-slate-100 flex-row items-center gap-1">
-              <Text className="text-[9px] font-semibold text-secondary">{action.category}</Text>
+              <Text className="text-[10px] font-semibold text-secondary">{action.category}</Text>
             </View>
             {action.verified && (
               <View className="px-2 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: '#dcfce7' }}>
-                <ShieldCheck size={10} color={SiagaColors.success} weight="fill" />
-                <Text className="text-[9px] font-bold text-success">Terverifikasi</Text>
+                <ShieldCheck size={12} color={SiagaColors.success} weight="fill" />
+                <Text className="text-[10px] font-bold text-success">Terverifikasi</Text>
               </View>
             )}
           </View>
           <Text className="text-lg font-bold text-primary leading-tight">{action.title}</Text>
           <View className="flex-row items-center gap-3 mt-2">
             <View className="flex-row items-center gap-1">
-              <CalendarBlank size={12} color={SiagaColors.secondary} weight="duotone" />
-              <Text className="text-[10px] text-secondary">{action.date}</Text>
+              <CalendarBlank size={14} color={SiagaColors.secondary} weight="duotone" />
+              <Text className="text-[12px] text-secondary">{action.date}</Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <Clock size={12} color={SiagaColors.secondary} />
-              <Text className="text-[10px] text-secondary">{action.duration}</Text>
+              <Clock size={14} color={SiagaColors.secondary} />
+              <Text className="text-[12px] text-secondary">{action.duration}</Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <Leaf size={12} color={SiagaColors.success} weight="duotone" />
-              <Text className="text-[10px] text-success font-semibold">+{action.points} pts</Text>
+              <Leaf size={14} color={SiagaColors.success} weight="duotone" />
+              <Text className="text-[12px] text-success font-semibold">+{action.points} pts</Text>
             </View>
           </View>
         </View>
@@ -313,7 +313,7 @@ export default function ActionDetailScreen() {
               <View key={i} className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
                 {getImpactIcon(item.type)}
                 <Text className="text-lg font-bold text-primary mt-1">{item.value}</Text>
-                <Text className="text-[9px] text-secondary font-medium">{item.label}</Text>
+                <Text className="text-[10px] text-secondary font-medium">{item.label}</Text>
               </View>
             ))}
           </View>
@@ -321,29 +321,29 @@ export default function ActionDetailScreen() {
 
         {/* Description */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Deskripsi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Deskripsi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
-            <Text className="text-[12px] text-primary/80 leading-5">{action.description}</Text>
+            <Text className="text-[14px] text-primary/80 leading-5">{action.description}</Text>
           </View>
         </View>
 
         {/* Eco-Points Breakdown */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Rincian Eco-Points</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Rincian Eco-Points</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             <View className="flex-row items-center justify-between mb-3 pb-3 border-b border-slate-100">
               <View className="flex-row items-center gap-2">
                 <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: '#dcfce7' }}>
-                  <Star size={18} color="#fbbf24" weight="duotone" />
+                  <Star size={20} color="#fbbf24" weight="duotone" />
                 </View>
                 <View>
-                  <Text className="text-[10px] text-secondary">Total Poin Didapat</Text>
+                  <Text className="text-[12px] text-secondary">Total Poin Didapat</Text>
                   <Text className="text-lg font-bold text-primary">+{totalEcoPoints} pts</Text>
                 </View>
               </View>
-              <View className="rounded-lg px-2.5 py-1 flex-row items-center gap-1" style={{ backgroundColor: '#fef3c7' }}>
-                <Trophy size={12} color="#d97706" weight="duotone" />
-                <Text className="text-[9px] font-bold" style={{ color: '#a16207' }}>Completed</Text>
+              <View className="rounded-lg px-3 py-1.5 flex-row items-center gap-1" style={{ backgroundColor: '#fef3c7' }}>
+                <Trophy size={14} color="#d97706" weight="duotone" />
+                <Text className="text-[10px] font-bold" style={{ color: '#a16207' }}>Completed</Text>
               </View>
             </View>
             <View className="gap-2.5">
@@ -351,9 +351,9 @@ export default function ActionDetailScreen() {
                 <View key={i} className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2">
                     <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: SiagaColors.success }} />
-                    <Text className="text-[11px] text-primary/80">{item.label}</Text>
+                    <Text className="text-[13px] text-primary/80">{item.label}</Text>
                   </View>
-                  <Text className="text-[11px] font-bold text-success">+{item.points}</Text>
+                  <Text className="text-[13px] font-bold text-success">+{item.points}</Text>
                 </View>
               ))}
             </View>
@@ -362,18 +362,18 @@ export default function ActionDetailScreen() {
 
         {/* Location */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Lokasi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Lokasi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             <View className="h-32 rounded-lg bg-slate-100 items-center justify-center mb-3">
-              <MapPin size={28} color={SiagaColors.secondary} weight="duotone" />
-              <Text className="text-[10px] text-secondary mt-1">Peta akan tersedia segera</Text>
+              <MapPin size={30} color={SiagaColors.secondary} weight="duotone" />
+              <Text className="text-[12px] text-secondary mt-1">Peta akan tersedia segera</Text>
             </View>
             <View className="gap-2">
               <View className="flex-row items-start gap-2.5">
-                <MapPin size={14} color={SiagaColors.primary} weight="duotone" />
+                <MapPin size={16} color={SiagaColors.primary} weight="duotone" />
                 <View className="flex-1">
-                  <Text className="text-[11px] font-semibold text-primary">{action.location.address}</Text>
-                  <Text className="text-[10px] text-secondary mt-0.5">{action.location.district}, {action.location.city}</Text>
+                  <Text className="text-[13px] font-semibold text-primary">{action.location.address}</Text>
+                  <Text className="text-[12px] text-secondary mt-0.5">{action.location.district}, {action.location.city}</Text>
                 </View>
               </View>
             </View>
@@ -382,25 +382,25 @@ export default function ActionDetailScreen() {
 
         {/* Organizer */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Penyelenggara</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Penyelenggara</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4 flex-row items-center gap-3" style={{ elevation: 1 }}>
             <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: action.gradient }}>
-              <Text className="text-white font-bold text-sm">{action.organizer.initials}</Text>
+              <Text className="text-white font-bold text-[16px]">{action.organizer.initials}</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-[12px] font-bold text-primary">{action.organizer.name}</Text>
+              <Text className="text-[14px] font-bold text-primary">{action.organizer.name}</Text>
               <View className="flex-row items-center gap-2 mt-1">
                 <View className="flex-row items-center gap-1 bg-amber-50 rounded px-1.5 py-0.5">
-                  <Medal size={10} color="#f59e0b" weight="duotone" />
-                  <Text className="text-[9px] font-semibold" style={{ color: '#a16207' }}>{action.organizer.badge}</Text>
+                  <Medal size={12} color="#f59e0b" weight="duotone" />
+                  <Text className="text-[10px] font-semibold" style={{ color: '#a16207' }}>{action.organizer.badge}</Text>
                 </View>
-                <Text className="text-[9px] text-secondary">{action.organizer.actionsCount} aksi digelar</Text>
+                <Text className="text-[10px] text-secondary">{action.organizer.actionsCount} aksi digelar</Text>
               </View>
             </View>
             <View className="items-end">
               <View className="flex-row items-center gap-1">
-                <HandsClapping size={12} color="#f59e0b" weight="duotone" />
-                <Text className="text-[9px] font-bold text-primary">{action.organizer.actionsCount}</Text>
+                <HandsClapping size={14} color="#f59e0b" weight="duotone" />
+                <Text className="text-[10px] font-bold text-primary">{action.organizer.actionsCount}</Text>
               </View>
             </View>
           </View>
@@ -408,13 +408,13 @@ export default function ActionDetailScreen() {
 
         {/* Participants */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Partisipan ({action.totalParticipants}/{action.maxParticipants})</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Partisipan ({action.totalParticipants}/{action.maxParticipants})</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             {/* Progress bar */}
             <View className="mb-3">
               <View className="flex-row items-center justify-between mb-1.5">
-                <Text className="text-[10px] text-secondary">Kapasitas terisi</Text>
-                <Text className="text-[10px] font-bold text-primary">{participantPercentage}%</Text>
+                <Text className="text-[12px] text-secondary">Kapasitas terisi</Text>
+                <Text className="text-[12px] font-bold text-primary">{participantPercentage}%</Text>
               </View>
               <View className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                 <View
@@ -431,17 +431,17 @@ export default function ActionDetailScreen() {
               {action.participants.map((p) => (
                 <View key={p.id} className="items-center gap-1">
                   <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                    <Text className="text-[10px] font-bold text-primary">{p.initials}</Text>
+                    <Text className="text-[12px] font-bold text-primary">{p.initials}</Text>
                   </View>
-                  <Text className="text-[9px] text-secondary" numberOfLines={1} style={{ maxWidth: 56 }}>{p.name.split(' ')[0]}</Text>
+                  <Text className="text-[10px] text-secondary" numberOfLines={1} style={{ maxWidth: 56 }}>{p.name.split(' ')[0]}</Text>
                 </View>
               ))}
               {action.totalParticipants > action.participants.length && (
                 <View className="items-center gap-1">
                   <View className="w-10 h-10 rounded-full items-center justify-center bg-slate-100">
-                    <Text className="text-[10px] font-bold text-secondary">+{action.totalParticipants - action.participants.length}</Text>
+                    <Text className="text-[12px] font-bold text-secondary">+{action.totalParticipants - action.participants.length}</Text>
                   </View>
-                  <Text className="text-[9px] text-secondary">lainnya</Text>
+                  <Text className="text-[10px] text-secondary">lainnya</Text>
                 </View>
               )}
             </View>
@@ -450,7 +450,7 @@ export default function ActionDetailScreen() {
 
         {/* Milestones Timeline */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Milestone Progress</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Milestone Progress</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             {action.milestones.map((item, i) => (
               <View key={item.id} className="flex-row gap-3">
@@ -472,15 +472,15 @@ export default function ActionDetailScreen() {
                 <View className="flex-1 pb-4">
                   <View className="flex-row items-center justify-between">
                     <Text
-                      className="text-[11px] font-bold"
+                      className="text-[13px] font-bold"
                       style={{ color: item.status === 'pending' ? SiagaColors.secondary : SiagaColors.primary }}
                     >
                       {item.title}
                     </Text>
-                    <Text className="text-[9px] text-secondary">{item.time}</Text>
+                    <Text className="text-[10px] text-secondary">{item.time}</Text>
                   </View>
                   <Text
-                    className="text-[10px] mt-0.5"
+                    className="text-[12px] mt-0.5"
                     style={{ color: item.status === 'pending' ? SiagaColors.secondary : 'rgba(8,42,76,0.6)' }}
                   >
                     {item.desc}
@@ -494,18 +494,18 @@ export default function ActionDetailScreen() {
         {/* Verified By */}
         {action.verified && (
           <View className="px-5 pt-5">
-            <Text className="text-[13px] font-bold text-primary mb-2">Verifikasi</Text>
+            <Text className="text-[15px] font-bold text-primary mb-2">Verifikasi</Text>
             <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
               <View className="flex-row items-center gap-3">
                 <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: '#dcfce7' }}>
-                  <ShieldCheck size={20} color={SiagaColors.success} weight="fill" />
+                  <ShieldCheck size={22} color={SiagaColors.success} weight="fill" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[11px] font-bold text-primary">{action.verifiedBy}</Text>
-                  <Text className="text-[9px] text-secondary mt-0.5">Instansi Pemverifikasi</Text>
+                  <Text className="text-[13px] font-bold text-primary">{action.verifiedBy}</Text>
+                  <Text className="text-[10px] text-secondary mt-0.5">Instansi Pemverifikasi</Text>
                 </View>
                 <View className="px-2 py-1 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
-                  <Text className="text-[9px] font-bold text-success">Verified ✓</Text>
+                  <Text className="text-[10px] font-bold text-success">Verified ✓</Text>
                 </View>
               </View>
             </View>
@@ -515,26 +515,26 @@ export default function ActionDetailScreen() {
         {/* Comments */}
         <View className="px-5 pt-5">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-[13px] font-bold text-primary">Komentar ({action.comments.length + localComments.length})</Text>
+            <Text className="text-[15px] font-bold text-primary">Komentar ({action.comments.length + localComments.length})</Text>
           </View>
           <View className="gap-2.5">
             {localComments.map((comment) => (
               <View key={comment.id} className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
                 <View className="flex-row items-start gap-2.5">
                   <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                    <Text className="text-[10px] font-bold text-white">{comment.initials}</Text>
+                    <Text className="text-[12px] font-bold text-white">{comment.initials}</Text>
                   </View>
                   <View className="flex-1">
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-1.5">
-                        <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
+                        <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
                         <View className="bg-blue-100 rounded px-1.5 py-0.5">
-                          <Text className="text-[8px] font-bold text-info">Anda</Text>
+                          <Text className="text-[9px] font-bold text-info">Anda</Text>
                         </View>
                       </View>
-                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
+                      <Text className="text-[10px] text-secondary">{comment.time}</Text>
                     </View>
-                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                    <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
                   </View>
                 </View>
               </View>
@@ -543,17 +543,17 @@ export default function ActionDetailScreen() {
               <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
                 <View className="flex-row items-start gap-2.5">
                   <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                    <Text className="text-[10px] font-bold text-primary">{comment.initials}</Text>
+                    <Text className="text-[12px] font-bold text-primary">{comment.initials}</Text>
                   </View>
                   <View className="flex-1">
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
-                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
+                      <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
+                      <Text className="text-[10px] text-secondary">{comment.time}</Text>
                     </View>
-                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                    <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
                     <View className="flex-row items-center gap-1 mt-2">
-                      <Heart size={12} color={SiagaColors.secondary} weight="regular" />
-                      <Text className="text-[9px] text-secondary">{comment.likes}</Text>
+                      <Heart size={14} color={SiagaColors.secondary} weight="regular" />
+                      <Text className="text-[10px] text-secondary">{comment.likes}</Text>
                     </View>
                   </View>
                 </View>
@@ -565,11 +565,11 @@ export default function ActionDetailScreen() {
           <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
             <View className="flex-row items-start gap-2.5">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                <Text className="text-[10px] font-bold text-white">{user?.initials || 'U'}</Text>
+                <Text className="text-[12px] font-bold text-white">{user?.initials || 'U'}</Text>
               </View>
               <View className="flex-1">
                 <TextInput
-                  className="text-[11px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-[13px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
                   placeholder="Tulis komentar..."
                   placeholderTextColor={SiagaColors.secondary}
                   value={commentText}
@@ -579,7 +579,7 @@ export default function ActionDetailScreen() {
                   style={{ textAlignVertical: 'top' }}
                 />
                 <View className="flex-row items-center justify-between mt-2">
-                  <Text className="text-[9px] text-secondary">{commentText.length}/500</Text>
+                  <Text className="text-[10px] text-secondary">{commentText.length}/500</Text>
                   <TouchableOpacity
                     className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
                     style={{ backgroundColor: commentText.trim() ? SiagaColors.primary : '#e2e8f0' }}
@@ -615,8 +615,8 @@ export default function ActionDetailScreen() {
                       }
                     }}
                   >
-                    <PaperPlaneTilt size={12} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
-                    <Text className="text-[10px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
+                    <PaperPlaneTilt size={14} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
+                    <Text className="text-[12px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -636,8 +636,8 @@ export default function ActionDetailScreen() {
           onPress={() => setJoined(!joined)}
           activeOpacity={0.8}
         >
-          <HandsClapping size={16} color={joined ? '#15803d' : '#fff'} weight={joined ? 'fill' : 'bold'} />
-          <Text className="text-[12px] font-bold" style={{ color: joined ? '#15803d' : '#fff' }}>
+          <HandsClapping size={18} color={joined ? '#15803d' : '#fff'} weight={joined ? 'fill' : 'bold'} />
+          <Text className="text-[14px] font-bold" style={{ color: joined ? '#15803d' : '#fff' }}>
             {joined ? 'Sudah Bergabung' : 'Ikut Aksi'}
           </Text>
         </TouchableOpacity>
@@ -647,8 +647,8 @@ export default function ActionDetailScreen() {
           activeOpacity={0.8}
           onPress={handleShare}
         >
-          <ShareNetwork size={16} color={SiagaColors.info} weight="duotone" />
-          <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>Bagikan</Text>
+          <ShareNetwork size={18} color={SiagaColors.info} weight="duotone" />
+          <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Bagikan</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -113,17 +113,17 @@ export default function NotifikasiScreen() {
           className="w-10 h-10 rounded-xl items-center justify-center"
           style={{ backgroundColor: style.bg }}
         >
-          <IconComp size={20} color={style.color} weight="duotone" />
+          <IconComp size={22} color={style.color} weight="duotone" />
         </View>
         <View className="flex-1">
           <View className="flex-row items-center gap-2">
-            <Text className="text-[13px] font-bold text-primary flex-1" numberOfLines={1}>{item.title}</Text>
+            <Text className="text-[15px] font-bold text-primary flex-1" numberOfLines={1}>{item.title}</Text>
             {!item.is_read && (
               <View className="w-2 h-2 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
             )}
           </View>
-          <Text className="text-xs text-secondary mt-0.5" numberOfLines={2}>{item.message}</Text>
-          <Text className="text-[10px] text-secondary/50 mt-1.5">{timeAgo(item.created_at)}</Text>
+          <Text className="text-[14px] text-secondary mt-0.5" numberOfLines={2}>{item.message}</Text>
+          <Text className="text-[12px] text-secondary/50 mt-1.5">{timeAgo(item.created_at)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -142,13 +142,13 @@ export default function NotifikasiScreen() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
+            <ArrowLeft size={20} color={SiagaColors.primary} weight="bold" />
           </TouchableOpacity>
           <View className="flex-row items-center gap-2">
-            <Text className="text-sm font-bold text-primary">Notifikasi</Text>
+            <Text className="text-[16px] font-bold text-primary">Notifikasi</Text>
             {unreadCount > 0 && (
-              <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: SiagaColors.danger }}>
-                <Text className="text-[10px] font-bold text-white">{unreadCount}</Text>
+              <View className="px-3 py-1 rounded-full" style={{ backgroundColor: SiagaColors.danger }}>
+                <Text className="text-[12px] font-bold text-white">{unreadCount}</Text>
               </View>
             )}
           </View>
@@ -158,7 +158,7 @@ export default function NotifikasiScreen() {
               onPress={handleMarkAllRead}
               activeOpacity={0.7}
             >
-              <Checks size={18} color={SiagaColors.info} weight="bold" />
+              <Checks size={20} color={SiagaColors.info} weight="bold" />
             </TouchableOpacity>
           ) : (
             <View className="w-9" />
@@ -186,8 +186,8 @@ export default function NotifikasiScreen() {
             <View className="w-16 h-16 rounded-full bg-slate-50 items-center justify-center mb-4">
               <BellRinging size={32} color={SiagaColors.secondary} weight="duotone" />
             </View>
-            <Text className="text-sm font-semibold text-secondary">Belum ada notifikasi</Text>
-            <Text className="text-[11px] text-secondary/60 mt-1">Notifikasi akan muncul saat ada update</Text>
+            <Text className="text-[16px] font-semibold text-secondary">Belum ada notifikasi</Text>
+            <Text className="text-[13px] text-secondary/60 mt-1">Notifikasi akan muncul saat ada update</Text>
           </View>
         }
       />
