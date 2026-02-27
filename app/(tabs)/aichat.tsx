@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Alert } from 'react-native';
 import {
     CaretLeft, Robot, Info, DotsThreeVertical,
     PaperPlaneRight, Microphone, Paperclip,
@@ -43,6 +45,7 @@ export default function AIChatScreen() {
     const [sosVisible, setSosVisible] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const insets = useSafeAreaInsets();
+    const router = useRouter();
 
     const sendMessage = async (text?: string) => {
         const msg = text || inputText.trim();
@@ -109,7 +112,7 @@ export default function AIChatScreen() {
             {/* Header */}
             <View className="px-4 pt-3 pb-3 bg-white/90 border-b border-slate-100 z-30" style={{ elevation: 2 }}>
                 <View className="flex-row items-center gap-3">
-                    <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center flex-shrink-0">
+                    <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center flex-shrink-0" onPress={() => router.back()}>
                         <CaretLeft size={16} color={SiagaColors.primary} />
                     </TouchableOpacity>
                     <View className="relative flex-shrink-0">
@@ -126,11 +129,11 @@ export default function AIChatScreen() {
                         </View>
                     </View>
                     <View className="flex-row gap-1.5">
-                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                            <Info size={18} color={SiagaColors.primary} weight="duotone" />
+                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" onPress={() => Alert.alert('SIAGA AI', 'Asisten AI civic untuk mitigasi bencana, pelaporan warga, dan informasi keselamatan.\n\nDidukung oleh pattern-based response engine.')}>
+                            <Info size={16} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
-                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                            <DotsThreeVertical size={18} color={SiagaColors.primary} weight="duotone" />
+                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" onPress={() => Alert.alert('Menu', 'Hapus riwayat chat?', [{ text: 'Batal', style: 'cancel' }, { text: 'Hapus', style: 'destructive', onPress: () => setMessages(INITIAL_MESSAGES) }])}>
+                            <DotsThreeVertical size={16} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -204,8 +207,8 @@ export default function AIChatScreen() {
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
                 <View className="px-4 py-3 bg-white border-t border-slate-100" style={{ elevation: 3 }}>
                     <View className="flex-row items-end gap-2">
-                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                            <Paperclip size={18} color={SiagaColors.secondary} weight="duotone" />
+                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" style={{ opacity: 0.4 }} disabled>
+                            <Paperclip size={16} color={SiagaColors.secondary} weight="duotone" />
                         </TouchableOpacity>
                         <View className="flex-1 bg-[#f1f6fc] rounded-2xl px-4 py-2.5 flex-row items-center">
                             <TextInput
@@ -227,8 +230,8 @@ export default function AIChatScreen() {
                                 <PaperPlaneRight size={18} color="#fff" weight="fill" />
                             </TouchableOpacity>
                         ) : (
-                            <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center">
-                                <Microphone size={18} color={SiagaColors.primary} weight="duotone" />
+                            <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" style={{ opacity: 0.4 }} disabled>
+                                <Microphone size={16} color={SiagaColors.primary} weight="duotone" />
                             </TouchableOpacity>
                         )}
                     </View>
