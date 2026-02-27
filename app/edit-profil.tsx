@@ -9,6 +9,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { apiPatch } from '@/services/api';
 
 interface FormField {
   key: string;
@@ -25,7 +26,7 @@ interface FormField {
 export default function EditProfilScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [form, setForm] = useState({
     name: user?.fullName || '',
@@ -53,14 +54,24 @@ export default function EditProfilScreen() {
     { key: 'city', label: 'Kota', icon: MapPin, iconColor: SiagaColors.info, value: form.city, placeholder: 'Kota', editable: false },
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    const result = await apiPatch('/auth/profile', {
+      fullName: form.name,
+      email: form.email,
+      phone: form.phone,
+      district: form.district,
+      city: form.city,
+    });
+    setIsSaving(false);
+    if (result.success) {
+      if (refreshUser) await refreshUser();
       Alert.alert('Berhasil', 'Profil berhasil diperbarui!', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    }, 800);
+    } else {
+      Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat menyimpan profil.');
+    }
   };
 
   const updateField = (key: string, value: string) => {
