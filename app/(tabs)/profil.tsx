@@ -18,14 +18,9 @@ import { useToast } from '@/contexts/toast.context';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
-const BADGES = [
-    { icon: Medal, color: '#f59e0b', bg: '#fef3c7', border: '#fde68a', label: 'Warga Peduli', active: true },
-    { icon: Star, color: '#3b82f6', bg: '#dbeafe', border: '#bfdbfe', label: 'Relawan Aktif', active: true },
-    { icon: ShieldCheck, color: '#059669', bg: '#d1fae5', border: '#a7f3d0', label: 'Pelapor Handal', active: true },
-    { icon: Trophy, color: '#7c3aed', bg: '#ede9fe', border: '#ddd6fe', label: 'Top Contributor', active: false },
-    { icon: Crown, color: '#ec4899', bg: '#fce7f3', border: '#fbcfe8', label: 'Pahlawan Komunitas', active: false },
-    { icon: Target, color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', label: '100 Hari Streak', active: false },
-];
+const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
+    Medal, Star, ShieldCheck, Trophy, Crown, Target,
+};
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
     Camera, Trash, Wrench,
@@ -68,7 +63,7 @@ export default function ProfilScreen() {
                             <View className="flex-row items-center gap-2">
                                 <TouchableOpacity
                                     className="w-8 h-8 rounded-full bg-white/10 items-center justify-center"
-                                    onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
+                                    onPress={() => router.push('/notifikasi')}
                                     activeOpacity={0.7}
                                 >
                                     <Bell size={16} color="rgba(255,255,255,0.8)" weight="duotone" />
@@ -132,7 +127,7 @@ export default function ProfilScreen() {
                     </View>
 
                     {/* Bio */}
-                    <Text className="text-[15px] text-secondary mt-3 leading-5">Warga aktif yang peduli terhadap lingkungan dan infrastruktur kota.</Text>
+                    <Text className="text-[13px] text-secondary mt-3 leading-5">{user?.bio || 'Belum ada bio'}</Text>
 
                     {/* Stats Row */}
                     <View className="flex-row gap-2 mt-4">
@@ -140,7 +135,7 @@ export default function ProfilScreen() {
                             { value: (user?.totalReports || 0).toString(), label: 'Laporan', color: SiagaColors.info },
                             { value: (user?.totalActions || 0).toString(), label: 'Aksi', color: SiagaColors.success },
                             { value: (user?.ecoPoints || 0).toString(), label: 'Eco-Points', color: '#f59e0b' },
-                            { value: '#-', label: 'Rank', color: '#7c3aed' },
+                            { value: `#${user?.rank || '-'}`, label: 'Rank', color: '#7c3aed' },
                         ].map((s, i) => (
                             <View key={i} className="flex-1 bg-slate-50 rounded-xl p-2.5 items-center">
                                 <Text className="text-base font-bold" style={{ color: s.color }}>{s.value}</Text>
@@ -158,8 +153,8 @@ export default function ProfilScreen() {
                             <Text className="text-[16px] font-bold text-white">Eco-Points</Text>
                         </View>
                         <View className="bg-white/10 rounded-lg px-2 py-1 flex-row items-center gap-1">
-                            <TrendUp size={12} color="#10b981" weight="bold" />
-                            <Text className="text-[13px] font-bold text-success">+45 minggu ini</Text>
+                            <TrendUp size={10} color="#10b981" weight="bold" />
+                            <Text className="text-[11px] font-bold text-success">+{user?.weeklyPoints || 0} minggu ini</Text>
                         </View>
                     </View>
                     <View className="flex-row items-end gap-1 mb-2">
@@ -202,12 +197,14 @@ export default function ProfilScreen() {
                             </View>
                             <Text className="text-base font-bold text-primary">Badge Saya</Text>
                         </View>
-                        <View className="bg-amber-50 rounded-md px-3 py-1">
-                            <Text className="text-[13px] font-semibold" style={{ color: '#b45309' }}>3 / 6 terkumpul</Text>
+                        <View className="bg-amber-50 rounded-md px-2 py-0.5">
+                            <Text className="text-[11px] font-semibold" style={{ color: '#b45309' }}>{user?.badgeCount?.active || 0} / {user?.badgeCount?.total || 6} terkumpul</Text>
                         </View>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                        {BADGES.map((b, i) => (
+                        {(user?.badges || []).map((b, i) => {
+                            const IconComp = ICON_COMPONENTS[b.icon] || Medal;
+                            return (
                             <TouchableOpacity
                                 key={i}
                                 className="w-[76px] items-center p-2.5 rounded-xl border-2"
@@ -224,9 +221,12 @@ export default function ProfilScreen() {
                                     }
                                 }}
                                 activeOpacity={0.7}
-                            >
-                                <View className="w-10 h-10 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: b.active ? `${b.color}15` : '#f1f5f9' }}>
-                                    <b.icon size={22} color={b.active ? b.color : '#c4c4c4'} weight="duotone" />
+                                >
+                                <View
+                                    className="w-10 h-10 rounded-xl items-center justify-center mb-1.5"
+                                    style={{ backgroundColor: b.active ? b.bg : '#f8fafc' }}
+                                >
+                                    <IconComp size={20} color={b.active ? b.color : '#94a3b8'} weight={b.active ? 'duotone' : 'light'} />
                                 </View>
                                 <Text className="text-[12px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
                                 {b.active && (
@@ -235,7 +235,8 @@ export default function ProfilScreen() {
                                     </View>
                                 )}
                             </TouchableOpacity>
-                        ))}
+                            );
+                        })}
                     </ScrollView>
                 </View>
 

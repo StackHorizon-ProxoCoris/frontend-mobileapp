@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Switch, Alert, Linking } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, Switch, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -7,10 +7,12 @@ import {
   Bell, ShieldCheckered, Globe, CircleHalf, Info, Question,
   ChatCircleDots, CaretRight, CheckCircle, SignOut,
   Trash, Phone, Eye, BellRinging, MapPin,
-  ShieldCheck, Lock, Key, DeviceMobile,
+  ShieldCheck, Lock, Key, DeviceMobile, X,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
+import { apiPatch, apiPost } from '@/services/api';
 
 interface SettingItem {
   icon: any;
@@ -24,25 +26,91 @@ interface SettingItem {
   onPress?: () => void;
 }
 
+// Default settings jika belum ada dari backend
+const DEFAULT_SETTINGS: Record<string, boolean> = {
+  'Push Notification': true,
+  'Peringatan Bencana': true,
+  'Update Laporan': true,
+  'Aktivitas Komunitas': false,
+  'Mode Gelap': false,
+  'Lokasi Otomatis': true,
+  'Kunci Biometrik': false,
+};
+
 export default function PengaturanScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
 
-  const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({
-    'Push Notification': true,
-    'Peringatan Bencana': true,
-    'Update Laporan': true,
-    'Aktivitas Komunitas': false,
-    'Mode Gelap': false,
-    'Lokasi Otomatis': true,
-    'Kunci Biometrik': false,
-  });
+  // --- Settings toggle state (dari API atau default) ---
+  const [toggleStates, setToggleStates] = useState<Record<string, boolean>>(DEFAULT_SETTINGS);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Inisialisasi state dari user?.settings saat mount
+  useEffect(() => {
+    if (user?.settings && Object.keys(user.settings).length > 0) {
+      setToggleStates(prev => ({ ...prev, ...user.settings }));
+    }
+  }, [user?.settings]);
+
+  // Debounced save ke API
+  const saveSettings = useCallback((newSettings: Record<string, boolean>) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const result = await apiPatch('/auth/settings', newSettings);
+      if (!result.success) {
+        showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat menyimpan pengaturan.', duration: 2000 });
+      }
+    }, 800);
+  }, [showToast]);
 
   const toggleSwitch = (key: string, val: boolean) => {
-    setToggleStates(prev => ({ ...prev, [key]: val }));
+    const newStates = { ...toggleStates, [key]: val };
+    setToggleStates(newStates);
+    saveSettings(newStates);
   };
 
+  // --- Change Password Modal ---
+  const [pwModalVisible, setPwModalVisible] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!currentPw.trim()) {
+      showToast({ type: 'error', title: 'Error', message: 'Password lama wajib diisi.' });
+      return;
+    }
+    if (newPw.length < 8) {
+      showToast({ type: 'error', title: 'Error', message: 'Password baru minimal 8 karakter.' });
+      return;
+    }
+    if (newPw !== confirmPw) {
+      showToast({ type: 'error', title: 'Error', message: 'Konfirmasi password tidak cocok.' });
+      return;
+    }
+
+    setPwLoading(true);
+    const result = await apiPost('/auth/change-password', {
+      currentPassword: currentPw,
+      newPassword: newPw,
+    });
+    setPwLoading(false);
+
+    if (result.success) {
+      showToast({ type: 'success', title: 'Berhasil!', message: 'Password berhasil diubah.' });
+      setPwModalVisible(false);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Gagal mengubah password.' });
+    }
+  };
+
+  // --- Logout ---
   const handleLogout = () => {
     Alert.alert(
       'Keluar',
@@ -84,7 +152,7 @@ export default function PengaturanScreen() {
       items: [
         {
           icon: LockKey, label: 'Ubah Password', color: '#f59e0b',
-          onPress: () => Alert.alert('Ubah Password', 'Fitur ubah password memerlukan backend auth.'),
+          onPress: () => setPwModalVisible(true),
         },
         { icon: Lock, label: 'Kunci Biometrik', color: '#7c3aed', toggle: true },
         {
@@ -238,6 +306,88 @@ export default function PengaturanScreen() {
 
         <Text className="text-center text-[11px] text-secondary mt-4">SIAGA v1.0.0 · Build 2026.02</Text>
       </ScrollView>
+
+      {/* ========== Change Password Modal ========== */}
+      <Modal visible={pwModalVisible} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+          <View className="flex-1 bg-black/50 items-center justify-center px-6">
+            <View className="w-full bg-white rounded-2xl p-5" style={{ elevation: 5 }}>
+              {/* Header */}
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row items-center gap-2">
+                  <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
+                    <Key size={16} color="#f59e0b" weight="duotone" />
+                  </View>
+                  <Text className="text-base font-bold text-primary">Ubah Password</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => { setPwModalVisible(false); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}
+                  className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center"
+                >
+                  <X size={16} color={SiagaColors.secondary} weight="bold" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Inputs */}
+              <View className="gap-3">
+                <View>
+                  <Text className="text-xs font-semibold text-secondary mb-1">Password Lama</Text>
+                  <TextInput
+                    className="border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-primary"
+                    placeholder="Masukkan password lama"
+                    placeholderTextColor="#94a3b8"
+                    secureTextEntry
+                    value={currentPw}
+                    onChangeText={setCurrentPw}
+                  />
+                </View>
+                <View>
+                  <Text className="text-xs font-semibold text-secondary mb-1">Password Baru</Text>
+                  <TextInput
+                    className="border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-primary"
+                    placeholder="Minimal 8 karakter"
+                    placeholderTextColor="#94a3b8"
+                    secureTextEntry
+                    value={newPw}
+                    onChangeText={setNewPw}
+                  />
+                </View>
+                <View>
+                  <Text className="text-xs font-semibold text-secondary mb-1">Konfirmasi Password Baru</Text>
+                  <TextInput
+                    className="border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-primary"
+                    placeholder="Ulangi password baru"
+                    placeholderTextColor="#94a3b8"
+                    secureTextEntry
+                    value={confirmPw}
+                    onChangeText={setConfirmPw}
+                  />
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View className="flex-row gap-3 mt-5">
+                <TouchableOpacity
+                  className="flex-1 py-3 rounded-xl items-center border border-slate-200"
+                  onPress={() => { setPwModalVisible(false); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-sm font-bold text-secondary">Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 py-3 rounded-xl items-center"
+                  style={{ backgroundColor: pwLoading ? '#94a3b8' : SiagaColors.primary }}
+                  onPress={handleChangePassword}
+                  disabled={pwLoading}
+                  activeOpacity={0.8}
+                >
+                  <Text className="text-sm font-bold text-white">{pwLoading ? 'Mengubah...' : 'Simpan'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }

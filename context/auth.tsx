@@ -24,6 +24,7 @@ export interface AuthUser {
   fullName: string;
   initials: string;
   phone: string;
+  bio: string;
   district: string;
   city: string;
   province: string;
@@ -31,6 +32,11 @@ export interface AuthUser {
   currentBadge: string;
   totalReports: number;
   totalActions: number;
+  rank: number;
+  weeklyPoints: number;
+  badges: { icon: string; color: string; bg: string; border: string; label: string; active: boolean; threshold: number }[];
+  badgeCount: { active: number; total: number };
+  settings: Record<string, boolean>;
   role: UserRole;
 }
 
@@ -103,13 +109,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fullName: d.fullName || d.full_name || '',
         initials: d.initials || '',
         phone: d.phone || '',
-        district: d.district || '',
-        city: d.city || 'Kota Bandung',
-        province: d.province || 'Jawa Barat',
+        bio: d.bio || '',
+        district: d.district || d.location?.district || '',
+        city: d.city || d.location?.city || 'Kota Bandung',
+        province: d.province || d.location?.province || 'Jawa Barat',
         ecoPoints: d.ecoPoints || d.eco_points || 0,
         currentBadge: d.currentBadge || d.current_badge || 'Warga Baru',
         totalReports: d.totalReports || d.total_reports || 0,
         totalActions: d.totalActions || d.total_actions || 0,
+        rank: d.rank || 0,
+        weeklyPoints: d.weeklyPoints || 0,
+        badges: d.badges || [],
+        badgeCount: d.badgeCount || { active: 0, total: 0 },
+        settings: d.settings || {},
         role: userRole,
       });
     } else {
