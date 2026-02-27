@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, FlatList, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,7 +10,8 @@ import {
     ShieldCheck, Warning, Eye, NavigationArrow,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyReports, dummyReportDetails, type Report } from '@/data/dummy';
+import { type Report } from '@/data/dummy';
+import { getReports, type ReportData } from '@/services/report.service';
 import EmbeddedMap from '@/components/ui/MapView';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
@@ -47,20 +48,78 @@ export default function PantauScreen() {
     const [activeFilter, setActiveFilter] = useState('Semua');
     const [expanded, setExpanded] = useState(false);
     const [sosVisible, setSosVisible] = useState(false);
+    const [apiReports, setApiReports] = useState<ReportData[]>([]);
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    const filteredReports = activeFilter === 'Semua'
-        ? dummyReports
-        : dummyReports.filter(r => r.type === FILTER_TYPE_MAP[activeFilter]);
+    // Fetch reports dari API
+    useEffect(() => {
+        async function load() {
+            const result = await getReports({ limit: 20 });
+            if (result.success && result.data) setApiReports(result.data);
+        }
+        load();
+    }, []);
 
-    const mapMarkers = Object.values(dummyReportDetails).map(r => ({
-        lat: r.location.lat,
-        lng: r.location.lng,
-        title: r.title,
-        color: r.urgencyColor,
-        popup: `<b>${r.title}</b><br/><span style="color:${r.badgeColor}">${r.badge}</span>`,
-    }));
+    // Konversi API data ke Report UI type
+    const reportsUI = useMemo((): Report[] => {
+        const typeMap: Record<string, string> = {
+            'Banjir': 'Waves', 'Jalan Rusak': 'RoadHorizon', 'Sampah': 'Trash',
+            'Longsor': 'Mountains', 'Kebakaran': 'Fire',
+        };
+        return apiReports.map(r => {
+            const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
+            return {
+                id: r.id,
+                type: typeMap[r.category] || 'Waves',
+                gradient: '#3b82f6',
+                badge: r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah',
+                badgeBg: r.urgency >= 80 ? '#fee2e2' : r.urgency >= 50 ? '#fef9c3' : '#dcfce7',
+                badgeColor: urgencyColor,
+                title: r.title,
+                desc: r.description?.slice(0, 60) || '',
+                distance: r.district || '-',
+                votes: r.votesCount,
+                photos: r.photosCount || 0,
+                time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                urgency: r.urgency,
+                urgencyColor,
+                supported: r.hasVoted || false,
+            };
+        });
+    }, [apiReports]);
+
+    const filteredReports = activeFilter === 'Semua'
+        ? reportsUI
+        : reportsUI.filter(r => r.type === FILTER_TYPE_MAP[activeFilter]);
+
+    // Map markers dari API data (hanya yang punya lat/lng)
+    const mapMarkers = useMemo(() => {
+        return apiReports.filter(r => r.lat && r.lng).map(r => {
+            const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
+            const badge = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
+            return {
+                lat: r.lat,
+                lng: r.lng,
+                title: r.title,
+                color: urgencyColor,
+                popup: `<b>${r.title}</b><br/><span style="color:${urgencyColor}">${badge}</span>`,
+            };
+        });
+    }, [apiReports]);
+
+    // Dynamic stats
+    const stats = useMemo(() => {
+        const aktif = apiReports.filter(r => r.status === 'Menunggu' || r.status === 'Diverifikasi').length;
+        const proses = apiReports.filter(r => r.status === 'Ditangani').length;
+        const selesai = apiReports.filter(r => r.status === 'Selesai').length;
+        return [
+            { label: 'Aktif', value: String(aktif), icon: Warning, color: SiagaColors.danger, bg: '#fee2e2' },
+            { label: 'Diproses', value: String(proses), icon: NavigationArrow, color: SiagaColors.info, bg: '#dbeafe' },
+            { label: 'Selesai', value: String(selesai), icon: ShieldCheck, color: SiagaColors.success, bg: '#dcfce7' },
+            { label: 'Total', value: String(apiReports.length), icon: Eye, color: SiagaColors.primary, bg: SiagaColors.surface },
+        ];
+    }, [apiReports]);
 
     const handleReportPress = useCallback((report: Report) => {
         router.push({ pathname: '/report-detail', params: { id: report.id } });
@@ -137,12 +196,7 @@ export default function PantauScreen() {
 
                 {/* Stats Overlay */}
                 <View className="absolute bottom-3 left-3 right-3 flex-row" style={{ gap: 6 }}>
-                    {[
-                        { label: 'Aktif', value: '12', icon: Warning, color: SiagaColors.danger, bg: '#fee2e2' },
-                        { label: 'Diproses', value: '8', icon: NavigationArrow, color: SiagaColors.info, bg: '#dbeafe' },
-                        { label: 'Selesai', value: '45', icon: ShieldCheck, color: SiagaColors.success, bg: '#dcfce7' },
-                        { label: 'Total', value: '65', icon: Eye, color: SiagaColors.primary, bg: SiagaColors.surface },
-                    ].map((s, i) => (
+                    {stats.map((s, i) => (
                         <View key={i} className="flex-1 bg-white/95 rounded-xl px-2 py-2 items-center" style={{ elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
                             <View className="w-6 h-6 rounded-lg items-center justify-center mb-1" style={{ backgroundColor: s.bg }}>
                                 <s.icon size={12} color={s.color} weight="duotone" />
