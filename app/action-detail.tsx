@@ -17,6 +17,7 @@ import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
 import { getActionById, type ActionData } from '@/services/action.service';
 import { getComments, addComment } from '@/services/comment.service';
+import { useToast } from '@/contexts/toast.context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -33,6 +34,7 @@ export default function ActionDetailScreen() {
   const [action, setAction] = useState<ActionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   // Fetch action dari API, fallback ke dummy
   useEffect(() => {
@@ -597,6 +599,7 @@ export default function ActionDetailScreen() {
                         };
                         setLocalComments(prev => [newComment, ...prev]);
                         setCommentText('');
+                        showToast({ type: 'success', title: 'Komentar terkirim', message: 'Komentar Anda berhasil ditambahkan.' });
                       } else {
                         const newComment = {
                           id: `c_new_${Date.now()}`,
@@ -608,6 +611,7 @@ export default function ActionDetailScreen() {
                         };
                         setLocalComments(prev => [newComment, ...prev]);
                         setCommentText('');
+                        showToast({ type: 'warning', title: 'Tersimpan lokal', message: 'Komentar disimpan, akan disinkron nanti.' });
                       }
                     }}
                   >

@@ -9,6 +9,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { apiPost } from '@/services/api';
+import { useToast } from '@/contexts/toast.context';
 
 const FEEDBACK_TYPES = [
   { key: 'saran', icon: Lightbulb, label: 'Saran', color: '#f59e0b', bg: '#fef3c7' },
@@ -28,6 +29,7 @@ const RATING_EMOJIS = [
 export default function FeedbackScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
   const [feedbackType, setFeedbackType] = useState('saran');
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState('');
@@ -48,10 +50,10 @@ export default function FeedbackScreen() {
     });
     setIsSending(false);
     if (result.success) {
+      showToast({ type: 'success', title: 'Terima kasih! 🙏', message: 'Feedback Anda berhasil terkirim.' });
       setIsSent(true);
     } else {
-      // Fallback: tetap tampilkan success (feedback bisa disimpan nanti)
-      setIsSent(true);
+      showToast({ type: 'error', title: 'Gagal mengirim', message: result.message || 'Terjadi kesalahan, coba lagi.' });
     }
   };
 

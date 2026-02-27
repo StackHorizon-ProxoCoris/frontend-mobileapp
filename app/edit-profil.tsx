@@ -9,6 +9,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 import { apiPatch } from '@/services/api';
 
 interface FormField {
@@ -27,6 +28,7 @@ export default function EditProfilScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
+  const { showToast } = useToast();
 
   const [form, setForm] = useState({
     name: user?.fullName || '',
@@ -66,11 +68,10 @@ export default function EditProfilScreen() {
     setIsSaving(false);
     if (result.success) {
       if (refreshUser) await refreshUser();
-      Alert.alert('Berhasil', 'Profil berhasil diperbarui!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      showToast({ type: 'success', title: 'Berhasil! ✅', message: 'Profil berhasil diperbarui.' });
+      router.back();
     } else {
-      Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat menyimpan profil.');
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Terjadi kesalahan saat menyimpan profil.' });
     }
   };
 

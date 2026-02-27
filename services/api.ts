@@ -102,6 +102,22 @@ async function buildHeaders(
   return headers;
 }
 
+// ─── Global Network Error Callback ────────────────────────────────────────────
+// Digunakan oleh ToastProvider untuk menampilkan toast saat network error.
+// Ini diperlukan karena api.ts bukan React component, tidak bisa pakai useToast.
+// ──────────────────────────────────────────────────────────────────────────────
+
+type NetworkErrorCallback = (message: string, errorDetail?: string) => void;
+let _onNetworkError: NetworkErrorCallback | null = null;
+
+export function registerNetworkErrorCallback(cb: NetworkErrorCallback) {
+  _onNetworkError = cb;
+}
+
+export function unregisterNetworkErrorCallback() {
+  _onNetworkError = null;
+}
+
 /**
  * Request handler utama — menangani response & error secara konsisten
  */
@@ -128,10 +144,18 @@ async function request<T>(
     return data;
   } catch (error) {
     // Network error (server mati, no internet, dll)
+    const errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+    const errorDetail = error instanceof Error ? error.message : 'Unknown error';
+
+    // Fire global callback jika terdaftar
+    if (_onNetworkError) {
+      _onNetworkError(errorMessage, errorDetail);
+    }
+
     return {
       success: false,
-      message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: errorMessage,
+      error: errorDetail,
     };
   }
 }

@@ -16,6 +16,7 @@ import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 import SectionHeader from '@/components/ui/SectionHeader';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 import { getReports, toggleReportVote, type ReportData } from '@/services/report.service';
 import { getActions, type ActionData } from '@/services/action.service';
 import {
@@ -41,6 +42,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const greeting = useMemo(() => getGreeting(), []);
 
   // Helper: konversi data API ke format UI Report
@@ -88,7 +90,8 @@ export default function HomeScreen() {
     setIsRefreshing(true);
     await loadData();
     setIsRefreshing(false);
-  }, [loadData]);
+    showToast({ type: 'success', title: 'Data diperbarui', message: 'Data terbaru berhasil dimuat.', duration: 2000 });
+  }, [loadData, showToast]);
 
   const handleSupport = async (reportId: string) => {
     const result = await toggleReportVote(reportId);

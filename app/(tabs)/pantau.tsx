@@ -15,6 +15,7 @@ import { getReports, type ReportData } from '@/services/report.service';
 import EmbeddedMap from '@/components/ui/MapView';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
+import { useToast } from '@/contexts/toast.context';
 
 const { height: W_HEIGHT, width: W_WIDTH } = Dimensions.get('window');
 
@@ -51,6 +52,7 @@ export default function PantauScreen() {
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const insets = useSafeAreaInsets();
+    const { showToast } = useToast();
     const router = useRouter();
 
     // Fetch reports dari API
@@ -67,7 +69,8 @@ export default function PantauScreen() {
         setIsRefreshing(true);
         await loadReports();
         setIsRefreshing(false);
-    }, [loadReports]);
+        showToast({ type: 'success', title: 'Data diperbarui', message: 'Data terbaru berhasil dimuat.', duration: 2000 });
+    }, [loadReports, showToast]);
 
     // Konversi API data ke Report UI type
     const reportsUI = useMemo((): Report[] => {

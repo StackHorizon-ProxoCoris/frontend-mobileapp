@@ -16,6 +16,7 @@ import { dummyReportDetails, type ReportDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
 import { getReportById, type ReportData } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';
+import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -35,6 +36,7 @@ export default function ReportDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   // Fetch report dari API, fallback ke dummy
   useEffect(() => {
@@ -581,6 +583,7 @@ export default function ReportDetailScreen() {
                         };
                         setLocalComments(prev => [newComment, ...prev]);
                         setCommentText('');
+                        showToast({ type: 'success', title: 'Komentar terkirim', message: 'Komentar Anda berhasil ditambahkan.' });
                       } else {
                         // Fallback: tetap simpan lokal
                         const newComment = {
@@ -593,6 +596,7 @@ export default function ReportDetailScreen() {
                         };
                         setLocalComments(prev => [newComment, ...prev]);
                         setCommentText('');
+                        showToast({ type: 'warning', title: 'Tersimpan lokal', message: 'Komentar disimpan, akan disinkron nanti.' });
                       }
                     }}
                   >

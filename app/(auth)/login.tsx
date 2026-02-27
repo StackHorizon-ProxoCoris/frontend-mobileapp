@@ -14,6 +14,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,7 @@ export default function LoginScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { login } = useAuth();
+    const { showToast } = useToast();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -58,15 +60,15 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         if (!email.trim()) {
-            Alert.alert('Error', 'Masukkan alamat email Anda.');
+            showToast({ type: 'warning', title: 'Email diperlukan', message: 'Masukkan alamat email Anda.' });
             return;
         }
         if (!password.trim()) {
-            Alert.alert('Error', 'Masukkan password Anda.');
+            showToast({ type: 'warning', title: 'Password diperlukan', message: 'Masukkan password Anda.' });
             return;
         }
         if (!/\S+@\S+\.\S+/.test(email)) {
-            Alert.alert('Error', 'Format email tidak valid.');
+            showToast({ type: 'warning', title: 'Format salah', message: 'Format email tidak valid.' });
             return;
         }
 
@@ -75,13 +77,15 @@ export default function LoginScreen() {
         setIsLoading(false);
 
         if (!result.success) {
-            Alert.alert('Login Gagal', result.message);
+            showToast({ type: 'error', title: 'Login Gagal', message: result.message });
+        } else {
+            showToast({ type: 'success', title: 'Login Berhasil! 🎉', message: 'Selamat datang kembali.' });
         }
         // Jika sukses, AuthGuard otomatis redirect sesuai role
     };
 
     const handleGoogleLogin = () => {
-        Alert.alert('Segera Hadir', 'Login dengan Google akan tersedia di versi berikutnya.');
+        showToast({ type: 'info', title: 'Segera Hadir', message: 'Login dengan Google akan tersedia di versi berikutnya.' });
     };
 
     return (

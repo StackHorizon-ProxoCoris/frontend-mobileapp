@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity, Animated,
+    View, Text, ScrollView, TouchableOpacity, Animated, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,6 +14,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 // Fields yang tidak ada di auth context tetap sebagai defaults
@@ -118,6 +119,7 @@ export default function GovProfilScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user, logout } = useAuth();
+    const { showToast } = useToast();
     const [showAccess, setShowAccess] = useState(false);
 
     // Derive USER from auth context + gov defaults
@@ -433,9 +435,19 @@ export default function GovProfilScreen() {
                 <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                     <TouchableOpacity
                         activeOpacity={0.8}
-                        onPress={async () => {
-                            await logout();
-                            router.replace('/(auth)/login');
+                        onPress={() => {
+                            Alert.alert(
+                                'Keluar',
+                                'Apakah Anda yakin ingin keluar dari akun ini?',
+                                [
+                                    { text: 'Batal', style: 'cancel' },
+                                    { text: 'Keluar', style: 'destructive', onPress: async () => {
+                                        showToast({ type: 'info', title: 'Berhasil Keluar', message: 'Anda telah logout dari akun.' });
+                                        await logout();
+                                        router.replace('/(auth)/login');
+                                    } },
+                                ]
+                            );
                         }}
                         style={{
                             flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

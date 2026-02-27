@@ -14,6 +14,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 
 type Step = 1 | 2 | 3;
 
@@ -38,6 +39,7 @@ export default function RegisterScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { register } = useAuth();
+    const { showToast } = useToast();
 
     const [step, setStep] = useState<Step>(1);
     const [isLoading, setIsLoading] = useState(false);
@@ -72,28 +74,28 @@ export default function RegisterScreen() {
     };
 
     const validateStep1 = (): boolean => {
-        if (!form.fullName.trim()) { Alert.alert('Error', 'Masukkan nama lengkap Anda.'); return false; }
-        if (form.fullName.trim().length < 3) { Alert.alert('Error', 'Nama minimal 3 karakter.'); return false; }
-        if (!form.email.trim()) { Alert.alert('Error', 'Masukkan alamat email.'); return false; }
-        if (!/\S+@\S+\.\S+/.test(form.email)) { Alert.alert('Error', 'Format email tidak valid.'); return false; }
-        if (!form.phone.trim()) { Alert.alert('Error', 'Masukkan nomor telepon.'); return false; }
-        if (form.phone.trim().length < 10) { Alert.alert('Error', 'Nomor telepon minimal 10 digit.'); return false; }
+        if (!form.fullName.trim()) { showToast({ type: 'warning', title: 'Nama diperlukan', message: 'Masukkan nama lengkap Anda.' }); return false; }
+        if (form.fullName.trim().length < 3) { showToast({ type: 'warning', title: 'Nama terlalu pendek', message: 'Nama minimal 3 karakter.' }); return false; }
+        if (!form.email.trim()) { showToast({ type: 'warning', title: 'Email diperlukan', message: 'Masukkan alamat email.' }); return false; }
+        if (!/\S+@\S+\.\S+/.test(form.email)) { showToast({ type: 'warning', title: 'Format salah', message: 'Format email tidak valid.' }); return false; }
+        if (!form.phone.trim()) { showToast({ type: 'warning', title: 'Telepon diperlukan', message: 'Masukkan nomor telepon.' }); return false; }
+        if (form.phone.trim().length < 10) { showToast({ type: 'warning', title: 'Nomor terlalu pendek', message: 'Nomor telepon minimal 10 digit.' }); return false; }
         return true;
     };
 
     const validateStep2 = (): boolean => {
-        if (!form.password) { Alert.alert('Error', 'Masukkan password.'); return false; }
-        if (form.password.length < 8) { Alert.alert('Error', 'Password minimal 8 karakter.'); return false; }
-        if (!/[A-Z]/.test(form.password)) { Alert.alert('Error', 'Password harus mengandung huruf besar.'); return false; }
-        if (!/[0-9]/.test(form.password)) { Alert.alert('Error', 'Password harus mengandung angka.'); return false; }
-        if (form.password !== form.confirmPassword) { Alert.alert('Error', 'Password dan konfirmasi password tidak cocok.'); return false; }
+        if (!form.password) { showToast({ type: 'warning', title: 'Password diperlukan', message: 'Masukkan password.' }); return false; }
+        if (form.password.length < 8) { showToast({ type: 'warning', title: 'Password terlalu pendek', message: 'Password minimal 8 karakter.' }); return false; }
+        if (!/[A-Z]/.test(form.password)) { showToast({ type: 'warning', title: 'Password lemah', message: 'Password harus mengandung huruf besar.' }); return false; }
+        if (!/[0-9]/.test(form.password)) { showToast({ type: 'warning', title: 'Password lemah', message: 'Password harus mengandung angka.' }); return false; }
+        if (form.password !== form.confirmPassword) { showToast({ type: 'warning', title: 'Password tidak cocok', message: 'Password dan konfirmasi password tidak cocok.' }); return false; }
         return true;
     };
 
     const validateStep3 = (): boolean => {
-        if (!form.district.trim()) { Alert.alert('Error', 'Masukkan kecamatan Anda.'); return false; }
-        if (!form.city.trim()) { Alert.alert('Error', 'Masukkan kota/kabupaten.'); return false; }
-        if (!form.agreeTerms) { Alert.alert('Error', 'Anda harus menyetujui Syarat & Ketentuan.'); return false; }
+        if (!form.district.trim()) { showToast({ type: 'warning', title: 'Kecamatan diperlukan', message: 'Masukkan kecamatan Anda.' }); return false; }
+        if (!form.city.trim()) { showToast({ type: 'warning', title: 'Kota diperlukan', message: 'Masukkan kota/kabupaten.' }); return false; }
+        if (!form.agreeTerms) { showToast({ type: 'warning', title: 'Syarat & Ketentuan', message: 'Anda harus menyetujui Syarat & Ketentuan.' }); return false; }
         return true;
     };
 
@@ -121,13 +123,15 @@ export default function RegisterScreen() {
         setIsLoading(false);
 
         if (!result.success) {
-            Alert.alert('Registrasi Gagal', result.message);
+            showToast({ type: 'error', title: 'Registrasi Gagal', message: result.message });
+        } else {
+            showToast({ type: 'success', title: 'Registrasi Berhasil! 🎉', message: 'Akun Anda berhasil dibuat.' });
         }
         // Jika sukses, AuthGuard otomatis redirect ke (tabs)
     };
 
     const handleGoogleRegister = () => {
-        Alert.alert('Segera Hadir', 'Daftar dengan Google akan tersedia di versi berikutnya.');
+        showToast({ type: 'info', title: 'Segera Hadir', message: 'Daftar dengan Google akan tersedia di versi berikutnya.' });
     };
 
     const renderInput = (

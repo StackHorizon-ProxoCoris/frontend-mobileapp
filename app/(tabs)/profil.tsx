@@ -14,6 +14,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { getActivities, type ActivityItem } from '@/services/activity.service';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
@@ -35,6 +36,7 @@ export default function ProfilScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user, logout } = useAuth();
+    const { showToast } = useToast();
     const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
 
     useEffect(() => {
@@ -335,7 +337,10 @@ export default function ProfilScreen() {
                                 'Apakah Anda yakin ingin keluar dari akun ini?',
                                 [
                                     { text: 'Batal', style: 'cancel' },
-                                    { text: 'Keluar', style: 'destructive', onPress: async () => { await logout(); } },
+                                    { text: 'Keluar', style: 'destructive', onPress: async () => {
+                                        showToast({ type: 'info', title: 'Berhasil Keluar', message: 'Anda telah logout dari akun.' });
+                                        await logout();
+                                    } },
                                 ]
                             );
                         }}

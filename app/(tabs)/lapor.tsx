@@ -13,6 +13,7 @@ import { SiagaColors } from '@/constants/theme';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 import { createReport } from '@/services/report.service';
 import { createAction } from '@/services/action.service';
 import { apiUpload } from '@/services/api';
@@ -47,13 +48,14 @@ export default function LaporScreen() {
     const [aksiDesc, setAksiDesc] = useState('');
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [photos, setPhotos] = useState<{ uri: string; uploadedUrl?: string }[]>([]);
     const [isUploading, setIsUploading] = useState(false);
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert('Izin Diperlukan', 'Izinkan akses ke galeri untuk menambahkan foto.');
+            showToast({ type: 'warning', title: 'Izin Diperlukan', message: 'Izinkan akses ke galeri untuk menambahkan foto.' });
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -71,7 +73,7 @@ export default function LaporScreen() {
     const takePhoto = async () => {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert('Izin Diperlukan', 'Izinkan akses ke kamera untuk mengambil foto.');
+            showToast({ type: 'warning', title: 'Izin Diperlukan', message: 'Izinkan akses ke kamera untuk mengambil foto.' });
             return;
         }
         const result = await ImagePicker.launchCameraAsync({
@@ -311,9 +313,9 @@ export default function LaporScreen() {
                             style={{ backgroundColor: SiagaColors.primary, elevation: 4, opacity: isSubmitting ? 0.7 : 1 }}
                             disabled={isSubmitting}
                             onPress={async () => {
-                                if (!selectedCat) { Alert.alert('Error', 'Pilih kategori terlebih dahulu.'); return; }
-                                if (!title.trim()) { Alert.alert('Error', 'Masukkan judul laporan.'); return; }
-                                if (!description.trim()) { Alert.alert('Error', 'Masukkan deskripsi.'); return; }
+                                if (!selectedCat) { showToast({ type: 'warning', title: 'Kategori diperlukan', message: 'Pilih kategori terlebih dahulu.' }); return; }
+                                if (!title.trim()) { showToast({ type: 'warning', title: 'Judul diperlukan', message: 'Masukkan judul laporan.' }); return; }
+                                if (!description.trim()) { showToast({ type: 'warning', title: 'Deskripsi diperlukan', message: 'Masukkan deskripsi.' }); return; }
                                 setIsSubmitting(true);
                                 // Upload foto dulu
                                 let photoUrls: string[] = [];
@@ -337,10 +339,10 @@ export default function LaporScreen() {
                                 });
                                 setIsSubmitting(false);
                                 if (result.success) {
-                                    Alert.alert('Berhasil! 🎉', 'Laporan Anda berhasil dikirim dan akan segera divalidasi.', [{ text: 'OK' }]);
+                                    showToast({ type: 'success', title: 'Berhasil! 🎉', message: 'Laporan Anda berhasil dikirim dan akan segera divalidasi.' });
                                     setSelectedCat(null); setTitle(''); setDescription(''); setPhotos([]);
                                 } else {
-                                    Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat mengirim laporan.');
+                                    showToast({ type: 'error', title: 'Gagal', message: result.message || 'Terjadi kesalahan saat mengirim laporan.' });
                                 }
                             }}
                         >
@@ -427,8 +429,8 @@ export default function LaporScreen() {
                             style={{ backgroundColor: '#10b981', elevation: 4, opacity: isSubmitting ? 0.7 : 1 }}
                             disabled={isSubmitting}
                             onPress={async () => {
-                                if (!selectedAksi) { Alert.alert('Error', 'Pilih jenis aksi terlebih dahulu.'); return; }
-                                if (!aksiDesc.trim()) { Alert.alert('Error', 'Masukkan deskripsi aksi.'); return; }
+                                if (!selectedAksi) { showToast({ type: 'warning', title: 'Aksi diperlukan', message: 'Pilih jenis aksi terlebih dahulu.' }); return; }
+                                if (!aksiDesc.trim()) { showToast({ type: 'warning', title: 'Deskripsi diperlukan', message: 'Masukkan deskripsi aksi.' }); return; }
                                 setIsSubmitting(true);
                                 const result = await createAction({
                                     category: selectedAksi,
@@ -443,10 +445,10 @@ export default function LaporScreen() {
                                 });
                                 setIsSubmitting(false);
                                 if (result.success) {
-                                    Alert.alert('Berhasil! 🎉', 'Aksi positif Anda berhasil dikirim!', [{ text: 'OK' }]);
+                                    showToast({ type: 'success', title: 'Berhasil! 🎉', message: 'Aksi positif Anda berhasil dikirim!' });
                                     setSelectedAksi(null); setAksiDesc('');
                                 } else {
-                                    Alert.alert('Gagal', result.message || 'Terjadi kesalahan.');
+                                    showToast({ type: 'error', title: 'Gagal', message: result.message || 'Terjadi kesalahan.' });
                                 }
                             }}
                         >
