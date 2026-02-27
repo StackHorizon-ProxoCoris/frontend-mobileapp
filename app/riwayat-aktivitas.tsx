@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,7 +7,7 @@ import {
   Medal, Tree, Clock, CaretRight, Leaf, Funnel,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyActivities, type ActivityItem } from '@/data/dummy';
+import { getActivities, type ActivityItem } from '@/services/activity.service';
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Camera, Trash, ThumbsUp, ShieldCheck, ChatCircle, Medal, Tree,
@@ -25,10 +25,19 @@ export default function RiwayatAktivitasScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('all');
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const result = await getActivities();
+      if (result.success && result.data) setActivities(result.data);
+    }
+    load();
+  }, []);
 
   const filtered = activeFilter === 'all'
-    ? dummyActivities
-    : dummyActivities.filter(a => a.type === activeFilter);
+    ? activities
+    : activities.filter(a => a.type === activeFilter);
 
   // Group by date
   const grouped = filtered.reduce<Record<string, ActivityItem[]>>((acc, item) => {
@@ -38,7 +47,7 @@ export default function RiwayatAktivitasScreen() {
   }, {});
   const sections = Object.entries(grouped);
 
-  const totalPoints = dummyActivities.reduce((sum, a) => sum + a.points, 0);
+  const totalPoints = activities.reduce((sum, a) => sum + a.points, 0);
 
   const handlePress = (item: ActivityItem) => {
     if (item.refId) {
@@ -116,15 +125,15 @@ export default function RiwayatAktivitasScreen() {
             <Text className="text-[10px] font-medium text-secondary">Total Poin</Text>
           </View>
           <View className="flex-1 bg-blue-50 border border-blue-100 rounded-xl p-2.5 items-center">
-            <Text className="text-base font-bold text-info">{dummyActivities.filter(a => a.type === 'report').length}</Text>
+            <Text className="text-base font-bold text-info">{activities.filter(a => a.type === 'report').length}</Text>
             <Text className="text-[10px] font-medium text-secondary">Laporan</Text>
           </View>
           <View className="flex-1 bg-purple-50 border border-purple-100 rounded-xl p-2.5 items-center">
-            <Text className="text-base font-bold" style={{ color: '#7c3aed' }}>{dummyActivities.filter(a => a.type === 'action').length}</Text>
+            <Text className="text-base font-bold" style={{ color: '#7c3aed' }}>{activities.filter(a => a.type === 'action').length}</Text>
             <Text className="text-[10px] font-medium text-secondary">Aksi</Text>
           </View>
           <View className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-2.5 items-center">
-            <Text className="text-base font-bold" style={{ color: '#d97706' }}>{dummyActivities.filter(a => a.type === 'support' || a.type === 'verify').length}</Text>
+            <Text className="text-base font-bold" style={{ color: '#d97706' }}>{activities.filter(a => a.type === 'support' || a.type === 'verify').length}</Text>
             <Text className="text-[10px] font-medium text-secondary">Kontribusi</Text>
           </View>
         </View>

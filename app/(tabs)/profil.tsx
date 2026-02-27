@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,7 +12,7 @@ import {
     ChartBar, Eye, ShieldCheckered,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyActivities } from '@/data/dummy';
+import { getActivities, type ActivityItem } from '@/services/activity.service';
 import { useAuth } from '@/context/auth';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
@@ -35,9 +35,15 @@ export default function ProfilScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user, logout } = useAuth();
+    const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
 
-    // Show only 3 most recent activities
-    const recentActivities = dummyActivities.slice(0, 3);
+    useEffect(() => {
+        async function load() {
+            const result = await getActivities();
+            if (result.success && result.data) setRecentActivities(result.data.slice(0, 3));
+        }
+        load();
+    }, []);
 
     const handleActivityPress = (refId?: string, type?: string) => {
         if (refId) {
