@@ -108,3 +108,13 @@ export async function updateReportStatus(
 ): Promise<ApiResponse> {
   return apiPatch(`/reports/${reportId}/status`, { status, respondedBy });
 }
+
+/** Verifikasi laporan */
+export async function verifyReport(reportId: string): Promise<ApiResponse> {
+  return apiPost(`/reports/${reportId}/verify`);
+}
+
+/** Toggle bookmark (polymorphic — report, action, info) */
+export async function toggleBookmark(refType: string, refId: string): Promise<ApiResponse> {
+  return apiPost('/bookmarks', { refType, refId });
+}

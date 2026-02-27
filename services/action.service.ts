@@ -2,7 +2,7 @@
 // Action Service — API calls untuk aksi positif
 // ============================================================
 
-import { apiGet, apiPost, type ApiResponse } from './api';
+import { apiGet, apiPost, apiDelete, type ApiResponse } from './api';
 
 // ============================================================
 // Tipe Data
@@ -87,4 +87,14 @@ export async function getActionById(id: string): Promise<ApiResponse<ActionData>
 /** Buat aksi positif baru */
 export async function createAction(data: CreateActionPayload): Promise<ApiResponse<ActionData>> {
   return apiPost<ActionData>('/actions', data);
+}
+
+/** Bergabung ke aksi positif */
+export async function joinAction(actionId: string): Promise<ApiResponse> {
+  return apiPost(`/actions/${actionId}/join`);
+}
+
+/** Keluar dari aksi positif */
+export async function leaveAction(actionId: string): Promise<ApiResponse> {
+  return apiDelete(`/actions/${actionId}/join`);
 }

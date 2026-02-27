@@ -14,7 +14,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { dummyReportDetails, type ReportDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
-import { getReportById, type ReportData } from '@/services/report.service';
+import { getReportById, toggleReportVote, verifyReport, toggleBookmark, type ReportData } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
@@ -172,9 +172,32 @@ export default function ReportDetailScreen() {
       ? <RoadHorizon size={30} color="#fff" weight="duotone" />
       : <Trash size={30} color="#fff" weight="duotone" />;
 
-  const handleSupport = () => {
-    setSupported(!supported);
-    setVotes(prev => supported ? prev - 1 : prev + 1);
+  const handleSupport = async () => {
+    const result = await toggleReportVote(report.id);
+    if (result.success) {
+      setSupported(!supported);
+      setVotes(prev => supported ? prev - 1 : prev + 1);
+      showToast({ type: 'success', title: supported ? 'Dukungan dibatalkan' : 'Laporan didukung!', message: supported ? 'Dukungan Anda telah dibatalkan.' : 'Terima kasih atas dukungan Anda.' });
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat memproses dukungan. Coba lagi.' });
+    }
+  };
+
+  const handleVerify = async () => {
+    const result = await verifyReport(report.id);
+    if (result.success) {
+      showToast({ type: 'success', title: 'Terverifikasi!', message: 'Laporan berhasil diverifikasi. Terima kasih!' });
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat memverifikasi laporan.' });
+    }
+  };
+
+  const handleBookmark = async () => {
+    const result = await toggleBookmark('report', report.id);
+    if (result.success) {
+      setBookmarked(!bookmarked);
+      showToast({ type: 'success', title: bookmarked ? 'Bookmark dihapus' : 'Tersimpan!', message: bookmarked ? 'Laporan dihapus dari bookmark.' : 'Laporan disimpan ke bookmark.', duration: 2000 });
+    }
   };
 
   const handleShare = async () => {
@@ -215,7 +238,7 @@ export default function ReportDetailScreen() {
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
-            onPress={() => setBookmarked(!bookmarked)}
+            onPress={handleBookmark}
             activeOpacity={0.7}
           >
             <Bookmark size={20} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
@@ -630,6 +653,7 @@ export default function ReportDetailScreen() {
           className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
           style={{ borderColor: SiagaColors.info, backgroundColor: '#eff6ff' }}
           activeOpacity={0.8}
+          onPress={handleVerify}
         >
           <Flag size={18} color={SiagaColors.info} weight="duotone" />
           <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>

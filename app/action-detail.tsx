@@ -15,7 +15,8 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
-import { getActionById, type ActionData } from '@/services/action.service';
+import { getActionById, joinAction, leaveAction, type ActionData } from '@/services/action.service';
+import { toggleBookmark } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 
@@ -173,6 +174,34 @@ export default function ActionDetailScreen() {
     }
   };
 
+  const handleJoin = async () => {
+    if (joined) {
+      const result = await leaveAction(action.id);
+      if (result.success) {
+        setJoined(false);
+        showToast({ type: 'info', title: 'Keluar dari aksi', message: 'Anda telah keluar dari aksi ini.', duration: 2000 });
+      } else {
+        showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat keluar dari aksi.' });
+      }
+    } else {
+      const result = await joinAction(action.id);
+      if (result.success) {
+        setJoined(true);
+        showToast({ type: 'success', title: 'Berhasil bergabung!', message: 'Terima kasih telah ikut aksi positif ini.' });
+      } else {
+        showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat bergabung ke aksi.' });
+      }
+    }
+  };
+
+  const handleBookmark = async () => {
+    const result = await toggleBookmark('action', action.id);
+    if (result.success) {
+      setBookmarked(!bookmarked);
+      showToast({ type: 'success', title: bookmarked ? 'Bookmark dihapus' : 'Tersimpan!', message: bookmarked ? 'Aksi dihapus dari bookmark.' : 'Aksi disimpan ke bookmark.', duration: 2000 });
+    }
+  };
+
   const handleShare = async () => {
     await Share.share({
       title: action.title,
@@ -214,7 +243,7 @@ export default function ActionDetailScreen() {
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
-            onPress={() => setBookmarked(!bookmarked)}
+            onPress={handleBookmark}
             activeOpacity={0.7}
           >
             <Bookmark size={20} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
@@ -633,7 +662,7 @@ export default function ActionDetailScreen() {
         <TouchableOpacity
           className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
           style={{ backgroundColor: joined ? '#dcfce7' : SiagaColors.success }}
-          onPress={() => setJoined(!joined)}
+          onPress={handleJoin}
           activeOpacity={0.8}
         >
           <HandsClapping size={18} color={joined ? '#15803d' : '#fff'} weight={joined ? 'fill' : 'bold'} />
