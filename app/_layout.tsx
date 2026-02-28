@@ -30,6 +30,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       // Sudah login tapi masih di halaman auth → arahkan sesuai role
       if (role === 'pemerintah') {
         router.replace("/(gov-tabs)");
+      } else if (role === 'admin') {
+        router.replace("/(admin-tabs)" as any);
       } else {
         router.replace("/(tabs)");
       }
@@ -61,6 +63,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(gov-tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="report-detail"
               options={{
@@ -127,6 +130,46 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="feedback"
+              options={{
+                headerShown: false,
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="notifikasi"
+              options={{
+                headerShown: false,
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="edit-profil-gov"
+              options={{
+                headerShown: false,
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="pengaturan-sistem"
+              options={{
+                headerShown: false,
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="akses-keamanan"
+              options={{
+                headerShown: false,
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="ganti-password"
               options={{
                 headerShown: false,
                 presentation: 'card',
