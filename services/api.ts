@@ -56,6 +56,7 @@ export interface ApiResponse<T = any> {
   message: string;
   data?: T;
   error?: string;
+  statusCode?: number;
   pagination?: {
     page: number;
     limit: number;
@@ -109,6 +110,8 @@ async function buildHeaders(
 
 type NetworkErrorCallback = (message: string, errorDetail?: string) => void;
 let _onNetworkError: NetworkErrorCallback | null = null;
+type ForbiddenErrorCallback = (message: string) => void;
+let _onForbiddenError: ForbiddenErrorCallback | null = null;
 
 export function registerNetworkErrorCallback(cb: NetworkErrorCallback) {
   _onNetworkError = cb;
@@ -116,6 +119,14 @@ export function registerNetworkErrorCallback(cb: NetworkErrorCallback) {
 
 export function unregisterNetworkErrorCallback() {
   _onNetworkError = null;
+}
+
+export function registerForbiddenCallback(cb: ForbiddenErrorCallback) {
+  _onForbiddenError = cb;
+}
+
+export function unregisterForbiddenCallback() {
+  _onForbiddenError = null;
 }
 
 /**
@@ -133,12 +144,26 @@ async function request<T>(
       headers: options.headers as Record<string, string>,
     });
 
-    const data: ApiResponse<T> = await response.json();
+    let data: ApiResponse<T>;
+    try {
+      data = await response.json();
+    } catch {
+      data = {
+        success: response.ok,
+        message: response.ok ? 'OK' : 'Terjadi kesalahan pada server.',
+      };
+    }
+
+    data.statusCode = response.status;
 
     // Jika token expired, hapus dari storage
     if (response.status === 401) {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    }
+
+    if (response.status === 403 && _onForbiddenError) {
+      _onForbiddenError(data.message || 'Akun Anda bukan pemerintah');
     }
 
     return data;

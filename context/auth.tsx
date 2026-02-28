@@ -7,9 +7,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import * as SecureStore from 'expo-secure-store';
 import { apiPost, apiGet, TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api';
 
-// Key untuk menyimpan role di SecureStore
-const ROLE_KEY = 'siaga_user_role';
-
 // ============================================================
 // Tipe Data
 // ============================================================
@@ -56,7 +53,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   role: UserRole;
-  login: (email: string, password: string, role?: UserRole) => Promise<{ success: boolean; message: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -73,6 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<UserRole>('user');
 
+  const normalizeRole = useCallback((value: unknown): UserRole => {
+    if (value === 'pemerintah' || value === 'admin' || value === 'user') {
+      return value;
+    }
+    return 'user';
+  }, []);
+
   // ----------------------------------------------------------
   // Cek token saat app pertama kali dibuka
   // ----------------------------------------------------------
@@ -83,10 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function checkExistingToken() {
     try {
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      const savedRole = await SecureStore.getItemAsync(ROLE_KEY);
-      if (savedRole) setRole(savedRole as UserRole);
       if (token) {
-        await fetchUserProfile(savedRole as UserRole || 'user');
+        await fetchUserProfile();
       }
     } catch {
       await clearTokens();
@@ -98,11 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ----------------------------------------------------------
   // Ambil profil user dari backend
   // ----------------------------------------------------------
-  const fetchUserProfile = useCallback(async (userRole: UserRole = 'user') => {
+  const fetchUserProfile = useCallback(async (): Promise<{ success: boolean; message: string }> => {
     const response = await apiGet<any>('/auth/me');
 
     if (response.success && response.data) {
       const d = response.data;
+      const backendRole = normalizeRole(d.role);
+
       setUser({
         id: d.id || d.authId,
         email: d.email,
@@ -122,31 +126,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         badges: d.badges || [],
         badgeCount: d.badgeCount || { active: 0, total: 0 },
         settings: d.settings || {},
-        role: userRole,
+        role: backendRole,
       });
-    } else {
-      await clearTokens();
+      setRole(backendRole);
+
+      return { success: true, message: response.message };
     }
-  }, []);
+
+    if (response.statusCode === 401) {
+      await clearTokens();
+      setRole('user');
+    }
+
+    return { success: false, message: response.message || 'Gagal memuat profil pengguna.' };
+  }, [normalizeRole]);
 
   // ----------------------------------------------------------
   // Login
   // ----------------------------------------------------------
-  async function login(email: string, password: string, selectedRole: UserRole = 'user') {
+  async function login(email: string, password: string) {
     const response = await apiPost<any>('/auth/login', { email, password }, false);
 
     if (response.success && response.data) {
       const { accessToken, refreshToken } = response.data;
 
-      // Simpan tokens + role ke SecureStore
+      // Simpan tokens
       await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
-      await SecureStore.setItemAsync(ROLE_KEY, selectedRole);
       if (refreshToken) {
         await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
       }
 
-      setRole(selectedRole);
-      await fetchUserProfile(selectedRole);
+      const profile = await fetchUserProfile();
+      if (!profile.success) {
+        await clearTokens();
+        setRole('user');
+        return { success: false, message: profile.message };
+      }
 
       return { success: true, message: response.message };
     }
@@ -170,7 +185,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Ambil profil user
-      await fetchUserProfile();
+      const profile = await fetchUserProfile();
+      if (!profile.success) {
+        await clearTokens();
+        setRole('user');
+        return { success: false, message: profile.message };
+      }
 
       return { success: true, message: response.message };
     }
@@ -194,7 +214,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function clearTokens() {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-    await SecureStore.deleteItemAsync(ROLE_KEY);
     setUser(null);
   }
 
@@ -209,7 +228,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
-    refreshUser: () => fetchUserProfile(role),
+    refreshUser: async () => {
+      await fetchUserProfile();
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

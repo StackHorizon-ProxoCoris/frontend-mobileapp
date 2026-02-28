@@ -50,14 +50,6 @@ export default function LoginScreen() {
         ]).start();
     }, []);
 
-    const getTargetRoute = () => {
-        switch (selectedRole) {
-            case 'pemerintah': return '/(gov-tabs)' as const;
-            case 'admin': return '/(tabs)' as const;
-            default: return '/(tabs)' as const;
-        }
-    };
-
     const handleLogin = async () => {
         if (!email.trim()) {
             showToast({ type: 'warning', title: 'Email diperlukan', message: 'Masukkan alamat email Anda.' });
@@ -73,7 +65,7 @@ export default function LoginScreen() {
         }
 
         setIsLoading(true);
-        const result = await login(email.trim(), password, selectedRole);
+        const result = await login(email.trim(), password);
         setIsLoading(false);
 
         if (!result.success) {
@@ -173,6 +165,9 @@ export default function LoginScreen() {
                                     );
                                 })}
                             </View>
+                            <Text className="text-[10px] text-secondary/80 mt-2 ml-1">
+                                Akses fitur ditentukan dari role akun Anda di server.
+                            </Text>
                         </View>
 
                         {/* Google Login */}
