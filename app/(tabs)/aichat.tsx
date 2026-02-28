@@ -129,7 +129,7 @@ export default function AIChatScreen() {
                         </View>
                     </View>
                     <View className="flex-row gap-1.5">
-                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" onPress={() => Alert.alert('SIAGA AI', 'Asisten AI civic untuk mitigasi bencana, pelaporan warga, dan informasi keselamatan.\n\nDidukung oleh pattern-based response engine.')}>
+                        <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" onPress={() => Alert.alert('SIAGA AI', 'Asisten AI civic untuk mitigasi bencana, pelaporan warga, dan informasi keselamatan.\n\nDidukung oleh Google Gemini AI dengan API Key Rotation.')}>
                             <Info size={16} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
                         <TouchableOpacity className="w-9 h-9 rounded-full bg-surface items-center justify-center" onPress={() => Alert.alert('Menu', 'Hapus riwayat chat?', [{ text: 'Batal', style: 'cancel' }, { text: 'Hapus', style: 'destructive', onPress: () => setMessages(INITIAL_MESSAGES) }])}>
