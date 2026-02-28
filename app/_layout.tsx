@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
+import * as Notifications from "expo-notifications";
 import { AuthProvider, useAuth } from "../context/auth";
 import { ToastProvider, useToast } from "@/contexts/toast.context";
 import { registerForbiddenCallback, unregisterForbiddenCallback } from "@/services/api";
@@ -20,6 +21,32 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const segmentsRef = useRef(segments);
   const isAuthenticatedRef = useRef(isAuthenticated);
   const hasRedirectedForbiddenRef = useRef(false);
+
+  // ----------------------------------------------------------
+  // Push Notification Deep Link Handler
+  // useLastNotificationResponse aman untuk cold start
+  // ----------------------------------------------------------
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (!lastNotificationResponse || !isAuthenticated) return;
+
+    const data = lastNotificationResponse.notification.request.content.data as
+      { refType?: string; refId?: string } | undefined;
+
+    if (!data?.refType || !data?.refId) return;
+
+    // setTimeout 500ms: pastikan Expo Router selesai mounting (cold start fix)
+    const timer = setTimeout(() => {
+      if (data.refType === 'report') {
+        router.push(`/report-detail?id=${data.refId}`);
+      } else if (data.refType === 'action') {
+        router.push(`/action-detail?id=${data.refId}`);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [lastNotificationResponse, isAuthenticated, router]);
 
   useEffect(() => {
     segmentsRef.current = segments;
