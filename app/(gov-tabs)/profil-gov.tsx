@@ -40,7 +40,7 @@ const RECENT_ACTIVITIES = [
     { text: 'Mengirim respons ke', highlight: 'Laporan #1039', color: SiagaColors.info, time: '1 jam lalu', icon: ChatCircle, iconColor: SiagaColors.info, bg: '#eff6ff' },
     { text: 'Menandai anomali pada', highlight: 'Proyek P-003', color: '#f59e0b', time: '3 jam lalu', icon: Warning, iconColor: '#f59e0b', bg: '#fffbeb' },
     { text: 'Update status', highlight: '#1038 → Diproses', color: SiagaColors.info, time: '5 jam lalu', icon: ArrowClockwise, iconColor: SiagaColors.info, bg: '#eff6ff' },
-    { text: 'Broadcast peringatan ke', 'highlight': 'Kec. Dayeuhkolot', color: '#7c3aed', time: 'Kemarin', icon: Bell, iconColor: '#7c3aed', bg: '#f5f3ff' },
+    { text: 'Broadcast peringatan ke', highlight: 'Kec. Dayeuhkolot', color: '#7c3aed', time: 'Kemarin', icon: Bell, iconColor: '#7c3aed', bg: '#f5f3ff' },
 ];
 
 const ACCESS_PERMISSIONS = [
@@ -62,17 +62,17 @@ const MENU_SECTIONS: MenuSection[] = [
     {
         title: 'Akun',
         items: [
-            { label: 'Edit Profil', icon: UserCircle, color: SiagaColors.info, action: '/edit-profil' },
-            { label: 'Ganti Password', icon: Lock, color: '#7c3aed', action: '/pengaturan' },
-            { label: 'Notifikasi', icon: Bell, color: '#f59e0b', action: '/riwayat-aktivitas' },
+            { label: 'Edit Profil', icon: UserCircle, color: SiagaColors.info, action: '/edit-profil-gov' },
+            { label: 'Ganti Password', icon: Lock, color: '#7c3aed', action: '/ganti-password' },
+            { label: 'Notifikasi', icon: Bell, color: '#f59e0b', action: '/notifikasi' },
         ],
     },
     {
         title: 'Sistem',
         items: [
-            { label: 'Pengaturan Sistem', icon: Gear, color: SiagaColors.primary, action: '/pengaturan' },
+            { label: 'Pengaturan Sistem', icon: Gear, color: SiagaColors.primary, action: '/pengaturan-sistem' },
             { label: 'Riwayat Aktivitas', icon: ChartBar, color: SiagaColors.success, action: '/riwayat-aktivitas' },
-            { label: 'Akses & Keamanan', icon: ShieldCheck, color: SiagaColors.info, action: '/pengaturan' },
+            { label: 'Akses & Keamanan', icon: ShieldCheck, color: SiagaColors.info, action: '/akses-keamanan' },
         ],
     },
     {
