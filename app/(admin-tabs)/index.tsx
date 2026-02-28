@@ -241,6 +241,42 @@ export default function AdminDashboardScreen() {
                     </Animated.View>
                 )}
 
+                {/* ── QUICK ACTIONS GRID (TOP) ── */}
+                <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: SiagaColors.primary, marginBottom: 12 }}>Aksi Admin Cepat</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        {[
+                            { label: 'Kelola Pengguna', icon: Users, color: '#3b82f6', bg: '#eff6ff', route: '/(admin-tabs)/users' },
+                            { label: 'Verifikasi Akun', icon: UserCheck, color: '#059669', bg: '#ecfdf5', route: '/(admin-tabs)/users' },
+                            { label: 'Buat Akun Gov', icon: Buildings, color: '#d97706', bg: '#fffbeb', route: '/(admin-tabs)/users' },
+                            { label: 'Kelola Laporan', icon: FileText, color: SiagaColors.danger, bg: '#fef2f2', route: '/(admin-tabs)/moderation' },
+                        ].map((action, i) => {
+                            const IconComp = action.icon;
+                            return (
+                                <TouchableOpacity
+                                    key={i}
+                                    style={{
+                                        width: (width - 32 - 24) / 4, // 32 for screen padding, 24 for gaps between 4 items (3 gaps * 8)
+                                        backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 4,
+                                        alignItems: 'center', gap: 6,
+                                        borderWidth: 1, borderColor: '#edf2f9',
+                                        elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3,
+                                    }}
+                                    activeOpacity={0.8}
+                                    onPress={() => router.push(action.route as any)}
+                                >
+                                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: action.bg, alignItems: 'center', justifyContent: 'center' }}>
+                                        <IconComp size={18} color={action.color} weight="duotone" />
+                                    </View>
+                                    <Text style={{ fontSize: 9.5, fontWeight: '700', color: SiagaColors.primary, textAlign: 'center', lineHeight: 12 }} numberOfLines={2}>
+                                        {action.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </Animated.View>
+
                 {/* ── STAT CARDS 2x2 ── */}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                     {STATS.map((stat, i) => {
@@ -469,38 +505,7 @@ export default function AdminDashboardScreen() {
                     </View>
                 </View>
 
-                {/* ── QUICK ACTIONS GRID ── */}
-                <View>
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: SiagaColors.primary, marginBottom: 12 }}>Aksi Admin Cepat</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                        {[
-                            { label: 'Kelola Pengguna', icon: Users, color: '#3b82f6', bg: '#eff6ff' },
-                            { label: 'Verifikasi Akun', icon: UserCheck, color: '#059669', bg: '#ecfdf5' },
-                            { label: 'Buat Akun Gov', icon: Buildings, color: '#d97706', bg: '#fffbeb' },
-                            { label: 'Kelola Laporan', icon: FileText, color: SiagaColors.danger, bg: '#fef2f2' },
-                        ].map((action, i) => {
-                            const IconComp = action.icon;
-                            return (
-                                <TouchableOpacity
-                                    key={i}
-                                    style={{
-                                        width: (width - 48 - 10) / 3,
-                                        backgroundColor: '#fff', borderRadius: 16, padding: 14,
-                                        alignItems: 'center', gap: 8,
-                                        borderWidth: 1, borderColor: '#edf2f9',
-                                        elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3,
-                                    }}
-                                    activeOpacity={0.8}
-                                >
-                                    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: action.bg, alignItems: 'center', justifyContent: 'center' }}>
-                                        <IconComp size={22} color={action.color} weight="duotone" />
-                                    </View>
-                                    <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.primary, textAlign: 'center', lineHeight: 15 }}>{action.label}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                </View>
+
 
                 {/* ── FOOTER ── */}
                 <View style={{ paddingVertical: 8, alignItems: 'center', gap: 4 }}>
