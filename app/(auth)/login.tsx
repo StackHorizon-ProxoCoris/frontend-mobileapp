@@ -53,7 +53,7 @@ export default function LoginScreen() {
     const getTargetRoute = () => {
         switch (selectedRole) {
             case 'pemerintah': return '/(gov-tabs)' as const;
-            case 'admin': return '/(tabs)' as const;
+            case 'admin': return '/(admin-tabs)' as any;
             default: return '/(tabs)' as const;
         }
     };
@@ -91,7 +91,7 @@ export default function LoginScreen() {
     return (
         <View className="flex-1" style={{ backgroundColor: SiagaColors.primary }}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
             >
                 <ScrollView
