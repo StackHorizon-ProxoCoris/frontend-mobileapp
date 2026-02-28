@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
     Animated, TextInput, Dimensions,
@@ -15,13 +15,33 @@ import {
     Warning, Eye, ChatText, CheckSquare,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { getReports, type ReportData } from '@/services/report.service';
+import {
+    getReports,
+    updateReportStatus,
+    type BackendReportStatus,
+    type ReportData,
+} from '@/services/report.service';
+import { useToast } from '@/contexts/toast.context';
 
 const { width } = Dimensions.get('window');
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type SeverityLevel = 'Kritis' | 'Tinggi' | 'Sedang' | 'Rendah';
 type StatusType = 'Baru' | 'Diproses' | 'Selesai' | 'Ditolak';
+type GovReportItem = {
+    id: string;
+    title: string;
+    desc: string;
+    area: string;
+    cluster: string;
+    time: string;
+    severity: SeverityLevel;
+    status: StatusType;
+    backendStatus: BackendReportStatus;
+    icon: any;
+    iconColor: string;
+    bgColor: string;
+};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const FILTER_TABS = [
@@ -46,6 +66,19 @@ const STATUS_CONFIG: Record<StatusType, { text: string; bg: string }> = {
     Diproses: { text: '#d97706', bg: '#fffbeb' },
     Selesai: { text: SiagaColors.success, bg: '#ecfdf5' },
     Ditolak: { text: SiagaColors.danger, bg: '#fef2f2' },
+};
+
+// Mapping eksplisit FE status -> status backend yang valid
+const UI_TO_BACKEND_STATUS: Record<StatusType, BackendReportStatus | null> = {
+    Baru: 'Menunggu',
+    Diproses: 'Ditangani',
+    Selesai: 'Selesai',
+    Ditolak: null, // Backend saat ini belum expose status "Ditolak"
+};
+
+const STATUS_ACTION_TARGET: Partial<Record<StatusType, BackendReportStatus>> = {
+    Baru: 'Ditangani',
+    Diproses: 'Selesai',
 };
 
 const SUMMARY_STATS = [
@@ -166,12 +199,28 @@ function StatCard({ item }: { item: typeof SUMMARY_STATS[0] }) {
     );
 }
 
-function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: () => void }) {
+function ReportCard({
+    report,
+    onPress,
+    onStatusAction,
+    isStatusUpdating,
+}: {
+    report: GovReportItem;
+    onPress: () => void;
+    onStatusAction: () => void;
+    isStatusUpdating: boolean;
+}) {
     const IconComp = report.icon;
     const sev = SEVERITY_CONFIG[report.severity];
     const st = STATUS_CONFIG[report.status];
     const isCritical = report.severity === 'Kritis';
     const isNew = report.status === 'Baru';
+    const isStatusAction = report.status === 'Baru' || report.status === 'Diproses';
+    const actionLabel = report.status === 'Baru'
+        ? 'Proses'
+        : report.status === 'Diproses'
+            ? 'Tandai Selesai'
+            : 'Lihat';
 
     return (
         <TouchableOpacity
@@ -286,9 +335,11 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
                             className="flex-row items-center gap-1 px-3 py-1.5 rounded-xl"
                             style={{ backgroundColor: isCritical ? SiagaColors.info : SiagaColors.primary }}
                             activeOpacity={0.7}
+                            onPress={isStatusAction ? onStatusAction : onPress}
+                            disabled={isStatusUpdating}
                         >
                             <Text className="text-[12px] font-bold text-white">
-                                {report.status === 'Baru' ? 'Tindak' : report.status === 'Diproses' ? 'Update' : 'Lihat'}
+                                {isStatusUpdating ? 'Memproses...' : actionLabel}
                             </Text>
                             <ArrowRight size={11} color="#fff" weight="bold" />
                         </TouchableOpacity>
@@ -303,6 +354,7 @@ function ReportCard({ report, onPress }: { report: typeof REPORTS[0]; onPress: (
 export default function GovLaporanScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { showToast } = useToast();
     const [activeFilter, setActiveFilter] = useState('Semua');
     const [activeSort, setActiveSort] = useState('Terbaru');
     const [searchQuery, setSearchQuery] = useState('');
@@ -310,6 +362,7 @@ export default function GovLaporanScreen() {
     const [showSort, setShowSort] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
+    const [updatingStatusIds, setUpdatingStatusIds] = useState<Record<string, boolean>>({});
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
@@ -323,14 +376,17 @@ export default function GovLaporanScreen() {
         ]).start();
     }, []);
 
+    const loadReports = useCallback(async () => {
+        const result = await getReports({ limit: 20 });
+        if (result.success && result.data) {
+            setApiReports(result.data);
+        }
+    }, []);
+
     // Ambil laporan dari API
     useEffect(() => {
-        async function load() {
-            const result = await getReports({ limit: 20 });
-            if (result.success && result.data) setApiReports(result.data);
-        }
-        load();
-    }, []);
+        loadReports();
+    }, [loadReports]);
 
     const toggleSearch = () => {
         const toValue = showSearch ? 0 : 1;
@@ -349,7 +405,7 @@ export default function GovLaporanScreen() {
     };
 
     // Konversi API data ke UI format
-    const REPORTS_LIVE = useMemo(() => {
+    const REPORTS_LIVE = useMemo<GovReportItem[]>(() => {
         const iconMap: Record<string, { icon: any; iconColor: string; bgColor: string }> = {
             'Banjir': { icon: Waves, iconColor: '#2563eb', bgColor: '#eff6ff' },
             'Longsor': { icon: Mountains, iconColor: '#ea580c', bgColor: '#fff7ed' },
@@ -368,7 +424,7 @@ export default function GovLaporanScreen() {
             const severity: SeverityLevel = r.urgency >= 80 ? 'Kritis' : r.urgency >= 60 ? 'Tinggi' : r.urgency >= 40 ? 'Sedang' : 'Rendah';
             const status: StatusType = statusMap[r.status] || 'Baru';
             return {
-                id: r.id,
+                id: r.id || '',
                 title: r.title,
                 desc: r.description?.slice(0, 80) + (r.description?.length > 80 ? '...' : '') || '',
                 area: r.district || r.city || '-',
@@ -376,12 +432,106 @@ export default function GovLaporanScreen() {
                 time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
                 severity,
                 status,
+                backendStatus: r.status,
                 icon: cat.icon,
                 iconColor: cat.iconColor,
                 bgColor: cat.bgColor,
             };
         });
     }, [apiReports]);
+
+    const openReportDetail = useCallback((reportId?: string) => {
+        if (!reportId) {
+            showToast({
+                type: 'error',
+                title: 'Navigasi Gagal',
+                message: 'ID laporan tidak valid',
+            });
+            return;
+        }
+
+        router.push({ pathname: '/report-detail', params: { id: reportId } });
+    }, [router, showToast]);
+
+    const handleStatusAction = useCallback(async (report: GovReportItem) => {
+        if (!report.id) {
+            showToast({
+                type: 'error',
+                title: 'Aksi Gagal',
+                message: 'ID laporan tidak valid',
+            });
+            return;
+        }
+
+        const mappedCurrent = UI_TO_BACKEND_STATUS[report.status];
+        if (!mappedCurrent) {
+            showToast({
+                type: 'warning',
+                title: 'Status Tidak Didukung',
+                message: 'Status ini belum bisa diperbarui dari aplikasi.',
+            });
+            return;
+        }
+
+        const nextBackendStatus = STATUS_ACTION_TARGET[report.status];
+        if (!nextBackendStatus) {
+            openReportDetail(report.id);
+            return;
+        }
+
+        setUpdatingStatusIds(prev => ({ ...prev, [report.id]: true }));
+
+        let previousReportsSnapshot: ReportData[] = [];
+        try {
+            // Optimistic update agar list/KPI langsung berubah
+            setApiReports(prev => {
+                previousReportsSnapshot = [...prev];
+                return prev.map(item =>
+                    item.id === report.id ? { ...item, status: nextBackendStatus } : item
+                );
+            });
+
+            const result = await updateReportStatus(report.id, nextBackendStatus);
+            if (result.success) {
+                showToast({
+                    type: 'success',
+                    title: 'Status Diperbarui',
+                    message: `Laporan berhasil diubah ke "${nextBackendStatus}".`,
+                });
+
+                // Sinkronkan ulang ke backend source of truth
+                await loadReports();
+                return;
+            }
+
+            // Biarkan global forbidden handler menangani 403 gov-only
+            if (result.statusCode === 403) {
+                setApiReports(previousReportsSnapshot);
+                return;
+            }
+
+            // Rollback jika gagal
+            setApiReports(previousReportsSnapshot);
+            showToast({
+                type: 'error',
+                title: 'Gagal Memperbarui',
+                message: result.message || 'Tidak dapat memperbarui status laporan.',
+            });
+        } catch {
+            setApiReports(previousReportsSnapshot);
+            showToast({
+                type: 'error',
+                title: 'Gagal Memperbarui',
+                message: 'Terjadi gangguan jaringan saat memperbarui status laporan.',
+            });
+        } finally {
+            setUpdatingStatusIds(prev => {
+                const next = { ...prev };
+                delete next[report.id];
+                return next;
+            });
+        }
+    }, [loadReports, openReportDetail, showToast]);
 
     // Hitung SUMMARY_STATS dari live data
     const SUMMARY_STATS_LIVE = useMemo(() => {
@@ -767,7 +917,9 @@ export default function GovLaporanScreen() {
                         >
                             <ReportCard
                                 report={report}
-                                onPress={() => router.push('/report-detail')}
+                                onPress={() => openReportDetail(report.id)}
+                                onStatusAction={() => handleStatusAction(report)}
+                                isStatusUpdating={!!updatingStatusIds[report.id]}
                             />
                         </Animated.View>
                     ))

@@ -8,6 +8,8 @@ import { apiGet, apiPost, apiPatch, type ApiResponse } from './api';
 // Tipe Data
 // ============================================================
 
+export type BackendReportStatus = 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
+
 export interface ReportData {
   id: string;
   userId: string;
@@ -20,7 +22,7 @@ export interface ReportData {
   city: string;
   lat: number;
   lng: number;
-  status: 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
+  status: BackendReportStatus;
   urgency: number;
   votesCount: number;
   verifiedCount: number;
@@ -103,7 +105,7 @@ export async function toggleReportVote(reportId: string): Promise<ApiResponse> {
 /** Update status laporan */
 export async function updateReportStatus(
   reportId: string,
-  status: string,
+  status: BackendReportStatus,
   respondedBy?: string,
 ): Promise<ApiResponse> {
   return apiPatch(`/reports/${reportId}/status`, { status, respondedBy });
