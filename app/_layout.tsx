@@ -31,14 +31,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     registerForbiddenCallback((message) => {
-      const inGovGroup = segmentsRef.current[0] === "(gov-tabs)";
-      if (!inGovGroup || !isAuthenticatedRef.current || hasRedirectedForbiddenRef.current) return;
+      const group = String(segmentsRef.current[0] ?? "");
+      const inRestrictedGroup = group === "(gov-tabs)" || group === "(admin-tabs)";
+      if (!inRestrictedGroup || !isAuthenticatedRef.current || hasRedirectedForbiddenRef.current) return;
 
       hasRedirectedForbiddenRef.current = true;
       showToast({
         type: "warning",
         title: "Akses Ditolak",
-        message: message || "Akun Anda bukan pemerintah",
+        message: message || "Akun Anda tidak memiliki akses.",
       });
       router.replace("/(tabs)");
       setTimeout(() => {
@@ -54,10 +55,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
-    const inGovGroup = segments[0] === "(gov-tabs)";
-    const inUserGroup = segments[0] === "(tabs)";
+    const segment0 = String(segments[0] ?? "");
+    const inAuthGroup = segment0 === "(auth)";
+    const inGovGroup = segment0 === "(gov-tabs)";
+    const inAdminGroup = segment0 === "(admin-tabs)";
+    const inUserGroup = segment0 === "(tabs)";
     const isGovRole = role === "pemerintah" || role === "admin";
+    const isAdminRole = role === "admin";
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/login");
@@ -67,6 +71,22 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) return;
 
     if (inAuthGroup) {
+      if (isAdminRole) {
+        router.replace("/(admin-tabs)" as any);
+      } else if (role === "pemerintah") {
+        router.replace("/(gov-tabs)");
+      } else {
+        router.replace("/(tabs)");
+      }
+      return;
+    }
+
+    if (inAdminGroup && !isAdminRole) {
+      showToast({
+        type: "warning",
+        title: "Akses Ditolak",
+        message: "Halaman ini hanya untuk admin",
+      });
       router.replace(isGovRole ? "/(gov-tabs)" : "/(tabs)");
       return;
     }
@@ -82,7 +102,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (inUserGroup && isGovRole) {
-      router.replace("/(gov-tabs)");
+      if (isAdminRole) {
+        router.replace("/(admin-tabs)" as any);
+      } else {
+        router.replace("/(gov-tabs)");
+      }
     }
   }, [isAuthenticated, isLoading, role, router, segments, showToast]);
 
@@ -111,76 +135,117 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(gov-tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="report-detail"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="action-detail"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="info-detail"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="edit-profil"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="riwayat-aktivitas"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="pengaturan"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="tentang"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="bantuan"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
             <Stack.Screen
               name="feedback"
               options={{
                 headerShown: false,
-                presentation: 'card',
-                animation: 'slide_from_right',
+                presentation: "card",
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="notifikasi"
+              options={{
+                headerShown: false,
+                presentation: "card",
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="edit-profil-gov"
+              options={{
+                headerShown: false,
+                presentation: "card",
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="pengaturan-sistem"
+              options={{
+                headerShown: false,
+                presentation: "card",
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="akses-keamanan"
+              options={{
+                headerShown: false,
+                presentation: "card",
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="ganti-password"
+              options={{
+                headerShown: false,
+                presentation: "card",
+                animation: "slide_from_right",
               }}
             />
           </Stack>
@@ -191,4 +256,3 @@ export default function RootLayout() {
     </ToastProvider>
   );
 }
-
