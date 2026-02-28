@@ -16,6 +16,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import Svg, { Circle } from 'react-native-svg';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 import { getReports, type ReportData } from '@/services/report.service';
 
 const { width } = Dimensions.get('window');
@@ -94,6 +95,7 @@ export default function GovDashboardScreen() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('Semua');
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [reports, setReports] = useState<ReportData[]>([]);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -152,6 +154,19 @@ export default function GovDashboardScreen() {
             };
         });
     }, [reports]);
+
+    const openReportDetail = useCallback((reportId?: string) => {
+        if (!reportId) {
+            showToast({
+                type: 'error',
+                title: 'Navigasi Gagal',
+                message: 'ID laporan tidak valid',
+            });
+            return;
+        }
+
+        router.push({ pathname: '/report-detail', params: { id: reportId } });
+    }, [router, showToast]);
 
     // Hitung kategori dari data
     const CATEGORIES_LIVE = useMemo(() => {
@@ -354,7 +369,7 @@ export default function GovDashboardScreen() {
                                     className="rounded-2xl p-3.5"
                                     style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
                                     activeOpacity={0.85}
-                                    onPress={() => router.push('/report-detail')}
+                                    onPress={() => openReportDetail(report.id)}
                                 >
                                     <View className="flex-row items-start gap-3">
                                         <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: report.bgColor }}>

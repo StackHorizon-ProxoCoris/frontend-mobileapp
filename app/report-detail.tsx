@@ -12,9 +12,9 @@ import {
   CalendarBlank, Buildings, UserCircle, Medal, CaretRight, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyReportDetails, type ReportDetail } from '@/data/dummy';
+import { type ReportDetail } from '@/data/dummy';
 import { useAuth } from '@/context/auth';
-import { getReportById, toggleReportVote, verifyReport, toggleBookmark, type ReportData } from '@/services/report.service';
+import { getReportById, toggleReportVote, verifyReport, toggleBookmark } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
@@ -23,7 +23,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
 
 export default function ReportDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
+  const reportId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activePhoto, setActivePhoto] = useState(0);
@@ -34,15 +35,25 @@ export default function ReportDetailScreen() {
   const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  // Fetch report dari API, fallback ke dummy
+  // Fetch report dari API berdasarkan param id
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const result = await getReportById(id ?? '');
+      setLoadError(null);
+
+      if (!reportId) {
+        setReport(null);
+        setLoadError('ID laporan tidak valid.');
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await getReportById(reportId);
       if (result.success && result.data) {
         const r = result.data;
         const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
@@ -114,24 +125,19 @@ export default function ReportDetailScreen() {
         setVotes(mapped.votes);
         setSupported(mapped.supported);
       } else {
-        // Fallback ke dummy data
-        const dummy = dummyReportDetails[id ?? ''];
-        if (dummy) {
-          setReport(dummy);
-          setVotes(dummy.votes);
-          setSupported(dummy.supported);
-        }
+        setReport(null);
+        setLoadError(result.message || 'Laporan tidak ditemukan.');
       }
       setIsLoading(false);
     }
     load();
-  }, [id]);
+  }, [reportId]);
 
   // Load comments dari API
   useEffect(() => {
     async function loadComments() {
-      if (!id) return;
-      const result = await getComments('report', id);
+      if (!reportId) return;
+      const result = await getComments('report', reportId);
       if (result.success && result.data) {
         const mapped = result.data.map(c => ({
           id: c.id,
@@ -145,7 +151,7 @@ export default function ReportDetailScreen() {
       }
     }
     loadComments();
-  }, [id]);
+  }, [reportId]);
 
   if (isLoading) {
     return (
@@ -158,7 +164,7 @@ export default function ReportDetailScreen() {
   if (!report) {
     return (
       <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-[16px] text-secondary">Laporan tidak ditemukan</Text>
+        <Text className="text-[16px] text-secondary">{loadError || 'Laporan tidak ditemukan'}</Text>
         <TouchableOpacity className="mt-4 px-4 py-2 rounded-lg" style={{ backgroundColor: SiagaColors.primary }} onPress={() => router.back()}>
           <Text className="text-white text-[14px] font-semibold">Kembali</Text>
         </TouchableOpacity>
