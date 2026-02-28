@@ -3,9 +3,11 @@
 // Menyediakan login, register, logout, dan data user
 // ============================================================
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { apiPost, apiGet, TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 // ============================================================
 // Tipe Data
@@ -77,6 +79,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return 'user';
   }, []);
 
+  // Push notification token
+  const { registerForPushNotifications } = usePushNotifications();
+  const pushTokenRef = useRef<string | null>(null);
+
+  // Fire-and-forget: register push token dan kirim ke backend
+  const syncPushToken = useCallback(async () => {
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        pushTokenRef.current = token;
+        // Kirim ke backend (fire-and-forget)
+        apiPost('/device-tokens', {
+          token,
+          platform: Platform.OS,
+        }).catch(() => { /* silent */ });
+      }
+    } catch {
+      // Non-blocking: jangan ganggu flow auth
+    }
+  }, [registerForPushNotifications]);
+
   // ----------------------------------------------------------
   // Cek token saat app pertama kali dibuka
   // ----------------------------------------------------------
@@ -129,6 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: backendRole,
       });
       setRole(backendRole);
+
+      // Sinkronisasi push token setelah user berhasil dimuat
+      syncPushToken();
 
       return { success: true, message: response.message };
     }
@@ -202,10 +228,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout
   // ----------------------------------------------------------
   async function logout() {
+    // Nonaktifkan push token di backend sebelum logout
+    if (pushTokenRef.current) {
+      apiPost('/device-tokens', undefined, true)
+        .catch(() => { /* silent */ });
+      // Atau bisa pakai DELETE, tapi apiPost lebih simple untuk fire-and-forget
+    }
     await apiPost('/auth/logout');
     await clearTokens();
     setUser(null);
     setRole('user');
+    pushTokenRef.current = null;
   }
 
   // ----------------------------------------------------------
