@@ -22,7 +22,6 @@ import { getActions, type ActionData } from '@/services/action.service';
 import { getAreaStatus, type AreaStatusData } from '@/services/area-status.service';
 import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import {
-  dummyEmergencyContacts,
   type Report,
 } from '@/data/dummy';
 
@@ -233,11 +232,12 @@ export default function HomeScreen() {
           <SectionHeader title="Panggilan Darurat" onAction={() => setSosVisible(true)} actionLabel="SOS" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {[
+              { icon: <PhoneCall size={24} color="#dc2626" weight="duotone" />, name: 'Darurat Nasional', num: '112', color: '#dc2626', bg: '#fef2f2' },
               { icon: <FireTruck size={24} color={SiagaColors.danger} weight="duotone" />, name: 'Pemadam', num: '113', color: SiagaColors.danger, bg: '#fef2f2' },
-              { icon: <Ambulance size={24} color={SiagaColors.info} weight="duotone" />, name: 'Ambulance', num: '118', color: SiagaColors.info, bg: '#eff6ff' },
+              { icon: <Ambulance size={24} color={SiagaColors.info} weight="duotone" />, name: 'Ambulans', num: '118/119', color: SiagaColors.info, bg: '#eff6ff' },
               { icon: <PoliceCar size={24} color={SiagaColors.primary} weight="duotone" />, name: 'Polisi', num: '110', color: SiagaColors.primary, bg: '#f8fafc' },
               { icon: <Binoculars size={24} color="#d97706" weight="duotone" />, name: 'SAR', num: '115', color: '#d97706', bg: '#fffbeb' },
-              { icon: <PhoneCall size={24} color="#059669" weight="duotone" />, name: 'Darurat', num: '112', color: '#059669', bg: '#ecfdf5' },
+              { icon: <PhoneCall size={24} color="#059669" weight="duotone" />, name: 'PLN', num: '123', color: '#059669', bg: '#ecfdf5' },
             ].map((c, i) => (
               <TouchableOpacity
                 key={i}

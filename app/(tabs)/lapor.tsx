@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Image as RNImage, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Image as RNImage, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     CaretLeft, ClockCounterClockwise, WarningCircle, HandsClapping, Microphone,
@@ -7,17 +8,19 @@ import {
     Camera, CameraPlus, Plus, Robot, TextAlignLeft, MapPin, GpsFix,
     CheckCircle, Broadcast, ShieldCheck, PaperPlaneTilt, Star,
     HandHeart, Broom, Wrench, Plant, UsersThree, Image,
-    Info, Translate, Stop, Check, PencilSimple,
+    Info, Translate, Stop, Check, PencilSimple, PencilSimpleLine,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
+import MapPicker from '@/components/ui/MapPicker';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
 import { createReport } from '@/services/report.service';
 import { createAction } from '@/services/action.service';
 import { apiUpload } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 type TabType = 'masalah' | 'aksi' | 'voice';
 
@@ -49,8 +52,77 @@ export default function LaporScreen() {
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const { showToast } = useToast();
+    const location = useCurrentLocation();
     const [photos, setPhotos] = useState<{ uri: string; uploadedUrl?: string }[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [mapPickerVisible, setMapPickerVisible] = useState(false);
+    const [locationOverride, setLocationOverride] = useState<{ lat: number; lng: number; address: string } | null>(null);
+    const [beforePhoto, setBeforePhoto] = useState<string | null>(null);
+    const [afterPhoto, setAfterPhoto] = useState<string | null>(null);
+
+    // Effective location: override takes precedence over GPS
+    const effectiveLat = locationOverride?.lat ?? location.lat;
+    const effectiveLng = locationOverride?.lng ?? location.lng;
+    const effectiveAddress = locationOverride?.address ?? location.address;
+    const isOverridden = locationOverride !== null;
+
+    const handleMapConfirm = async (lat: number, lng: number) => {
+        setMapPickerVisible(false);
+        // Reverse geocode the picked location
+        let address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        try {
+            const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+            if (results.length > 0) {
+                const geo = results[0];
+                const parts: string[] = [];
+                if (geo.street) parts.push(geo.street);
+                if (geo.streetNumber && parts.length > 0) parts[parts.length - 1] += ` No. ${geo.streetNumber}`;
+                if (geo.subregion) parts.push(geo.subregion);
+                if (geo.city) parts.push(geo.city);
+                if (geo.region) parts.push(geo.region);
+                address = parts.filter(Boolean).join(', ') || address;
+            }
+        } catch { /* fallback to coordinate string */ }
+        setLocationOverride({ lat, lng, address });
+        showToast({ type: 'success', title: 'Lokasi Diperbarui', message: 'Titik laporan telah dipindahkan ke lokasi baru.' });
+    };
+
+    const pickAksiPhoto = async (type: 'before' | 'after') => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Izin Diperlukan', 'Aktifkan akses galeri di pengaturan perangkat.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets.length > 0) {
+            const uri = result.assets[0].uri;
+            if (type === 'before') setBeforePhoto(uri);
+            else setAfterPhoto(uri);
+        }
+    };
+
+    const uploadAksiPhotos = async (): Promise<string[]> => {
+        const urls: string[] = [];
+        for (const uri of [beforePhoto, afterPhoto]) {
+            if (!uri) continue;
+            try {
+                const formData = new FormData();
+                const filename = uri.split('/').pop() || 'aksi_photo.jpg';
+                formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+                const result = await apiUpload<{ url: string }>('/upload', formData);
+                if (result.success && result.data?.url) {
+                    urls.push(result.data.url);
+                }
+            } catch (err) {
+                console.error('Upload aksi photo error:', err);
+            }
+        }
+        return urls;
+    };
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -276,17 +348,52 @@ export default function LaporScreen() {
                                         <Text className="text-[12px] font-semibold text-primary/60 mt-1">Peta Preview</Text>
                                     </View>
                                     <View className="flex-row items-center gap-3">
-                                        <View className="w-9 h-9 rounded-lg items-center justify-center" style={{ backgroundColor: 'rgba(39,174,96,0.1)' }}>
-                                            <GpsFix size={20} color={SiagaColors.success} weight="duotone" />
+                                        <View className="w-9 h-9 rounded-lg items-center justify-center" style={{ backgroundColor: location.error && !isOverridden ? 'rgba(231,76,60,0.1)' : location.loading && !isOverridden ? 'rgba(59,130,246,0.1)' : 'rgba(39,174,96,0.1)' }}>
+                                            {location.loading && !isOverridden ? (
+                                                <ActivityIndicator size="small" color={SiagaColors.info} />
+                                            ) : (
+                                                <GpsFix size={20} color={location.error && !isOverridden ? '#e74c3c' : SiagaColors.success} weight="duotone" />
+                                            )}
                                         </View>
                                         <View className="flex-1">
-                                            <View className="flex-row items-center gap-1">
-                                                <CheckCircle size={12} color={SiagaColors.success} weight="fill" />
-                                                <Text className="text-[12px] font-bold text-primary">Lokasi Terdeteksi</Text>
-                                            </View>
-                                            <Text className="text-[12px] text-secondary" numberOfLines={1}>Jl. Ir. H. Juanda No. 45, Kec. Coblong, Bandung</Text>
+                                            {location.loading && !isOverridden ? (
+                                                <>
+                                                    <Text className="text-[12px] font-bold text-primary">Mencari Lokasi...</Text>
+                                                    <Text className="text-[11px] text-secondary">Menggunakan GPS perangkat</Text>
+                                                </>
+                                            ) : location.error && !isOverridden ? (
+                                                <>
+                                                    <Text className="text-[12px] font-bold text-red-500">Lokasi Gagal</Text>
+                                                    <Text className="text-[11px] text-secondary" numberOfLines={2}>{location.error}</Text>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <View className="flex-row items-center gap-1">
+                                                        <CheckCircle size={12} color={SiagaColors.success} weight="fill" />
+                                                        <Text className="text-[12px] font-bold text-primary">{isOverridden ? 'Lokasi Dipilih Manual' : 'Lokasi Terdeteksi'}</Text>
+                                                    </View>
+                                                    <Text className="text-[12px] text-secondary" numberOfLines={2}>{effectiveAddress}</Text>
+                                                    {!isOverridden && location.accuracy != null && (
+                                                        <Text className="text-[10px] text-secondary/60 mt-0.5">Akurasi: ±{Math.round(location.accuracy)}m</Text>
+                                                    )}
+                                                </>
+                                            )}
                                         </View>
-                                        <TouchableOpacity><Text className="text-[10px] font-semibold text-info">Ubah</Text></TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                const lat = effectiveLat ?? location.lat;
+                                                const lng = effectiveLng ?? location.lng;
+                                                if (lat && lng) {
+                                                    setMapPickerVisible(true);
+                                                } else {
+                                                    location.refresh();
+                                                }
+                                            }}
+                                            className="flex-row items-center gap-1"
+                                        >
+                                            <PencilSimpleLine size={12} color={SiagaColors.info} weight="bold" />
+                                            <Text className="text-[10px] font-semibold text-info">{effectiveLat ? 'Ubah Lokasi' : 'Coba Lagi'}</Text>
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
                             </View>
@@ -321,6 +428,7 @@ export default function LaporScreen() {
                                     if (!selectedCat) { showToast({ type: 'warning', title: 'Kategori diperlukan', message: 'Pilih kategori terlebih dahulu.' }); return; }
                                     if (!title.trim()) { showToast({ type: 'warning', title: 'Judul diperlukan', message: 'Masukkan judul laporan.' }); return; }
                                     if (!description.trim()) { showToast({ type: 'warning', title: 'Deskripsi diperlukan', message: 'Masukkan deskripsi.' }); return; }
+                                    if (!effectiveLat || !effectiveLng) { showToast({ type: 'warning', title: 'Lokasi diperlukan', message: 'Tunggu GPS mendeteksi lokasi Anda, atau pilih lokasi manual.' }); return; }
                                     setIsSubmitting(true);
                                     // Upload foto dulu
                                     let photoUrls: string[] = [];
@@ -334,11 +442,11 @@ export default function LaporScreen() {
                                         type: selectedCat,
                                         title: title.trim(),
                                         description: description.trim(),
-                                        address: 'Jl. Ir. H. Juanda No. 45, Kec. Coblong, Bandung',
-                                        district: user?.district || 'Coblong',
-                                        city: user?.city || 'Bandung',
-                                        lat: -6.8915,
-                                        lng: 107.6107,
+                                        address: effectiveAddress || user?.district || '',
+                                        district: user?.district || '',
+                                        city: user?.city || '',
+                                        lat: effectiveLat,
+                                        lng: effectiveLng,
                                         urgency: 50,
                                         photoUrls,
                                     });
@@ -408,19 +516,59 @@ export default function LaporScreen() {
                                     <Text className="text-[13px] font-bold text-primary uppercase tracking-wider">Foto Sebelum & Sesudah</Text>
                                 </View>
                                 <View className="flex-row gap-3">
-                                    <TouchableOpacity className="flex-1 h-36 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-2">
-                                        <View className="w-11 h-11 rounded-full bg-red-50 items-center justify-center">
-                                            <Image size={22} color="rgba(231,76,60,0.7)" weight="duotone" />
-                                        </View>
-                                        <Text className="text-[12px] font-bold text-primary">SEBELUM</Text>
-                                        <Text className="text-[10px] text-secondary">Foto kondisi awal</Text>
+                                    <TouchableOpacity
+                                        className="flex-1 h-36 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-2 overflow-hidden"
+                                        onPress={() => pickAksiPhoto('before')}
+                                    >
+                                        {beforePhoto ? (
+                                            <View className="w-full h-full">
+                                                <RNImage source={{ uri: beforePhoto }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                                <View className="absolute bottom-0 left-0 right-0 bg-black/50 py-1 items-center">
+                                                    <Text className="text-[10px] font-bold text-white">SEBELUM ✓</Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 items-center justify-center"
+                                                    onPress={() => setBeforePhoto(null)}
+                                                >
+                                                    <Text className="text-white text-[10px] font-bold">✕</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : (
+                                            <>
+                                                <View className="w-11 h-11 rounded-full bg-red-50 items-center justify-center">
+                                                    <Image size={22} color="rgba(231,76,60,0.7)" weight="duotone" />
+                                                </View>
+                                                <Text className="text-[12px] font-bold text-primary">SEBELUM</Text>
+                                                <Text className="text-[10px] text-secondary">Foto kondisi awal</Text>
+                                            </>
+                                        )}
                                     </TouchableOpacity>
-                                    <TouchableOpacity className="flex-1 h-36 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-2">
-                                        <View className="w-11 h-11 rounded-full bg-emerald-50 items-center justify-center">
-                                            <Image size={22} color="rgba(39,174,96,0.7)" weight="duotone" />
-                                        </View>
-                                        <Text className="text-[12px] font-bold text-primary">SESUDAH</Text>
-                                        <Text className="text-[10px] text-secondary">Foto hasil aksi</Text>
+                                    <TouchableOpacity
+                                        className="flex-1 h-36 rounded-2xl border-2 border-dashed border-accent bg-white items-center justify-center gap-2 overflow-hidden"
+                                        onPress={() => pickAksiPhoto('after')}
+                                    >
+                                        {afterPhoto ? (
+                                            <View className="w-full h-full">
+                                                <RNImage source={{ uri: afterPhoto }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                                <View className="absolute bottom-0 left-0 right-0 bg-black/50 py-1 items-center">
+                                                    <Text className="text-[10px] font-bold text-white">SESUDAH ✓</Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 items-center justify-center"
+                                                    onPress={() => setAfterPhoto(null)}
+                                                >
+                                                    <Text className="text-white text-[10px] font-bold">✕</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : (
+                                            <>
+                                                <View className="w-11 h-11 rounded-full bg-emerald-50 items-center justify-center">
+                                                    <Image size={22} color="rgba(39,174,96,0.7)" weight="duotone" />
+                                                </View>
+                                                <Text className="text-[12px] font-bold text-primary">SESUDAH</Text>
+                                                <Text className="text-[10px] text-secondary">Foto hasil aksi</Text>
+                                            </>
+                                        )}
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -436,22 +584,31 @@ export default function LaporScreen() {
                                 onPress={async () => {
                                     if (!selectedAksi) { showToast({ type: 'warning', title: 'Aksi diperlukan', message: 'Pilih jenis aksi terlebih dahulu.' }); return; }
                                     if (!aksiDesc.trim()) { showToast({ type: 'warning', title: 'Deskripsi diperlukan', message: 'Masukkan deskripsi aksi.' }); return; }
+                                    if (!effectiveLat || !effectiveLng) { showToast({ type: 'warning', title: 'Lokasi diperlukan', message: 'Tunggu GPS mendeteksi lokasi Anda, atau pilih lokasi manual.' }); return; }
                                     setIsSubmitting(true);
+                                    // Upload foto before/after jika ada
+                                    let photoUrls: string[] = [];
+                                    if (beforePhoto || afterPhoto) {
+                                        setIsUploading(true);
+                                        photoUrls = await uploadAksiPhotos();
+                                        setIsUploading(false);
+                                    }
                                     const result = await createAction({
                                         category: selectedAksi,
                                         type: selectedAksi,
                                         title: `${selectedAksi} — ${user?.district || 'Area'}`,
                                         description: aksiDesc.trim(),
-                                        address: user?.district || 'Area lokal',
+                                        address: effectiveAddress || user?.district || '',
                                         district: user?.district || '',
                                         city: user?.city || '',
-                                        lat: -6.8915,
-                                        lng: 107.6107,
+                                        lat: effectiveLat,
+                                        lng: effectiveLng,
+                                        photoUrls,
                                     });
                                     setIsSubmitting(false);
                                     if (result.success) {
                                         showToast({ type: 'success', title: 'Berhasil! 🎉', message: 'Aksi positif Anda berhasil dikirim!' });
-                                        setSelectedAksi(null); setAksiDesc('');
+                                        setSelectedAksi(null); setAksiDesc(''); setBeforePhoto(null); setAfterPhoto(null);
                                     } else {
                                         showToast({ type: 'error', title: 'Gagal', message: result.message || 'Terjadi kesalahan.' });
                                     }
@@ -553,6 +710,13 @@ export default function LaporScreen() {
 
             <SOSButton onPress={() => setSosVisible(true)} />
             <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />
+            <MapPicker
+                visible={mapPickerVisible}
+                initialLat={effectiveLat ?? -6.2}
+                initialLng={effectiveLng ?? 106.8}
+                onConfirm={handleMapConfirm}
+                onClose={() => setMapPickerVisible(false)}
+            />
         </View>
     );
 }

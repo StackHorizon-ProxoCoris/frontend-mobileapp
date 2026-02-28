@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     KeyboardAvoidingView, Platform, Alert, Animated, Dimensions,
-    ActivityIndicator,
+    ActivityIndicator, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
+import { apiPost } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +31,9 @@ export default function LoginScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [selectedRole, setSelectedRole] = useState<'user' | 'pemerintah' | 'admin'>('user');
+    const [forgotVisible, setForgotVisible] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [forgotLoading, setForgotLoading] = useState(false);
 
     const roles = [
         { key: 'user' as const, label: 'Masyarakat', icon: Users, description: 'Warga & Pengguna' },
@@ -80,7 +84,29 @@ export default function LoginScreen() {
         showToast({ type: 'info', title: 'Segera Hadir', message: 'Login dengan Google akan tersedia di versi berikutnya.' });
     };
 
+    const handleForgotPassword = async () => {
+        if (!forgotEmail.trim()) {
+            showToast({ type: 'warning', title: 'Email diperlukan', message: 'Masukkan alamat email terdaftar Anda.' });
+            return;
+        }
+        if (!/\S+@\S+\.\S+/.test(forgotEmail)) {
+            showToast({ type: 'warning', title: 'Format salah', message: 'Format email tidak valid.' });
+            return;
+        }
+        setForgotLoading(true);
+        const result = await apiPost('/auth/forgot-password', { email: forgotEmail.trim() }, false);
+        setForgotLoading(false);
+        setForgotVisible(false);
+        setForgotEmail('');
+        if (result.success) {
+            showToast({ type: 'success', title: 'Email Terkirim', message: result.message || 'Cek inbox Anda untuk link reset password.' });
+        } else {
+            showToast({ type: 'error', title: 'Gagal', message: result.message || 'Gagal mengirim email reset.' });
+        }
+    };
+
     return (
+        <>
         <View className="flex-1" style={{ backgroundColor: SiagaColors.primary }}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -258,7 +284,7 @@ export default function LoginScreen() {
                         {/* Forgot Password */}
                         <TouchableOpacity
                             className="self-end mb-6"
-                            onPress={() => Alert.alert('Lupa Password', 'Fitur reset password memerlukan backend Supabase.')}
+                            onPress={() => { setForgotEmail(email); setForgotVisible(true); }}
                             activeOpacity={0.7}
                         >
                             <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>Lupa Password?</Text>
@@ -317,5 +343,48 @@ export default function LoginScreen() {
                 </ScrollView>
             </KeyboardAvoidingView>
         </View>
+
+        {/* Forgot Password Modal */}
+        <Modal visible={forgotVisible} transparent animationType="fade" onRequestClose={() => setForgotVisible(false)}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+                <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360 }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: SiagaColors.primary, marginBottom: 4 }}>Reset Password</Text>
+                    <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginBottom: 16 }}>Masukkan email terdaftar. Kami akan mengirim link reset password.</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 2, borderColor: '#f1f5f9', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 2, marginBottom: 16, backgroundColor: '#fafbfc' }}>
+                        <Envelope size={18} color={SiagaColors.secondary} weight="duotone" />
+                        <TextInput
+                            style={{ flex: 1, marginLeft: 10, fontSize: 13, fontWeight: '600', color: SiagaColors.primary, paddingVertical: 10 }}
+                            placeholder="nama@email.com"
+                            placeholderTextColor={SiagaColors.secondary}
+                            value={forgotEmail}
+                            onChangeText={setForgotEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoFocus
+                        />
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <TouchableOpacity
+                            style={{ flex: 1, paddingVertical: 12, borderRadius: 14, borderWidth: 2, borderColor: '#f1f5f9', alignItems: 'center' }}
+                            onPress={() => { setForgotVisible(false); setForgotEmail(''); }}
+                        >
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.secondary }}>Batal</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={{ flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: SiagaColors.primary, alignItems: 'center', opacity: forgotLoading ? 0.7 : 1 }}
+                            onPress={handleForgotPassword}
+                            disabled={forgotLoading}
+                        >
+                            {forgotLoading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>Kirim Link</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+        </>
     );
 }
