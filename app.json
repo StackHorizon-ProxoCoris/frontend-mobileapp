@@ -27,7 +27,8 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "package": "com.stackhorizon.siaga"
     },
     "web": {
       "output": "static",
@@ -60,7 +61,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiUrl": ""
+      "apiUrl": "",
+      "router": {},
+      "eas": {
+        "projectId": "7c1dd4b2-546c-4b73-9ddf-e3605f680a92"
+      }
     }
   }
 }
