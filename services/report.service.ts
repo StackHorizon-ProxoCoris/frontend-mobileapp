@@ -8,6 +8,68 @@ import { apiGet, apiPost, apiPatch, type ApiResponse } from './api';
 // Tipe Data
 // ============================================================
 
+// ── UI Presentation Types (digunakan oleh komponen layar) ────
+export interface Report {
+  id: string;
+  type: string;
+  gradient: string;
+  badge: 'Kritis' | 'Sedang' | 'Rendah';
+  badgeBg: string;
+  badgeColor: string;
+  title: string;
+  desc: string;
+  distance: string;
+  votes: number;
+  photos: number;
+  time: string;
+  urgency: number;
+  urgencyColor: string;
+  supported: boolean;
+}
+
+export interface ReportDetail extends Report {
+  reporter: {
+    name: string;
+    initials: string;
+    badge: string;
+    reportsCount: number;
+  };
+  location: {
+    address: string;
+    district: string;
+    city: string;
+    lat: number;
+    lng: number;
+  };
+  description: string;
+  category: string;
+  status: 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
+  statusColor: string;
+  statusBg: string;
+  createdAt: string;
+  updatedAt: string;
+  photoUrls: string[];
+  comments: {
+    id: string;
+    user: string;
+    initials: string;
+    text: string;
+    time: string;
+    likes: number;
+  }[];
+  timeline: {
+    id: string;
+    title: string;
+    desc: string;
+    time: string;
+    status: 'done' | 'active' | 'pending';
+  }[];
+  respondedBy: string | null;
+  estimatedCompletion: string | null;
+  verifiedCount: number;
+}
+
+// ── API Response Types ───────────────────────────────────────
 export type BackendReportStatus = 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
 
 export interface ReportData {
@@ -60,6 +122,18 @@ export interface CreateReportPayload {
 // ============================================================
 // API Calls
 // ============================================================
+
+/** Ambil statistik agregasi laporan */
+export interface ReportStats {
+  total: number;
+  pending: number;
+  inProgress: number;
+  resolved: number;
+}
+
+export async function getReportStats(): Promise<ApiResponse<ReportStats>> {
+  return apiGet<ReportStats>('/reports/stats', false);
+}
 
 /** Ambil daftar laporan dengan filter & pagination */
 export async function getReports(params?: {
