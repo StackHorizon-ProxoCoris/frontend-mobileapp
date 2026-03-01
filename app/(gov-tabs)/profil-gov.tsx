@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity, Animated, Alert,
 } from 'react-native';
@@ -15,6 +15,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
+import { getReportStats, type ReportStats } from '@/services/report.service';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 // Fields yang tidak ada di auth context tetap sebagai defaults
@@ -28,12 +29,7 @@ const GOV_DEFAULTS = {
     accessLevel: 'Supervisor',
 };
 
-const KINERJA_STATS = [
-    { label: 'Laporan Ditangani', value: '247', icon: ClipboardText, color: SiagaColors.info, bg: '#eff6ff', trend: '+12 bulan ini' },
-    { label: 'Selesai Tepat Waktu', value: '92%', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: 'Sangat Baik' },
-    { label: 'Rata-rata Respons', value: '3.8j', icon: Clock, color: '#f59e0b', bg: '#fffbeb', trend: 'Di bawah target' },
-    { label: 'Skor Kinerja', value: '89', icon: Star, color: '#7c3aed', bg: '#f5f3ff', trend: 'Excellent' },
-];
+
 
 const RECENT_ACTIVITIES = [
     { text: 'Menyelesaikan Laporan', highlight: '#1042 — Jl. Merdeka', color: SiagaColors.success, time: '10 menit lalu', icon: CheckCircle, iconColor: SiagaColors.success, bg: '#ecfdf5' },
@@ -121,6 +117,29 @@ export default function GovProfilScreen() {
     const { user, logout } = useAuth();
     const { showToast } = useToast();
     const [showAccess, setShowAccess] = useState(false);
+    const [stats, setStats] = useState<ReportStats | null>(null);
+
+    // Load stats from API
+    useEffect(() => {
+        (async () => {
+            const result = await getReportStats();
+            if (result.success && result.data) setStats(result.data);
+        })();
+    }, []);
+
+    // Build KINERJA_STATS dari data API + mock statis
+    const KINERJA_STATS = useMemo(() => {
+        const total = stats?.total ?? 0;
+        const resolved = stats?.resolved ?? 0;
+        const inProgress = stats?.inProgress ?? 0;
+        const pct = total > 0 ? `${Math.round(resolved / total * 100)}%` : '0%';
+        return [
+            { label: 'Total Laporan Masuk', value: String(total), icon: ClipboardText, color: SiagaColors.info, bg: '#eff6ff', trend: `+${inProgress} dalam proses` },
+            { label: 'Laporan Selesai', value: String(resolved), icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: pct },
+            { label: 'Rata-rata Respons', value: '2.4j', icon: Clock, color: '#f59e0b', bg: '#fffbeb', trend: 'Di bawah target' },
+            { label: 'Tingkat Kepuasan', value: '95%', icon: Star, color: '#7c3aed', bg: '#f5f3ff', trend: 'Sangat Baik' },
+        ];
+    }, [stats]);
 
     // Derive USER from auth context + gov defaults
     const USER = {

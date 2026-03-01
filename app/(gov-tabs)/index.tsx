@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions,
+    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,17 +17,11 @@ import { SiagaColors } from '@/constants/theme';
 import Svg, { Circle } from 'react-native-svg';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
-import { getReports, type ReportData } from '@/services/report.service';
+import { getReports, getReportStats, type ReportData, type ReportStats } from '@/services/report.service';
 
 const { width } = Dimensions.get('window');
 
 // ───── Data ─────
-const STATS = [
-    { value: '12', label: 'Laporan Baru', icon: FilePlus, iconColor: SiagaColors.danger, bgColor: '#fef2f2', badge: '+5', badgeColor: SiagaColors.danger, badgeBg: '#fef2f2' },
-    { value: '8', label: 'Sedang Diproses', icon: HourglassMedium, iconColor: SiagaColors.warning, bgColor: '#fffbeb', badge: 'Aktif', badgeColor: '#d97706', badgeBg: '#fffbeb' },
-    { value: '34', label: 'Selesai Bulan Ini', icon: CheckCircle, iconColor: SiagaColors.success, bgColor: '#ecfdf5', badge: '92%', badgeColor: SiagaColors.success, badgeBg: '#ecfdf5' },
-    { value: '4.2', label: 'Rata-rata Respons', icon: Timer, iconColor: SiagaColors.info, bgColor: '#eff6ff', badge: 'Baik', badgeColor: SiagaColors.info, badgeBg: '#eff6ff', suffix: 'jam' },
-];
 
 const QUICK_ACTIONS = [
     { label: 'Broadcast', icon: Megaphone, color: SiagaColors.info, route: '/action-detail' },
@@ -40,13 +34,7 @@ const FILTER_CHIPS = ['Semua', 'Darurat', 'Baru', 'Proses', 'Selesai'];
 
 type SeverityLevel = 'Kritis' | 'Tinggi' | 'Sedang' | 'Rendah';
 
-const REPORTS = [
-    { title: 'Banjir Jl. Merdeka', area: 'Kec. Dayeuhkolot · 15 laporan serupa', time: '10 menit lalu', severity: 'Kritis' as SeverityLevel, icon: Waves, iconColor: '#2563eb', bgColor: '#eff6ff' },
-    { title: 'Longsor Tebing Jl. Dago', area: 'Kec. Cibeunying · 5 laporan serupa', time: '30 menit lalu', severity: 'Kritis' as SeverityLevel, icon: Mountains, iconColor: '#ea580c', bgColor: '#fff7ed' },
-    { title: 'Jalan Berlubang Jl. Sudirman', area: 'Kec. Coblong · 3 laporan serupa', time: '2 jam lalu', severity: 'Sedang' as SeverityLevel, icon: RoadHorizon, iconColor: '#d97706', bgColor: '#fffbeb' },
-    { title: 'Kebakaran Warung Jl. ABC', area: 'Kec. Regol · 2 laporan serupa', time: '1 jam lalu', severity: 'Tinggi' as SeverityLevel, icon: Fire, iconColor: '#dc2626', bgColor: '#fef2f2' },
-    { title: 'Tumpukan Sampah Gg. Melati', area: 'Kec. Coblong · 8 laporan serupa', time: '3 jam lalu', severity: 'Rendah' as SeverityLevel, icon: Trash, iconColor: '#059669', bgColor: '#ecfdf5' },
-];
+
 
 const SEVERITY_STYLES: Record<SeverityLevel, { textColor: string; bgColor: string }> = {
     'Kritis': { textColor: '#fff', bgColor: SiagaColors.danger },
@@ -97,6 +85,8 @@ export default function GovDashboardScreen() {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [reports, setReports] = useState<ReportData[]>([]);
+    const [stats, setStats] = useState<ReportStats | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(12)).current;
@@ -108,27 +98,42 @@ export default function GovDashboardScreen() {
         ]).start();
     }, []);
 
-    // Fetch laporan dari API
-    useEffect(() => {
-        async function load() {
-            const result = await getReports({ limit: 10 });
-            if (result.success && result.data) setReports(result.data);
-        }
-        load();
+    // Fungsi utama load semua data dashboard
+    const loadDashboardData = useCallback(async () => {
+        const [statsResult, reportsResult] = await Promise.all([
+            getReportStats(),
+            getReports({ limit: 10 }),
+        ]);
+        if (statsResult.success && statsResult.data) setStats(statsResult.data);
+        if (reportsResult.success && reportsResult.data) setReports(reportsResult.data);
     }, []);
 
-    // Hitung stats dari data API
+    // Initial load
+    useEffect(() => {
+        loadDashboardData();
+    }, [loadDashboardData]);
+
+    // Pull-to-refresh handler
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadDashboardData();
+        setRefreshing(false);
+    }, [loadDashboardData]);
+
+    // Build stat cards dari data API
     const STATS = useMemo(() => {
-        const baru = reports.filter(r => r.status === 'Menunggu').length;
-        const proses = reports.filter(r => r.status === 'Ditangani').length;
-        const selesai = reports.filter(r => r.status === 'Selesai').length;
+        const total = stats?.total ?? 0;
+        const pending = stats?.pending ?? 0;
+        const inProgress = stats?.inProgress ?? 0;
+        const resolved = stats?.resolved ?? 0;
+        const pct = total > 0 ? `${Math.round(resolved / total * 100)}%` : '0%';
         return [
-            { value: String(baru), label: 'Laporan Baru', icon: FilePlus, iconColor: SiagaColors.danger, bgColor: '#fef2f2', badge: `+${baru}`, badgeColor: SiagaColors.danger, badgeBg: '#fef2f2' },
-            { value: String(proses), label: 'Sedang Diproses', icon: HourglassMedium, iconColor: SiagaColors.warning, bgColor: '#fffbeb', badge: 'Aktif', badgeColor: '#d97706', badgeBg: '#fffbeb' },
-            { value: String(selesai), label: 'Selesai Bulan Ini', icon: CheckCircle, iconColor: SiagaColors.success, bgColor: '#ecfdf5', badge: reports.length > 0 ? `${Math.round(selesai / reports.length * 100)}%` : '0%', badgeColor: SiagaColors.success, badgeBg: '#ecfdf5' },
-            { value: '4.2', label: 'Rata-rata Respons', icon: Timer, iconColor: SiagaColors.info, bgColor: '#eff6ff', badge: 'Baik', badgeColor: SiagaColors.info, badgeBg: '#eff6ff', suffix: 'jam' },
+            { value: String(pending), label: 'Laporan Baru', icon: FilePlus, iconColor: SiagaColors.danger, bgColor: '#fef2f2', badge: `+${pending}`, badgeColor: SiagaColors.danger, badgeBg: '#fef2f2' },
+            { value: String(inProgress), label: 'Sedang Diproses', icon: HourglassMedium, iconColor: SiagaColors.warning, bgColor: '#fffbeb', badge: 'Aktif', badgeColor: '#d97706', badgeBg: '#fffbeb' },
+            { value: String(resolved), label: 'Selesai', icon: CheckCircle, iconColor: SiagaColors.success, bgColor: '#ecfdf5', badge: pct, badgeColor: SiagaColors.success, badgeBg: '#ecfdf5' },
+            { value: String(total), label: 'Total Laporan', icon: Timer, iconColor: SiagaColors.info, bgColor: '#eff6ff', badge: total > 0 ? 'Data' : '-', badgeColor: SiagaColors.info, badgeBg: '#eff6ff' },
         ];
-    }, [reports]);
+    }, [stats]);
 
     // Konversi reports ke UI format
     const REPORT_CARDS = useMemo(() => {
@@ -225,7 +230,7 @@ export default function GovDashboardScreen() {
                             <Text className="text-[13px] font-medium text-white/40">{user?.district || 'Dinas PU'} — {user?.city || 'Kota Bandung'}</Text>
                         </View>
                         <View className="items-end">
-                            <Text className="text-[12px] font-medium text-white/40">23 Feb 2026</Text>
+                            <Text className="text-[12px] font-medium text-white/40">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
                             <View className="flex-row items-center gap-1 mt-0.5">
                                 <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: SiagaColors.success }} />
                                 <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>Online</Text>
@@ -240,6 +245,14 @@ export default function GovDashboardScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 16 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={SiagaColors.info}
+                        colors={[SiagaColors.info]}
+                    />
+                }
             >
                 {/* ── ALERT DARURAT ── */}
                 <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -295,7 +308,6 @@ export default function GovDashboardScreen() {
                                     </View>
                                     <View className="flex-row items-baseline">
                                         <Text className="text-[24px] font-extrabold" style={{ color: SiagaColors.primary, lineHeight: 28 }}>{stat.value}</Text>
-                                        {stat.suffix && <Text className="text-[14px] ml-0.5" style={{ color: SiagaColors.secondary }}>{stat.suffix}</Text>}
                                     </View>
                                     <Text className="text-[13px] mt-1" style={{ color: SiagaColors.secondary }}>{stat.label}</Text>
                                 </TouchableOpacity>

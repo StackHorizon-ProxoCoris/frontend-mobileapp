@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    Animated, TextInput, Dimensions,
+    Animated, TextInput, Dimensions, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,9 +17,11 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import {
     getReports,
+    getReportStats,
     updateReportStatus,
     type BackendReportStatus,
     type ReportData,
+    type ReportStats,
 } from '@/services/report.service';
 import { useToast } from '@/contexts/toast.context';
 
@@ -44,13 +46,6 @@ type GovReportItem = {
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const FILTER_TABS = [
-    { key: 'Semua', count: 54 },
-    { key: 'Baru', count: 12 },
-    { key: 'Diproses', count: 8 },
-    { key: 'Selesai', count: 31 },
-    { key: 'Ditolak', count: 3 },
-];
 
 const SORT_OPTIONS = ['Terbaru', 'Prioritas', 'Lokasi', 'Kategori'];
 
@@ -81,92 +76,11 @@ const STATUS_ACTION_TARGET: Partial<Record<StatusType, BackendReportStatus>> = {
     Diproses: 'Selesai',
 };
 
-const SUMMARY_STATS = [
-    { value: '12', label: 'Baru', icon: FilePlus, color: SiagaColors.danger, bg: '#fef2f2', trend: '+5 hari ini' },
-    { value: '8', label: 'Diproses', icon: HourglassMedium, color: '#d97706', bg: '#fffbeb', trend: 'Aktif' },
-    { value: '31', label: 'Selesai', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: '92%' },
-    { value: '4.2j', label: 'Avg. Respons', icon: Timer, color: SiagaColors.info, bg: '#eff6ff', trend: 'Baik' },
-];
 
-const REPORTS = [
-    {
-        id: '#1045',
-        title: 'Banjir Jl. Merdeka',
-        desc: 'Ketinggian air mencapai 60cm, warga kesulitan beraktivitas.',
-        area: 'Kec. Dayeuhkolot',
-        cluster: '15 laporan serupa',
-        time: '10 menit lalu',
-        severity: 'Kritis' as SeverityLevel,
-        status: 'Baru' as StatusType,
-        icon: Waves, iconColor: '#2563eb', bgColor: '#eff6ff',
-    },
-    {
-        id: '#1044',
-        title: 'Longsor Tebing Jl. Dago',
-        desc: 'Material longsor menutup sebagian badan jalan.',
-        area: 'Kec. Cibeunying Kaler',
-        cluster: '5 laporan serupa',
-        time: '30 menit lalu',
-        severity: 'Kritis' as SeverityLevel,
-        status: 'Diproses' as StatusType,
-        icon: Mountains, iconColor: '#ea580c', bgColor: '#fff7ed',
-    },
-    {
-        id: '#1043',
-        title: 'Kebakaran Warung Jl. ABC',
-        desc: 'Api sudah terkendalikan, butuh pembersihan lokasi.',
-        area: 'Kec. Regol',
-        cluster: '2 laporan serupa',
-        time: '1 jam lalu',
-        severity: 'Tinggi' as SeverityLevel,
-        status: 'Diproses' as StatusType,
-        icon: Fire, iconColor: '#dc2626', bgColor: '#fef2f2',
-    },
-    {
-        id: '#1042',
-        title: 'Jalan Berlubang Jl. Sudirman',
-        desc: 'Lubang besar berdiameter ±80cm, berbahaya untuk kendaraan.',
-        area: 'Kec. Coblong',
-        cluster: '3 laporan serupa',
-        time: '2 jam lalu',
-        severity: 'Sedang' as SeverityLevel,
-        status: 'Baru' as StatusType,
-        icon: RoadHorizon, iconColor: '#d97706', bgColor: '#fffbeb',
-    },
-    {
-        id: '#1041',
-        title: 'Tumpukan Sampah Gg. Melati',
-        desc: 'Sampah menumpuk selama 4 hari, menimbulkan bau tidak sedap.',
-        area: 'Kec. Coblong',
-        cluster: '8 laporan serupa',
-        time: '3 jam lalu',
-        severity: 'Rendah' as SeverityLevel,
-        status: 'Selesai' as StatusType,
-        icon: Trash, iconColor: '#059669', bgColor: '#ecfdf5',
-    },
-    {
-        id: '#1040',
-        title: 'Lampu Jalan Padam Jl. Braga',
-        desc: '12 titik lampu mati sepanjang 400m, rawan kriminalitas malam.',
-        area: 'Kec. Sumur Bandung',
-        cluster: '6 laporan serupa',
-        time: '5 jam lalu',
-        severity: 'Sedang' as SeverityLevel,
-        status: 'Selesai' as StatusType,
-        icon: Warning, iconColor: '#f59e0b', bgColor: '#fffbeb',
-    },
-];
-
-const CATEGORY_DIST = [
-    { label: 'Banjir', count: 18, color: '#3b82f6', bg: '#eff6ff', pct: 33 },
-    { label: 'Jalan Rusak', count: 14, color: '#f59e0b', bg: '#fffbeb', pct: 26 },
-    { label: 'Sampah', count: 11, color: '#10b981', bg: '#ecfdf5', pct: 20 },
-    { label: 'Longsor', count: 7, color: '#f97316', bg: '#fff7ed', pct: 13 },
-    { label: 'Kebakaran', count: 4, color: '#ef4444', bg: '#fef2f2', pct: 8 },
-];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function StatCard({ item }: { item: typeof SUMMARY_STATS[0] }) {
+type StatItem = { value: string; label: string; icon: any; color: string; bg: string; trend: string };
+function StatCard({ item }: { item: StatItem }) {
     const IconComp = item.icon;
     return (
         <View
@@ -362,6 +276,8 @@ export default function GovLaporanScreen() {
     const [showSort, setShowSort] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
+    const [stats, setStats] = useState<ReportStats | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
     const [updatingStatusIds, setUpdatingStatusIds] = useState<Record<string, boolean>>({});
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -377,15 +293,24 @@ export default function GovLaporanScreen() {
     }, []);
 
     const loadReports = useCallback(async () => {
-        const result = await getReports({ limit: 20 });
-        if (result.success && result.data) {
-            setApiReports(result.data);
-        }
+        const [reportsResult, statsResult] = await Promise.all([
+            getReports({ limit: 50 }),
+            getReportStats(),
+        ]);
+        if (reportsResult.success && reportsResult.data) setApiReports(reportsResult.data);
+        if (statsResult.success && statsResult.data) setStats(statsResult.data);
     }, []);
 
-    // Ambil laporan dari API
+    // Initial load
     useEffect(() => {
         loadReports();
+    }, [loadReports]);
+
+    // Pull-to-refresh
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadReports();
+        setRefreshing(false);
     }, [loadReports]);
 
     const toggleSearch = () => {
@@ -533,18 +458,20 @@ export default function GovLaporanScreen() {
         }
     }, [loadReports, openReportDetail, showToast]);
 
-    // Hitung SUMMARY_STATS dari live data
+    // Build SUMMARY_STATS dari server stats
     const SUMMARY_STATS_LIVE = useMemo(() => {
-        const baru = REPORTS_LIVE.filter(r => r.status === 'Baru').length;
-        const proses = REPORTS_LIVE.filter(r => r.status === 'Diproses').length;
-        const selesai = REPORTS_LIVE.filter(r => r.status === 'Selesai').length;
+        const pending = stats?.pending ?? 0;
+        const inProgress = stats?.inProgress ?? 0;
+        const resolved = stats?.resolved ?? 0;
+        const total = stats?.total ?? 0;
+        const pct = total > 0 ? `${Math.round(resolved / total * 100)}%` : '0%';
         return [
-            { value: String(baru), label: 'Baru', icon: FilePlus, color: SiagaColors.danger, bg: '#fef2f2', trend: `+${baru} hari ini` },
-            { value: String(proses), label: 'Diproses', icon: HourglassMedium, color: '#d97706', bg: '#fffbeb', trend: 'Aktif' },
-            { value: String(selesai), label: 'Selesai', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: REPORTS_LIVE.length > 0 ? `${Math.round(selesai / REPORTS_LIVE.length * 100)}%` : '0%' },
-            { value: '4.2j', label: 'Avg. Respons', icon: Timer, color: SiagaColors.info, bg: '#eff6ff', trend: 'Baik' },
+            { value: String(pending), label: 'Baru', icon: FilePlus, color: SiagaColors.danger, bg: '#fef2f2', trend: `+${pending} hari ini` },
+            { value: String(inProgress), label: 'Diproses', icon: HourglassMedium, color: '#d97706', bg: '#fffbeb', trend: 'Aktif' },
+            { value: String(resolved), label: 'Selesai', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: pct },
+            { value: '2.4j', label: 'Avg. Respons', icon: Timer, color: SiagaColors.info, bg: '#eff6ff', trend: 'Baik' },
         ];
-    }, [REPORTS_LIVE]);
+    }, [stats]);
 
     // Hitung FILTER_TABS dari live data
     const FILTER_TABS_LIVE = useMemo(() => [
@@ -864,6 +791,14 @@ export default function GovLaporanScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={SiagaColors.info}
+                        colors={[SiagaColors.info]}
+                    />
+                }
             >
                 {/* Results header */}
                 <Animated.View

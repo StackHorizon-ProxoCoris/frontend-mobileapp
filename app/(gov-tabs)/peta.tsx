@@ -19,6 +19,18 @@ const { width, height } = Dimensions.get('window');
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SeverityLevel = 'Kritis' | 'Tinggi' | 'Sedang' | 'Rendah';
 type CategoryKey = 'Banjir' | 'Longsor' | 'Jalan Rusak' | 'Kebakaran' | 'Sampah' | 'Lainnya';
+type MapMarker = {
+    id: string;
+    title: string;
+    category: CategoryKey;
+    severity: SeverityLevel;
+    lat: number;
+    lng: number;
+    area: string;
+    cluster: number;
+    time: string;
+    desc: string;
+};
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const CATEGORY_MAP: Record<CategoryKey, { color: string; emoji: string; iconColor: string }> = {
@@ -37,37 +49,18 @@ const SEVERITY_COLOR: Record<SeverityLevel, string> = {
     'Rendah': '#10b981',
 };
 
-const REPORT_MARKERS = [
-    { id: '#1045', title: 'Banjir Jl. Merdeka', category: 'Banjir' as CategoryKey, severity: 'Kritis' as SeverityLevel, lat: -6.9218, lng: 107.6070, area: 'Kec. Dayeuhkolot', cluster: 15, time: '10 menit lalu', desc: 'Ketinggian air mencapai 60cm, warga kesulitan beraktivitas.' },
-    { id: '#1044', title: 'Longsor Tebing Jl. Dago', category: 'Longsor' as CategoryKey, severity: 'Kritis' as SeverityLevel, lat: -6.8869, lng: 107.6101, area: 'Kec. Cibeunying', cluster: 5, time: '30 menit lalu', desc: 'Material longsor menutup sebagian badan jalan.' },
-    { id: '#1043', title: 'Kebakaran Warung Jl. ABC', category: 'Kebakaran' as CategoryKey, severity: 'Kritis' as SeverityLevel, lat: -6.9330, lng: 107.6018, area: 'Kec. Regol', cluster: 2, time: '1 jam lalu', desc: 'Api membesar dekati permukiman padat.' },
-    { id: '#1042', title: 'Jalan Berlubang Jl. Sudirman', category: 'Jalan Rusak' as CategoryKey, severity: 'Sedang' as SeverityLevel, lat: -6.9050, lng: 107.6150, area: 'Kec. Coblong', cluster: 3, time: '2 jam lalu', desc: 'Lubang besar berdiameter ±80cm, berbahaya untuk kendaraan.' },
-    { id: '#1041', title: 'Tumpukan Sampah Gg. Melati', category: 'Sampah' as CategoryKey, severity: 'Rendah' as SeverityLevel, lat: -6.9080, lng: 107.6200, area: 'Kec. Coblong', cluster: 8, time: '3 jam lalu', desc: 'Sampah menumpuk selama 4 hari, menimbulkan bau tidak sedap.' },
-    { id: '#1039', title: 'Banjir Kec. Antapani', category: 'Banjir' as CategoryKey, severity: 'Tinggi' as SeverityLevel, lat: -6.9153, lng: 107.6545, area: 'Kec. Antapani', cluster: 10, time: '4 jam lalu', desc: 'Drainase tersumbat menyebabkan genangan di pemukiman.' },
-    { id: '#1038', title: 'Longsor Jl. Ciumbuleuit', category: 'Longsor' as CategoryKey, severity: 'Sedang' as SeverityLevel, lat: -6.8720, lng: 107.5950, area: 'Kec. Cidadap', cluster: 4, time: '5 jam lalu', desc: 'Lereng longsor pasca hujan deras, 1 rumah terdampak.' },
-    { id: '#1037', title: 'Sampah Jl. Pasteur', category: 'Sampah' as CategoryKey, severity: 'Rendah' as SeverityLevel, lat: -6.8940, lng: 107.5880, area: 'Kec. Sukajadi', cluster: 6, time: '6 jam lalu', desc: 'Tumpukan sampah di pinggir jalan utama belum diangkut.' },
-    { id: '#1036', title: 'Jalan Rusak Jl. Purnawarman', category: 'Jalan Rusak' as CategoryKey, severity: 'Sedang' as SeverityLevel, lat: -6.9210, lng: 107.6095, area: 'Kec. Sumur Bandung', cluster: 7, time: '7 jam lalu', desc: 'Aspal terkelupas sepanjang 200m, membahayakan pengendara.' },
-    { id: '#1035', title: 'Banjir Jl. Soekarno-Hatta', category: 'Banjir' as CategoryKey, severity: 'Tinggi' as SeverityLevel, lat: -6.9432, lng: 107.6381, area: 'Kec. Batununggal', cluster: 12, time: '8 jam lalu', desc: 'Titik banjir langganan, dibutuhkan perbaikan drainase permanen.' },
-];
 
-// Hotspot zones: areas with high density
-const HOTSPOTS = [
-    { lat: -6.9218, lng: 107.6070, radius: 600, count: 18, label: 'Dayeuhkolot' },
-    { lat: -6.9080, lng: 107.6180, radius: 500, count: 14, label: 'Coblong' },
-    { lat: -6.9432, lng: 107.6381, radius: 450, count: 12, label: 'Batununggal' },
-    { lat: -6.9153, lng: 107.6545, radius: 400, count: 10, label: 'Antapani' },
-];
 
 type FilterKey = CategoryKey | 'Semua' | 'Darurat';
 const FILTER_CATEGORIES: FilterKey[] = ['Semua', 'Darurat', 'Banjir', 'Longsor', 'Jalan Rusak', 'Kebakaran', 'Sampah'];
 
 // ─── Map HTML Generator ───────────────────────────────────────────────────────
-function buildMapHtml(activeFilter: string, showHotspot: boolean) {
+function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number; radius: number; count: number; label: string }[], activeFilter: string, showHotspot: boolean) {
     const filtered = activeFilter === 'Semua'
-        ? REPORT_MARKERS
+        ? markers
         : activeFilter === 'Darurat'
-            ? REPORT_MARKERS.filter(r => r.severity === 'Kritis')
-            : REPORT_MARKERS.filter(r => r.category === activeFilter);
+            ? markers.filter(r => r.severity === 'Kritis')
+            : markers.filter(r => r.category === activeFilter);
 
     const markersJS = filtered.map((m, i) => {
         const cat = CATEGORY_MAP[m.category];
@@ -93,7 +86,7 @@ function buildMapHtml(activeFilter: string, showHotspot: boolean) {
         `;
     }).join('\n');
 
-    const hotspotsJS = showHotspot ? HOTSPOTS.map((h, i) => `
+    const hotspotsJS = showHotspot ? hotspots.map((h, i) => `
         var heat${i} = L.circle([${h.lat}, ${h.lng}], {
             radius: ${h.radius},
             color: 'rgba(239,68,68,0.6)',
@@ -208,7 +201,7 @@ function LegendChip({ cat, active, onPress }: { cat: FilterKey; active: boolean;
 function ReportBottomSheet({
     report, onClose, onNavigate,
 }: {
-    report: typeof REPORT_MARKERS[0] | null;
+    report: MapMarker | null;
     onClose: () => void;
     onNavigate: () => void;
 }) {
@@ -336,9 +329,10 @@ export default function GovPetaScreen() {
     );
     const [showHotspot, setShowHotspot] = useState(true);
     const [showLegend, setShowLegend] = useState(false);
-    const [selectedReport, setSelectedReport] = useState<typeof REPORT_MARKERS[0] | null>(null);
-    const [mapKey, setMapKey] = useState(0); // force reload on filter change
+    const [selectedReport, setSelectedReport] = useState<MapMarker | null>(null);
+    const [mapKey, setMapKey] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [dataLoading, setDataLoading] = useState(true);
     const [showStats, setShowStats] = useState(false);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
 
@@ -347,14 +341,16 @@ export default function GovPetaScreen() {
     // Ambil laporan dari API
     useEffect(() => {
         async function load() {
-            const result = await getReports({ limit: 30 });
+            setDataLoading(true);
+            const result = await getReports({ limit: 100 });
             if (result.success && result.data) setApiReports(result.data);
+            setDataLoading(false);
         }
         load();
     }, []);
 
-    // Konversi API data ke REPORT_MARKERS format
-    const LIVE_MARKERS = useMemo(() => {
+    // Konversi API data ke MapMarker format
+    const LIVE_MARKERS = useMemo<MapMarker[]>(() => {
         return apiReports.filter(r => r.lat && r.lng).map(r => {
             const category: CategoryKey = (['Banjir', 'Longsor', 'Jalan Rusak', 'Kebakaran', 'Sampah'].includes(r.category) ? r.category : 'Lainnya') as CategoryKey;
             const severity: SeverityLevel = r.urgency >= 80 ? 'Kritis' : r.urgency >= 60 ? 'Tinggi' : r.urgency >= 40 ? 'Sedang' : 'Rendah';
@@ -363,8 +359,8 @@ export default function GovPetaScreen() {
                 title: r.title,
                 category,
                 severity,
-                lat: r.lat,
-                lng: r.lng,
+                lat: r.lat!,
+                lng: r.lng!,
                 area: r.district || r.city || '-',
                 cluster: r.votesCount,
                 time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
@@ -373,7 +369,27 @@ export default function GovPetaScreen() {
         });
     }, [apiReports]);
 
-    const openSheet = useCallback((report: typeof REPORT_MARKERS[0]) => {
+    // Hitung hotspots dinamis dari sebaran data per area
+    const DYNAMIC_HOTSPOTS = useMemo(() => {
+        const areaMap: Record<string, { lats: number[]; lngs: number[]; count: number }> = {};
+        LIVE_MARKERS.forEach(m => {
+            if (!areaMap[m.area]) areaMap[m.area] = { lats: [], lngs: [], count: 0 };
+            areaMap[m.area].lats.push(m.lat);
+            areaMap[m.area].lngs.push(m.lng);
+            areaMap[m.area].count++;
+        });
+        return Object.entries(areaMap)
+            .filter(([, v]) => v.count >= 2)
+            .map(([label, v]) => ({
+                lat: v.lats.reduce((a, b) => a + b, 0) / v.lats.length,
+                lng: v.lngs.reduce((a, b) => a + b, 0) / v.lngs.length,
+                radius: Math.min(200 + v.count * 50, 800),
+                count: v.count,
+                label,
+            }));
+    }, [LIVE_MARKERS]);
+
+    const openSheet = useCallback((report: MapMarker) => {
         setSelectedReport(report);
         Animated.spring(sheetAnim, { toValue: 1, useNativeDriver: true, friction: 7 }).start();
     }, [sheetAnim]);
@@ -388,9 +404,8 @@ export default function GovPetaScreen() {
         try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'marker') {
-                // Try live markers first, fallback to REPORT_MARKERS
-                const report = LIVE_MARKERS.find(r => r.id === data.id) || REPORT_MARKERS.find(r => r.id === data.id);
-                if (report) openSheet(report as any);
+                const report = LIVE_MARKERS.find(r => r.id === data.id);
+                if (report) openSheet(report);
             } else if (data.type === 'dismiss') {
                 closeSheet();
             }
@@ -408,13 +423,12 @@ export default function GovPetaScreen() {
         setMapKey(k => k + 1);
     };
 
-    const allMarkers = LIVE_MARKERS.length > 0 ? LIVE_MARKERS : REPORT_MARKERS;
-    const criticalCount = allMarkers.filter(r => r.severity === 'Kritis').length;
+    const criticalCount = LIVE_MARKERS.filter(r => r.severity === 'Kritis').length;
     const filteredCount = activeFilter === 'Semua'
-        ? allMarkers.length
+        ? LIVE_MARKERS.length
         : activeFilter === 'Darurat'
-            ? allMarkers.filter(r => r.severity === 'Kritis').length
-            : allMarkers.filter(r => r.category === activeFilter).length;
+            ? LIVE_MARKERS.filter(r => r.severity === 'Kritis').length
+            : LIVE_MARKERS.filter(r => r.category === activeFilter).length;
 
     return (
         <View style={{ flex: 1, backgroundColor: '#f4f7fb' }}>
@@ -492,10 +506,10 @@ export default function GovPetaScreen() {
                     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
                 }}>
                     {[
-                        { label: 'Total', value: allMarkers.length, color: SiagaColors.primary, bg: '#f4f7fb' },
-                        { label: 'Kritis', value: allMarkers.filter(r => r.severity === 'Kritis').length, color: '#ef4444', bg: '#fef2f2' },
-                        { label: 'Banjir', value: allMarkers.filter(r => r.category === 'Banjir').length, color: '#3b82f6', bg: '#eff6ff' },
-                        { label: 'Hotspot', value: HOTSPOTS.length, color: '#f97316', bg: '#fff7ed' },
+                        { label: 'Total', value: LIVE_MARKERS.length, color: SiagaColors.primary, bg: '#f4f7fb' },
+                        { label: 'Kritis', value: LIVE_MARKERS.filter(r => r.severity === 'Kritis').length, color: '#ef4444', bg: '#fef2f2' },
+                        { label: 'Banjir', value: LIVE_MARKERS.filter(r => r.category === 'Banjir').length, color: '#3b82f6', bg: '#eff6ff' },
+                        { label: 'Hotspot', value: DYNAMIC_HOTSPOTS.length, color: '#f97316', bg: '#fff7ed' },
                     ].map((s, i) => (
                         <View key={i} style={{ flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 12, backgroundColor: s.bg }}>
                             <Text style={{ fontSize: 18, fontWeight: '800', color: s.color }}>{s.value}</Text>
@@ -544,7 +558,7 @@ export default function GovPetaScreen() {
                 <WebView
                     key={mapKey}
                     ref={webviewRef}
-                    source={{ html: buildMapHtml(activeFilter, showHotspot) }}
+                    source={{ html: buildMapHtml(LIVE_MARKERS, DYNAMIC_HOTSPOTS, activeFilter, showHotspot) }}
                     style={{ flex: 1 }}
                     javaScriptEnabled
                     domStorageEnabled
