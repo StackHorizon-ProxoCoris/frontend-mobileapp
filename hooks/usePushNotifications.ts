@@ -19,12 +19,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-interface PushNotificationState {
-  expoPushToken: string | null;
-  notification: Notifications.Notification | null;
-  error: string | null;
-}
-
 /**
  * Custom hook untuk push notifications
  * - Request permission
