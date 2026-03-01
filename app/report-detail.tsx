@@ -12,7 +12,7 @@ import {
   CalendarBlank, Buildings, UserCircle, Medal, CaretRight, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { type ReportDetail } from '@/data/dummy';
+import { type ReportDetail } from '@/services/report.service';
 import { useAuth } from '@/context/auth';
 import { getReportById, toggleReportVote, verifyReport, toggleBookmark } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';

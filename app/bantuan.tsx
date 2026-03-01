@@ -9,7 +9,25 @@ import {
   Question, BookOpen,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyFAQ, type FAQItem } from '@/data/dummy';
+
+// ── FAQ Data (konstanta lokal — tidak perlu API dinamis untuk MVP) ──
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
+
+const FAQ_DATA: FAQItem[] = [
+  { id: 'faq_01', question: 'Bagaimana cara membuat laporan?', answer: 'Buka tab Lapor, ambil foto, isi detail lokasi dan deskripsi masalah, lalu kirim. Laporan Anda akan diverifikasi oleh warga sekitar sebelum diteruskan ke dinas terkait.', category: 'Laporan' },
+  { id: 'faq_02', question: 'Apa itu Eco-Points?', answer: 'Eco-Points adalah poin reward yang didapat saat berkontribusi di SIAGA. Anda mendapat poin dari membuat laporan (+10), berpartisipasi dalam aksi (+50), mendukung laporan (+5), dan memverifikasi (+5). Poin dapat ditukar dengan badge dan hadiah.', category: 'Eco-Points' },
+  { id: 'faq_03', question: 'Bagaimana cara mendapatkan badge?', answer: 'Badge didapatkan berdasarkan akumulasi Eco-Points dan aktivitas. Setiap level badge memiliki threshold poin tertentu. Contoh: Warga Peduli (100 pts), Relawan Aktif (200 pts), Pahlawan Komunitas (300 pts).', category: 'Badge' },
+  { id: 'faq_04', question: 'Apakah laporan saya anonim?', answer: 'Secara default, nama pelapor ditampilkan untuk membangun kepercayaan. Namun, Anda bisa memilih opsi anonim saat membuat laporan jika diperlukan.', category: 'Privasi' },
+  { id: 'faq_05', question: 'Bagaimana proses penanganan laporan?', answer: 'Setelah dibuat, laporan akan diverifikasi warga (min. 3 verifikasi), lalu diteruskan ke dinas terkait. Tim lapangan akan dikirim dan progress bisa dipantau real-time melalui halaman Pantau.', category: 'Laporan' },
+  { id: 'faq_06', question: 'Apa itu fitur SOS darurat?', answer: 'Fitur SOS memungkinkan Anda mengirim sinyal darurat beserta lokasi GPS ke layanan darurat (112), pemadam (113), ambulance (118), dan polisi (110) dalam satu ketukan.', category: 'Darurat' },
+  { id: 'faq_07', question: 'Bagaimana cara berpartisipasi dalam aksi positif?', answer: 'Buka halaman Beranda, scroll ke bagian Aksi Positif, dan pilih aksi yang ingin diikuti. Klik "Gabung" untuk mendaftar. Anda akan mendapat notifikasi saat acara dimulai.', category: 'Aksi Positif' },
+  { id: 'faq_08', question: 'Apakah data saya aman?', answer: 'Ya, SIAGA menggunakan enkripsi end-to-end dan mematuhi standar keamanan data. Data lokasi hanya digunakan saat diperlukan. Anda dapat mengelola pengaturan privasi di menu Pengaturan.', category: 'Privasi' },
+];
 
 const CATEGORY_ICONS: Record<string, { icon: React.ComponentType<any>; color: string; bg: string }> = {
   Laporan: { icon: Megaphone, color: '#3b82f6', bg: '#eff6ff' },
@@ -29,7 +47,7 @@ export default function BantuanScreen() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState('Semua');
 
-  const filteredFAQ = dummyFAQ.filter(faq => {
+  const filteredFAQ = FAQ_DATA.filter(faq => {
     const matchCategory = activeCategory === 'Semua' || faq.category === activeCategory;
     const matchSearch = searchQuery === '' ||
       faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||

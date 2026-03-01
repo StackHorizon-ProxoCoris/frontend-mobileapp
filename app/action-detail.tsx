@@ -13,7 +13,7 @@ import {
   ShieldCheck, Trophy, ChartBar, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyActionDetails, type ActionDetail } from '@/data/dummy';
+import { type ActionDetail } from '@/services/action.service';
 import { useAuth } from '@/context/auth';
 import { getActionById, joinAction, leaveAction, type ActionData } from '@/services/action.service';
 import { toggleBookmark } from '@/services/report.service';
@@ -108,9 +108,6 @@ export default function ActionDetailScreen() {
           verifiedBy: a.verifiedBy || '',
         };
         setAction(mapped);
-      } else {
-        const dummy = dummyActionDetails[id ?? ''];
-        if (dummy) setAction(dummy);
       }
       setIsLoading(false);
     }

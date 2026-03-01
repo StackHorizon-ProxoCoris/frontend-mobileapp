@@ -23,7 +23,7 @@ import { getAreaStatus, type AreaStatusData } from '@/services/area-status.servi
 import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import {
   type Report,
-} from '@/data/dummy';
+} from '@/services/report.service';
 
 function getGreeting(): { text: string; Icon: React.ComponentType<any> } {
   const hour = new Date().getHours();

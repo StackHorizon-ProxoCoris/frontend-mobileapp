@@ -10,7 +10,7 @@ import {
     ShieldCheck, Warning, Eye, NavigationArrow,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { type Report } from '@/data/dummy';
+import { type Report } from '@/services/report.service';
 import { getReports, type ReportData } from '@/services/report.service';
 import EmbeddedMap from '@/components/ui/MapView';
 import SOSButton from '@/components/ui/SOSButton';
