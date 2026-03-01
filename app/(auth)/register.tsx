@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import * as Location from 'expo-location';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     KeyboardAvoidingView, Platform, Alert, Animated,
@@ -10,7 +11,7 @@ import {
     ShieldCheck, Envelope, Lock, Eye, EyeSlash,
     User, Phone, MapPin, ArrowLeft, ArrowRight,
     GoogleLogo, CheckCircle, CaretRight, IdentificationCard,
-    Buildings, Check, Warning as WarningIcon,
+    Buildings, Check, Warning as WarningIcon, GpsFix,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
@@ -46,6 +47,7 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [detectingLocation, setDetectingLocation] = useState(false);
     const [form, setForm] = useState<FormData>({
         fullName: '',
         email: '',
@@ -315,12 +317,53 @@ export default function RegisterScreen() {
                 <Text className="text-[11px] text-secondary mt-0.5">Bantu kami menampilkan laporan di sekitar Anda</Text>
             </View>
 
+            {/* Auto-detect Location Button */}
+            <TouchableOpacity
+                className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-4"
+                style={{ backgroundColor: SiagaColors.primary + '12', borderWidth: 1.5, borderColor: SiagaColors.primary + '30', borderStyle: 'dashed' }}
+                disabled={detectingLocation}
+                activeOpacity={0.7}
+                onPress={async () => {
+                    setDetectingLocation(true);
+                    try {
+                        const { status } = await Location.requestForegroundPermissionsAsync();
+                        if (status !== 'granted') {
+                            showToast({ type: 'warning', title: 'Izin Lokasi Ditolak', message: 'Aktifkan izin lokasi untuk deteksi otomatis.' });
+                            setDetectingLocation(false);
+                            return;
+                        }
+                        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                        if (results.length > 0) {
+                            const geo = results[0];
+                            updateForm('district', geo.subregion || geo.district || '');
+                            updateForm('city', geo.city || geo.region || '');
+                            showToast({ type: 'success', title: 'Lokasi Terdeteksi! 📍', message: `${geo.subregion || ''}, ${geo.city || ''}` });
+                        } else {
+                            showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat mendeteksi alamat dari lokasi Anda.' });
+                        }
+                    } catch (err) {
+                        showToast({ type: 'error', title: 'Gagal', message: 'Tidak bisa mendapatkan lokasi. Coba lagi.' });
+                    }
+                    setDetectingLocation(false);
+                }}
+            >
+                {detectingLocation ? (
+                    <ActivityIndicator size="small" color={SiagaColors.primary} />
+                ) : (
+                    <GpsFix size={18} color={SiagaColors.primary} weight="duotone" />
+                )}
+                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
+                    {detectingLocation ? 'Mendeteksi lokasi...' : 'Deteksi Lokasi Otomatis'}
+                </Text>
+            </TouchableOpacity>
+
             {/* District */}
             <View className="mb-3.5">
                 <Text className="text-[11px] font-bold text-primary/70 mb-1.5 ml-1">Kecamatan</Text>
                 {renderInput(
                     <MapPin size={18} color={focusedField === 'district' ? SiagaColors.primary : SiagaColors.secondary} weight="duotone" />,
-                    'district', 'Contoh: Coblong', form.district,
+                    'district', 'Contoh: Tikala', form.district,
                     (t) => updateForm('district', t),
                     { autoCapitalize: 'words' }
                 )}
@@ -331,7 +374,7 @@ export default function RegisterScreen() {
                 <Text className="text-[11px] font-bold text-primary/70 mb-1.5 ml-1">Kota / Kabupaten</Text>
                 {renderInput(
                     <Buildings size={18} color={focusedField === 'city' ? SiagaColors.primary : SiagaColors.secondary} weight="duotone" />,
-                    'city', 'Contoh: Kota Bandung', form.city,
+                    'city', 'Contoh: Kota Manado', form.city,
                     (t) => updateForm('city', t),
                     { autoCapitalize: 'words' }
                 )}

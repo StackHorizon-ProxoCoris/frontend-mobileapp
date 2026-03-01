@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const backendRole = normalizeRole(d.role);
 
       setUser({
-        id: d.id || d.authId,
+        id: d.authId || d.auth_id || d.id,
         email: d.email,
         fullName: d.fullName || d.full_name || '',
         initials: d.initials || '',

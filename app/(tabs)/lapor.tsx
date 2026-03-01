@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Image as RNImage, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +42,7 @@ const AKSI_TYPES = [
 ];
 
 export default function LaporScreen() {
+    const router = useRouter();
     const [tab, setTab] = useState<TabType>('masalah');
     const [selectedCat, setSelectedCat] = useState<string | null>(null);
     const [selectedAksi, setSelectedAksi] = useState<string | null>(null);
@@ -452,7 +454,11 @@ export default function LaporScreen() {
                                     setIsSubmitting(false);
                                     if (result.success) {
                                         showToast({ type: 'success', title: 'Berhasil! 🎉', message: 'Laporan Anda berhasil dikirim dan akan segera divalidasi.' });
+                                        const newReportId = result.data?.id;
                                         setSelectedCat(null); setTitle(''); setDescription(''); setPhotos([]);
+                                        if (newReportId) {
+                                            setTimeout(() => router.push(`/report-detail?id=${newReportId}`), 400);
+                                        }
                                     } else {
                                         showToast({ type: 'error', title: 'Gagal', message: result.message || 'Terjadi kesalahan saat mengirim laporan.' });
                                     }

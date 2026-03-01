@@ -105,10 +105,16 @@ export default function HomeScreen() {
   const handleSupport = async (reportId: string) => {
     const result = await toggleReportVote(reportId);
     if (result.success) {
+      const serverVoted = result.data?.voted;
+      const serverCount = result.data?.votesCount;
       setReports(prev =>
         prev.map(r =>
           r.id === reportId
-            ? { ...r, supported: !r.supported, votes: r.supported ? r.votes - 1 : r.votes + 1 }
+            ? {
+                ...r,
+                supported: serverVoted ?? !r.supported,
+                votes: serverCount ?? (r.supported ? r.votes - 1 : r.votes + 1),
+              }
             : r
         )
       );

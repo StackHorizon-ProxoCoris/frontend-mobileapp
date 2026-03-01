@@ -149,7 +149,7 @@ export async function getReports(params?: {
   if (params?.limit) query.set('limit', String(params.limit));
 
   const queryStr = query.toString();
-  return apiGet<ReportData[]>(`/reports${queryStr ? `?${queryStr}` : ''}`, false);
+  return apiGet<ReportData[]>(`/reports${queryStr ? `?${queryStr}` : ''}`);
 }
 
 /** Ambil detail laporan berdasarkan ID */

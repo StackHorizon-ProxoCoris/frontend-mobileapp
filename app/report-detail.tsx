@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, Image,
-  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform,
+  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,126 +32,124 @@ export default function ReportDetailScreen() {
   const [votes, setVotes] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
+  const [localComments, setLocalComments] = useState<{ id: string; userId: string; user: string; initials: string; text: string; time: string; createdAt: string; likes: number }[]>([]);
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [verifiedCount, setVerifiedCount] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  // Fetch report dari API berdasarkan param id
-  useEffect(() => {
-    async function load() {
-      setIsLoading(true);
-      setLoadError(null);
-
-      if (!reportId) {
-        setReport(null);
-        setLoadError('ID laporan tidak valid.');
-        setIsLoading(false);
-        return;
-      }
-
-      const result = await getReportById(reportId);
-      if (result.success && result.data) {
-        const r = result.data;
-        const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
-        const badge: 'Kritis' | 'Sedang' | 'Rendah' = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
-        const statusColorMap: Record<string, { color: string; bg: string }> = {
-          'Menunggu': { color: '#d97706', bg: '#fffbeb' },
-          'Diverifikasi': { color: '#2563eb', bg: '#eff6ff' },
-          'Ditangani': { color: '#7c3aed', bg: '#f5f3ff' },
-          'Selesai': { color: '#059669', bg: '#ecfdf5' },
-        };
-        const sc = statusColorMap[r.status] || statusColorMap['Menunggu'];
-        const mapped: ReportDetail = {
-          id: r.id,
-          type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
-          gradient: '#3b82f6',
-          badge,
-          badgeBg: badge === 'Kritis' ? '#fee2e2' : badge === 'Sedang' ? '#fef9c3' : '#ecfdf5',
-          badgeColor: urgencyColor,
-          title: r.title,
-          desc: r.description || '',
-          distance: '-',
-          votes: r.votesCount,
-          photos: r.photosCount || r.photoUrls?.length || 0,
-          time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-          urgency: r.urgency,
-          urgencyColor,
-          supported: r.hasVoted || false,
-          reporter: {
-            name: r.reporter?.fullName || 'Anonim',
-            initials: r.reporter?.initials || '??',
-            badge: r.reporter?.currentBadge || 'Warga',
-            reportsCount: r.reporter?.totalReports || 0,
-          },
-          location: {
-            address: r.address,
-            district: r.district,
-            city: r.city,
-            lat: r.lat,
-            lng: r.lng,
-          },
-          description: r.description || '',
-          category: r.category,
-          status: r.status,
-          statusColor: sc.color,
-          statusBg: sc.bg,
-          createdAt: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-          updatedAt: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-          photoUrls: r.photoUrls || [],
-          comments: (r.comments || []).map((c: any) => ({
-            id: c.id,
-            user: c.user?.fullName || c.fullName || 'User',
-            initials: c.user?.initials || c.initials || '??',
-            text: c.text || c.content || '',
-            time: new Date(c.createdAt || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-            likes: c.likes || 0,
-          })),
-          timeline: [
-            { id: 't1', title: 'Laporan Diterima', desc: 'Laporan masuk ke sistem', time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
-            ...(r.status !== 'Menunggu' ? [{ id: 't2', title: 'Diverifikasi', desc: 'Laporan telah diverifikasi', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
-            ...(r.status === 'Ditangani' || r.status === 'Selesai' ? [{ id: 't3', title: 'Sedang Ditangani', desc: r.respondedBy ? `Ditangani oleh ${r.respondedBy}` : 'Sedang dalam penanganan', time: '-', status: (r.status === 'Ditangani' ? 'active' : 'done') as 'active' | 'done' }] : []),
-            ...(r.status === 'Selesai' ? [{ id: 't4', title: 'Selesai', desc: 'Masalah telah diselesaikan', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
-            ...(r.status === 'Menunggu' ? [{ id: 't2p', title: 'Menunggu Verifikasi', desc: 'Laporan sedang diperiksa', time: '-', status: 'active' as const }] : []),
-          ],
-          respondedBy: r.respondedBy,
-          estimatedCompletion: r.estimatedCompletion,
-          verifiedCount: r.verifiedCount || 0,
-        };
-        setReport(mapped);
-        setVotes(mapped.votes);
-        setSupported(mapped.supported);
-      } else {
-        setReport(null);
-        setLoadError(result.message || 'Laporan tidak ditemukan.');
-      }
+  // Fetch report + comments dari API
+  const loadAll = useCallback(async () => {
+    if (!reportId) {
+      setReport(null);
+      setLoadError('ID laporan tidak valid.');
       setIsLoading(false);
+      return;
     }
-    load();
+
+    const result = await getReportById(reportId);
+    if (result.success && result.data) {
+      const r = result.data;
+      const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
+      const badge: 'Kritis' | 'Sedang' | 'Rendah' = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
+      const statusColorMap: Record<string, { color: string; bg: string }> = {
+        'Menunggu': { color: '#d97706', bg: '#fffbeb' },
+        'Diverifikasi': { color: '#2563eb', bg: '#eff6ff' },
+        'Ditangani': { color: '#7c3aed', bg: '#f5f3ff' },
+        'Selesai': { color: '#059669', bg: '#ecfdf5' },
+      };
+      const sc = statusColorMap[r.status] || statusColorMap['Menunggu'];
+      const mapped: ReportDetail = {
+        id: r.id,
+        type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
+        gradient: '#3b82f6',
+        badge,
+        badgeBg: badge === 'Kritis' ? '#fee2e2' : badge === 'Sedang' ? '#fef9c3' : '#ecfdf5',
+        badgeColor: urgencyColor,
+        title: r.title,
+        desc: r.description || '',
+        distance: '-',
+        votes: r.votesCount,
+        photos: r.photosCount || r.photoUrls?.length || 0,
+        time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        urgency: r.urgency,
+        urgencyColor,
+        supported: r.hasVoted || false,
+        reporter: {
+          name: r.reporter?.fullName || 'Anonim',
+          initials: r.reporter?.initials || '??',
+          badge: r.reporter?.currentBadge || 'Warga',
+          reportsCount: r.reporter?.totalReports || 0,
+        },
+        location: {
+          address: r.address,
+          district: r.district,
+          city: r.city,
+          lat: r.lat,
+          lng: r.lng,
+        },
+        description: r.description || '',
+        category: r.category,
+        status: r.status,
+        statusColor: sc.color,
+        statusBg: sc.bg,
+        createdAt: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        updatedAt: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        photoUrls: r.photoUrls || [],
+        comments: [],
+        timeline: [
+          { id: 't1', title: 'Laporan Diterima', desc: 'Laporan masuk ke sistem', time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
+          ...(r.status !== 'Menunggu' ? [{ id: 't2', title: 'Diverifikasi', desc: 'Laporan telah diverifikasi', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+          ...(r.status === 'Ditangani' || r.status === 'Selesai' ? [{ id: 't3', title: 'Sedang Ditangani', desc: r.respondedBy ? `Ditangani oleh ${r.respondedBy}` : 'Sedang dalam penanganan', time: '-', status: (r.status === 'Ditangani' ? 'active' : 'done') as 'active' | 'done' }] : []),
+          ...(r.status === 'Selesai' ? [{ id: 't4', title: 'Selesai', desc: 'Masalah telah diselesaikan', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+          ...(r.status === 'Menunggu' ? [{ id: 't2p', title: 'Menunggu Verifikasi', desc: 'Laporan sedang diperiksa', time: '-', status: 'active' as const }] : []),
+        ],
+        respondedBy: r.respondedBy,
+        estimatedCompletion: r.estimatedCompletion,
+        verifiedCount: r.verifiedCount || 0,
+      };
+      setReport(mapped);
+      setVotes(mapped.votes);
+      setSupported(mapped.supported);
+      setVerifiedCount(mapped.verifiedCount);
+    } else {
+      setReport(null);
+      setLoadError(result.message || 'Laporan tidak ditemukan.');
+    }
+    setIsLoading(false);
+
+    // Load comments
+    const commentsResult = await getComments('report', reportId);
+    if (commentsResult.success && commentsResult.data) {
+      const mapped = commentsResult.data.map(c => ({
+        id: c.id,
+        userId: c.userId || '',
+        user: c.user?.fullName || 'User',
+        initials: c.user?.initials || '??',
+        text: c.text,
+        time: new Date(c.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        createdAt: c.createdAt,
+        likes: c.likes || 0,
+      }));
+      setLocalComments(mapped);
+    }
   }, [reportId]);
 
-  // Load comments dari API
   useEffect(() => {
-    async function loadComments() {
-      if (!reportId) return;
-      const result = await getComments('report', reportId);
-      if (result.success && result.data) {
-        const mapped = result.data.map(c => ({
-          id: c.id,
-          user: c.user?.fullName || 'User',
-          initials: c.user?.initials || '??',
-          text: c.text,
-          time: new Date(c.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-          likes: c.likes || 0,
-        }));
-        setLocalComments(mapped);
-      }
-    }
-    loadComments();
-  }, [reportId]);
+    setIsLoading(true);
+    setLoadError(null);
+    loadAll();
+  }, [loadAll]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadAll();
+    setRefreshing(false);
+  }, [loadAll]);
 
   if (isLoading) {
     return (
@@ -181,9 +179,11 @@ export default function ReportDetailScreen() {
   const handleSupport = async () => {
     const result = await toggleReportVote(report.id);
     if (result.success) {
-      setSupported(!supported);
-      setVotes(prev => supported ? prev - 1 : prev + 1);
-      showToast({ type: 'success', title: supported ? 'Dukungan dibatalkan' : 'Laporan didukung!', message: supported ? 'Dukungan Anda telah dibatalkan.' : 'Terima kasih atas dukungan Anda.' });
+      const serverVoted = result.data?.voted;
+      const serverCount = result.data?.votesCount;
+      setSupported(serverVoted ?? !supported);
+      setVotes(serverCount ?? (supported ? votes - 1 : votes + 1));
+      showToast({ type: 'success', title: serverVoted ? 'Laporan didukung!' : 'Dukungan dibatalkan', message: serverVoted ? 'Terima kasih atas dukungan Anda.' : 'Dukungan Anda telah dibatalkan.' });
     } else {
       showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat memproses dukungan. Coba lagi.' });
     }
@@ -192,6 +192,7 @@ export default function ReportDetailScreen() {
   const handleVerify = async () => {
     const result = await verifyReport(report.id);
     if (result.success) {
+      setVerifiedCount(prev => prev + 1);
       showToast({ type: 'success', title: 'Terverifikasi!', message: 'Laporan berhasil diverifikasi. Terima kasih!' });
     } else {
       showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat memverifikasi laporan.' });
@@ -259,7 +260,7 @@ export default function ReportDetailScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[SiagaColors.primary]} tintColor={SiagaColors.primary} />}>
         {/* Photo Carousel */}
         <View className="px-5 pt-4">
           <View className="rounded-2xl overflow-hidden" style={{ elevation: 2 }}>
@@ -529,50 +530,42 @@ export default function ReportDetailScreen() {
         {/* Comments */}
         <View className="px-5 pt-5">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-[15px] font-bold text-primary">Komentar ({report.comments.length + localComments.length})</Text>
+            <Text className="text-[15px] font-bold text-primary">Komentar ({localComments.length})</Text>
           </View>
           <View className="gap-2.5">
-            {localComments.map((comment) => (
-              <View key={comment.id} className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
-                <View className="flex-row items-start gap-2.5">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                    <Text className="text-[12px] font-bold text-white">{comment.initials}</Text>
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-1.5">
-                        <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
-                        <View className="bg-blue-100 rounded px-1.5 py-0.5">
-                          <Text className="text-[9px] font-bold text-info">Anda</Text>
+            {localComments.map((comment) => {
+              const isOwn = !!user?.id && !!comment.userId && String(comment.userId) === String(user.id);
+              return (
+                <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
+                  <View className="flex-row items-start gap-2.5">
+                    <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
+                      <Text className="text-[12px] font-bold text-primary">{comment.initials}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-1.5">
+                          <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
+                          {isOwn && (
+                            <View className="bg-blue-100 rounded px-1.5 py-0.5">
+                              <Text className="text-[9px] font-bold text-info">Anda</Text>
+                            </View>
+                          )}
                         </View>
+                        <Text className="text-[10px] text-secondary">{comment.time}</Text>
                       </View>
-                      <Text className="text-[10px] text-secondary">{comment.time}</Text>
-                    </View>
-                    <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-            {report.comments.map((comment) => (
-              <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
-                <View className="flex-row items-start gap-2.5">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                    <Text className="text-[12px] font-bold text-primary">{comment.initials}</Text>
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
-                      <Text className="text-[10px] text-secondary">{comment.time}</Text>
-                    </View>
-                    <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
-                    <View className="flex-row items-center gap-1 mt-2">
-                      <Heart size={14} color={SiagaColors.secondary} weight="regular" />
-                      <Text className="text-[10px] text-secondary">{comment.likes}</Text>
+                      <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                      {comment.likes > 0 && (
+                        <View className="flex-row items-center gap-1 mt-2">
+                          <Heart size={14} color={SiagaColors.secondary} weight="regular" />
+                          <Text className="text-[10px] text-secondary">{comment.likes}</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
+
           </View>
           {/* Comment Input */}
           <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
@@ -602,12 +595,15 @@ export default function ReportDetailScreen() {
                       if (!commentText.trim()) return;
                       const result = await addComment(report.id, 'report', commentText.trim());
                       if (result.success && result.data) {
+                        const now = new Date().toISOString();
                         const newComment = {
                           id: result.data.id,
+                          userId: user?.id || '',
                           user: user?.fullName || 'User',
                           initials: user?.initials || 'U',
                           text: commentText.trim(),
                           time: 'Baru saja',
+                          createdAt: now,
                           likes: 0,
                         };
                         setLocalComments(prev => [newComment, ...prev]);
@@ -615,12 +611,15 @@ export default function ReportDetailScreen() {
                         showToast({ type: 'success', title: 'Komentar terkirim', message: 'Komentar Anda berhasil ditambahkan.' });
                       } else {
                         // Fallback: tetap simpan lokal
+                        const now = new Date().toISOString();
                         const newComment = {
                           id: `c_new_${Date.now()}`,
+                          userId: user?.id || '',
                           user: user?.fullName || 'User',
                           initials: user?.initials || 'U',
                           text: commentText.trim(),
                           time: 'Baru saja',
+                          createdAt: now,
                           likes: 0,
                         };
                         setLocalComments(prev => [newComment, ...prev]);
