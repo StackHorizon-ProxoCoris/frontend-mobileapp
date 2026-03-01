@@ -109,7 +109,7 @@ export default function LoginScreen() {
         <>
         <View className="flex-1" style={{ backgroundColor: SiagaColors.primary }}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
             >
                 <ScrollView
