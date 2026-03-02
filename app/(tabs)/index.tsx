@@ -107,16 +107,23 @@ export default function HomeScreen() {
     if (result.success) {
       const serverVoted = result.data?.voted;
       const serverCount = result.data?.votesCount;
+      const newUrgency = result.data?.urgency;
       setReports(prev =>
-        prev.map(r =>
-          r.id === reportId
-            ? {
-                ...r,
-                supported: serverVoted ?? !r.supported,
-                votes: serverCount ?? (r.supported ? r.votes - 1 : r.votes + 1),
-              }
-            : r
-        )
+        prev.map(r => {
+          if (r.id !== reportId) return r;
+          const urg = newUrgency ?? r.urgency;
+          const urgColor = urg >= 80 ? '#dc2626' : urg >= 40 ? '#f59e0b' : '#10b981';
+          return {
+            ...r,
+            supported: serverVoted ?? !r.supported,
+            votes: serverCount ?? (r.supported ? r.votes - 1 : r.votes + 1),
+            urgency: urg,
+            urgencyColor: urgColor,
+            badge: urg >= 80 ? 'Kritis' : urg >= 40 ? 'Sedang' : 'Rendah',
+            badgeBg: urg >= 80 ? '#fee2e2' : urg >= 40 ? '#fef3c7' : '#dcfce7',
+            badgeColor: urgColor,
+          };
+        })
       );
     }
   };

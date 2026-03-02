@@ -181,8 +181,24 @@ export default function ReportDetailScreen() {
     if (result.success) {
       const serverVoted = result.data?.voted;
       const serverCount = result.data?.votesCount;
+      const newUrgency = result.data?.urgency ?? report.urgency;
+
+      const newUrgencyColor = newUrgency >= 80 ? '#dc2626' : newUrgency >= 50 ? '#f59e0b' : '#15803d';
+      const newBadge: 'Kritis' | 'Sedang' | 'Rendah' = newUrgency >= 80 ? 'Kritis' : newUrgency >= 50 ? 'Sedang' : 'Rendah';
+      const newBadgeBg = newUrgency >= 80 ? '#fee2e2' : newUrgency >= 50 ? '#fef9c3' : '#ecfdf5';
+
       setSupported(serverVoted ?? !supported);
       setVotes(serverCount ?? (supported ? votes - 1 : votes + 1));
+
+      setReport(prev => prev ? {
+        ...prev,
+        urgency: newUrgency,
+        urgencyColor: newUrgencyColor,
+        badge: newBadge,
+        badgeBg: newBadgeBg,
+        badgeColor: newUrgencyColor,
+      } : null);
+
       showToast({ type: 'success', title: serverVoted ? 'Laporan didukung!' : 'Dukungan dibatalkan', message: serverVoted ? 'Terima kasih atas dukungan Anda.' : 'Dukungan Anda telah dibatalkan.' });
     } else {
       showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat memproses dukungan. Coba lagi.' });
@@ -192,7 +208,25 @@ export default function ReportDetailScreen() {
   const handleVerify = async () => {
     const result = await verifyReport(report.id);
     if (result.success) {
-      setVerifiedCount(prev => prev + 1);
+      const newCount = (result.data?.verifiedCount ?? verifiedCount + 1);
+      setVerifiedCount(newCount);
+
+      // Recalculate urgency locally: +5 per verify
+      const currentUrgency = report.urgency || 0;
+      const newUrgency = Math.min(150, currentUrgency + 5);
+      const newUrgencyColor = newUrgency >= 80 ? '#dc2626' : newUrgency >= 50 ? '#f59e0b' : '#15803d';
+      const newBadge: 'Kritis' | 'Sedang' | 'Rendah' = newUrgency >= 80 ? 'Kritis' : newUrgency >= 50 ? 'Sedang' : 'Rendah';
+      const newBadgeBg = newUrgency >= 80 ? '#fee2e2' : newUrgency >= 50 ? '#fef9c3' : '#ecfdf5';
+
+      setReport(prev => prev ? {
+        ...prev,
+        urgency: newUrgency,
+        urgencyColor: newUrgencyColor,
+        badge: newBadge,
+        badgeBg: newBadgeBg,
+        badgeColor: newUrgencyColor,
+      } : null);
+
       showToast({ type: 'success', title: 'Terverifikasi!', message: 'Laporan berhasil diverifikasi. Terima kasih!' });
     } else {
       showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat memverifikasi laporan.' });

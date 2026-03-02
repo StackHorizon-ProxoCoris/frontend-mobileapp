@@ -1,6 +1,6 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import * as Notifications from "expo-notifications";
 import { AuthProvider, useAuth } from "../context/auth";
@@ -17,10 +17,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, role } = useAuth();
   const { showToast } = useToast();
   const segments = useSegments();
+  const [isNavigating, setIsNavigating] = useState(true);
   const router = useRouter();
   const segmentsRef = useRef(segments);
   const isAuthenticatedRef = useRef(isAuthenticated);
   const hasRedirectedForbiddenRef = useRef(false);
+  const isInitialMountRef = useRef(true);
 
   // ----------------------------------------------------------
   // Push Notification Deep Link Handler
@@ -92,10 +94,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/login");
+      setTimeout(() => setIsNavigating(false), 50);
       return;
     }
 
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setIsNavigating(false);
+      return;
+    }
 
     if (inAuthGroup) {
       if (isAdminRole) {
@@ -105,26 +111,35 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       } else {
         router.replace("/(tabs)");
       }
+      setTimeout(() => setIsNavigating(false), 50);
       return;
     }
 
     if (inAdminGroup && !isAdminRole) {
-      showToast({
-        type: "warning",
-        title: "Akses Ditolak",
-        message: "Halaman ini hanya untuk admin",
-      });
+      if (!isInitialMountRef.current) {
+        showToast({
+          type: "warning",
+          title: "Akses Ditolak",
+          message: "Halaman ini hanya untuk admin",
+        });
+      }
       router.replace(isGovRole ? "/(gov-tabs)" : "/(tabs)");
+      setTimeout(() => setIsNavigating(false), 50);
+      isInitialMountRef.current = false;
       return;
     }
 
     if (inGovGroup && !isGovRole) {
-      showToast({
-        type: "warning",
-        title: "Akses Ditolak",
-        message: "Akun Anda bukan pemerintah",
-      });
+      if (!isInitialMountRef.current) {
+        showToast({
+          type: "warning",
+          title: "Akses Ditolak",
+          message: "Akun Anda bukan pemerintah",
+        });
+      }
       router.replace("/(tabs)");
+      setTimeout(() => setIsNavigating(false), 50);
+      isInitialMountRef.current = false;
       return;
     }
 
@@ -134,11 +149,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       } else {
         router.replace("/(gov-tabs)");
       }
+      setTimeout(() => setIsNavigating(false), 50);
+      return;
     }
+
+    setIsNavigating(false);
+    isInitialMountRef.current = false;
   }, [isAuthenticated, isLoading, role, router, segments, showToast]);
 
-  // Tampilkan loading saat cek token
-  if (isLoading) {
+  // Tampilkan loading saat cek token atau navigasi sedang berlangsung
+  if (isLoading || isNavigating) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f8fafd" }}>
         <ActivityIndicator size="large" color="#082a4c" />

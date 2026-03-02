@@ -1,11 +1,19 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { View } from 'react-native';
 import {
     HouseSimple, ChartBar, Users, ShieldCheck, Gear,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
 
 export default function AdminTabsLayout() {
+    const { isLoading, role } = useAuth();
+
+    // Early return: jangan render UI admin jika bukan admin
+    if (!isLoading && role !== 'admin') {
+        return <Redirect href="/(tabs)" />;
+    }
+
     return (
         <Tabs
             screenOptions={{

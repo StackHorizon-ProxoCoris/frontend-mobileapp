@@ -448,7 +448,6 @@ export default function LaporScreen() {
                                         city: user?.city || '',
                                         lat: effectiveLat,
                                         lng: effectiveLng,
-                                        urgency: 50,
                                         photoUrls,
                                     });
                                     setIsSubmitting(false);

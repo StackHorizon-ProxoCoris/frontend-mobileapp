@@ -1,10 +1,11 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import {
     SquaresFour, ClipboardText, MapTrifold, ChartPieSlice, UserCircle,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
 
 const GOV_TAB_ITEMS = [
     { name: 'index', label: 'Beranda', Icon: SquaresFour },
@@ -15,6 +16,13 @@ const GOV_TAB_ITEMS = [
 ];
 
 export default function GovTabLayout() {
+    const { isLoading, role } = useAuth();
+
+    // Early return: jangan render UI gov jika bukan pemerintah/admin
+    if (!isLoading && role !== 'pemerintah' && role !== 'admin') {
+        return <Redirect href="/(tabs)" />;
+    }
+
     return (
         <Tabs
             screenOptions={{
