@@ -44,7 +44,7 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const greeting = useMemo(() => getGreeting(), []);
 
@@ -92,7 +92,9 @@ export default function HomeScreen() {
     if (notifResult.success && notifResult.data) {
       setUnreadCount(notifResult.data.unreadCount || 0);
     }
-  }, [mapReportToUI]);
+    // Refresh user profile to get updated ecoPoints
+    if (refreshUser) await refreshUser();
+  }, [mapReportToUI, refreshUser]);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
