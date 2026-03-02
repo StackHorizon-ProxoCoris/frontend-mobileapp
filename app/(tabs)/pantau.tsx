@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Dimensions, FlatList, Animated, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Dimensions, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -16,6 +16,7 @@ import EmbeddedMap from '@/components/ui/MapView';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 import { useToast } from '@/contexts/toast.context';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
 const { height: W_HEIGHT, width: W_WIDTH } = Dimensions.get('window');
 
@@ -47,13 +48,14 @@ const FILTER_TYPE_MAP: Record<string, string> = {
 
 export default function PantauScreen() {
     const [activeFilter, setActiveFilter] = useState('Semua');
-    const [expanded, setExpanded] = useState(false);
     const [sosVisible, setSosVisible] = useState(false);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const router = useRouter();
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const snapPoints = useMemo(() => ['12%', '60%'], []);
 
     // Fetch reports dari API
     const loadReports = useCallback(async () => {
@@ -110,6 +112,7 @@ export default function PantauScreen() {
             const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
             const badge = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
             return {
+                id: r.id,
                 lat: r.lat,
                 lng: r.lng,
                 title: r.title,
@@ -136,6 +139,10 @@ export default function PantauScreen() {
         router.push({ pathname: '/report-detail', params: { id: report.id } });
     }, [router]);
 
+    const handleMarkerPress = useCallback((id: string) => {
+        router.push({ pathname: '/report-detail', params: { id } });
+    }, [router]);
+
     const typeInfo = (type: string) => TYPE_MAP[type] || TYPE_MAP.Waves;
 
     const getUrgencyLabel = (urgency: number) => {
@@ -146,19 +153,20 @@ export default function PantauScreen() {
 
     return (
         <View className="flex-1 bg-[#f8fafd]" style={{ paddingTop: insets.top }}>
-            {/* Map Section */}
-            <View className="flex-1" style={{ minHeight: expanded ? 180 : W_HEIGHT * 0.48 }}>
-                {/* Embedded Map */}
+            {/* Full-height Map Section */}
+            <View className="flex-1">
+                {/* Embedded Map — full screen */}
                 <View className="absolute inset-0">
                     <EmbeddedMap
                         latitude={MAP_CENTER.lat}
                         longitude={MAP_CENTER.lng}
                         zoom={14}
-                        height={expanded ? 180 : W_HEIGHT * 0.48}
+                        height={W_HEIGHT}
                         markers={mapMarkers}
                         borderRadius={0}
                         showOpenButton={false}
                         interactive={true}
+                        onMarkerPress={handleMarkerPress}
                     />
                 </View>
 
@@ -206,7 +214,7 @@ export default function PantauScreen() {
                 </View>
 
                 {/* Stats Overlay */}
-                <View className="absolute bottom-3 left-3 right-3 flex-row" style={{ gap: 6 }}>
+                <View className="absolute bottom-3 left-3 right-3 flex-row" style={{ gap: 6, bottom: W_HEIGHT * 0.12 + 12 }}>
                     {stats.map((s, i) => (
                         <View key={i} className="flex-1 bg-white/95 rounded-xl px-2 py-2 items-center" style={{ elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
                             <View className="w-6 h-6 rounded-lg items-center justify-center mb-1" style={{ backgroundColor: s.bg }}>
@@ -220,12 +228,14 @@ export default function PantauScreen() {
             </View>
 
             {/* Bottom Sheet */}
-            <View className="bg-white rounded-t-3xl" style={{ elevation: 10, maxHeight: expanded ? W_HEIGHT * 0.62 : W_HEIGHT * 0.38, shadowColor: '#082a4c', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, marginTop: -16 }}>
-                <TouchableOpacity className="items-center pt-3 pb-1" onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-                    <View className="w-10 h-1 bg-slate-200 rounded-full" />
-                </TouchableOpacity>
-
-                <View className="px-4 py-2.5 flex-row items-center justify-between">
+            <BottomSheet
+                ref={bottomSheetRef}
+                index={0}
+                snapPoints={snapPoints}
+                handleIndicatorStyle={{ backgroundColor: '#cbd5e1', width: 40, height: 4, borderRadius: 2 }}
+                backgroundStyle={{ borderRadius: 24, backgroundColor: '#fff', elevation: 10, shadowColor: '#082a4c', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16 }}
+            >
+                <View className="px-4 pb-2 flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
                         <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
                             <ListBullets size={16} color={SiagaColors.primary} weight="bold" />
@@ -235,15 +245,11 @@ export default function PantauScreen() {
                             <Text className="text-[13px] font-bold text-white">{filteredReports.length}</Text>
                         </View>
                     </View>
-                    <TouchableOpacity className="flex-row items-center gap-1 bg-blue-50 px-3 py-1.5.5 rounded-lg" onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-                        {expanded ? <CaretDown size={14} color={SiagaColors.info} weight="bold" /> : <CaretUp size={14} color={SiagaColors.info} weight="bold" />}
-                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>{expanded ? 'Kecilkan' : 'Perbesar'}</Text>
-                    </TouchableOpacity>
                 </View>
 
-                <FlatList
+                <BottomSheetFlatList
                     data={filteredReports}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item: Report) => item.id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, gap: 10 }}
                     refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={SiagaColors.primary} colors={[SiagaColors.primary]} />}
@@ -253,7 +259,7 @@ export default function PantauScreen() {
                             <Text className="text-[13px] text-secondary/60 mt-1">Tarik ke bawah untuk memuat ulang</Text>
                         </View>
                     }
-                    renderItem={({ item: r }) => {
+                    renderItem={({ item: r }: { item: Report }) => {
                         const info = typeInfo(r.type);
                         const urgency = getUrgencyLabel(r.urgency);
                         const IconComp = info.icon;
@@ -317,7 +323,7 @@ export default function PantauScreen() {
                         );
                     }}
                 />
-            </View>
+            </BottomSheet>
 
             <SOSButton onPress={() => setSosVisible(true)} bottom={16} />
             <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />

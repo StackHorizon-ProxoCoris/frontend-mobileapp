@@ -7,6 +7,7 @@ import { ArrowSquareOut } from 'phosphor-react-native';
 interface MapMarker {
     lat: number;
     lng: number;
+    id?: string;
     title?: string;
     color?: string;
     popup?: string;
@@ -21,6 +22,7 @@ interface EmbeddedMapProps {
     borderRadius?: number;
     showOpenButton?: boolean;
     interactive?: boolean;
+    onMarkerPress?: (id: string) => void;
 }
 
 export default function EmbeddedMap({
@@ -32,11 +34,21 @@ export default function EmbeddedMap({
     borderRadius = 16,
     showOpenButton = true,
     interactive = true,
+    onMarkerPress,
 }: EmbeddedMapProps) {
     const allMarkers = markers.length > 0 ? markers : [{ lat: latitude, lng: longitude, title: 'Lokasi', color: '#e74c3c' }];
 
     const markersJS = allMarkers.map((m, i) => {
         const iconColor = m.color || '#e74c3c';
+        // Build popup HTML separately for clarity
+        let popupHtml = '';
+        if (m.popup) {
+            popupHtml = `<div style="font-size:12px;font-weight:600;min-width:140px;text-align:center;padding:4px 0;">${m.popup}`;
+            if (m.id) {
+                popupHtml += `<br/><div style="margin-top:8px;"><button onclick="openDetail('${m.id}')" style="background:#082a4c;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;width:100%;">Lihat Detail \u2192</button></div>`;
+            }
+            popupHtml += `</div>`;
+        }
         return `
             var icon${i} = L.divIcon({
                 className: 'custom-marker',
@@ -46,7 +58,7 @@ export default function EmbeddedMap({
                 popupAnchor: [0, -16]
             });
             var marker${i} = L.marker([${m.lat}, ${m.lng}], {icon: icon${i}}).addTo(map);
-            ${m.popup ? `marker${i}.bindPopup('<div style="font-size:12px;font-weight:600;min-width:120px;text-align:center;padding:2px 0;">${m.popup}</div>');` : ''}
+            ${popupHtml ? `marker${i}.bindPopup('${popupHtml.replace(/'/g, "\\'") }');` : ''}
             ${m.title ? `marker${i}.bindTooltip('${m.title}', {permanent: false, direction: 'top', offset: [0, -16]});` : ''}
         `;
     }).join('\n');
@@ -88,6 +100,10 @@ export default function EmbeddedMap({
                 maxZoom: 19,
             }).addTo(map);
 
+            function openDetail(id) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({type: 'marker_press', id: id}));
+            }
+
             ${markersJS}
 
             ${allMarkers.length > 1 ? `
@@ -117,6 +133,14 @@ export default function EmbeddedMap({
                 javaScriptEnabled
                 domStorageEnabled
                 startInLoadingState
+                onMessage={(event) => {
+                    try {
+                        const data = JSON.parse(event.nativeEvent.data);
+                        if (data.type === 'marker_press' && data.id && onMarkerPress) {
+                            onMarkerPress(data.id);
+                        }
+                    } catch {}
+                }}
                 renderLoading={() => (
                     <View style={{
                         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
