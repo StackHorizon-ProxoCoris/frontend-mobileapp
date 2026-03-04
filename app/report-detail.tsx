@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, Image,
+  ScrollView, View, Text, TouchableOpacity, Image, Modal, ActivityIndicator,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { type ReportDetail } from '@/services/report.service';
 import { useAuth } from '@/context/auth';
-import { getReportById, toggleReportVote, verifyReport, toggleBookmark } from '@/services/report.service';
+import { getReportById, toggleReportVote, verifyReport, toggleBookmark, resolveReportByUser } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
@@ -38,6 +38,9 @@ export default function ReportDetailScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [verifiedCount, setVerifiedCount] = useState(0);
+  const [reporterId, setReporterId] = useState<string | null>(null);
+  const [resolveModalVisible, setResolveModalVisible] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -116,6 +119,7 @@ export default function ReportDetailScreen() {
       setVotes(mapped.votes);
       setSupported(mapped.supported);
       setVerifiedCount(mapped.verifiedCount);
+      setReporterId(r.userId || null);
     } else {
       setReport(null);
       setLoadError(result.message || 'Laporan tidak ditemukan.');
@@ -246,6 +250,41 @@ export default function ReportDetailScreen() {
       title: report.title,
       message: `${report.title}\n${report.description}\n\nLokasi: ${report.location.address}`,
     });
+  };
+
+  const isOwner = !!user?.id && !!reporterId && String(user.id) === String(reporterId);
+  const canResolve = isOwner && report.status !== 'Selesai';
+
+  const handleResolve = () => {
+    setResolveModalVisible(true);
+  };
+
+  const confirmResolve = async () => {
+    setIsResolving(true);
+    const result = await resolveReportByUser(report.id);
+    setIsResolving(false);
+    setResolveModalVisible(false);
+    if (result.success) {
+      setReport(prev => prev ? {
+        ...prev,
+        status: 'Selesai',
+        statusColor: '#059669',
+        statusBg: '#ecfdf5',
+        urgency: 0,
+        urgencyColor: '#15803d',
+        badge: 'Rendah' as const,
+        badgeBg: '#ecfdf5',
+        badgeColor: '#15803d',
+        respondedBy: 'Diselesaikan oleh pelapor',
+        timeline: [
+          ...prev.timeline.filter(t => t.status === 'done'),
+          { id: 't_resolved', title: 'Selesai', desc: 'Ditandai selesai oleh pelapor', time: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
+        ],
+      } : null);
+      showToast({ type: 'success', title: 'Laporan Ditutup ✅', message: 'Masalah telah ditandai selesai. Terima kasih!' });
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat menutup laporan.' });
+    }
   };
 
   const onPhotoScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -674,30 +713,94 @@ export default function ReportDetailScreen() {
 
       {/* Bottom Action Bar */}
       <View
-        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5 flex-row items-center gap-3"
+        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5"
         style={{ paddingBottom: insets.bottom + 8, paddingTop: 12, elevation: 8 }}
       >
-        <TouchableOpacity
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
-          style={{ backgroundColor: supported ? '#dcfce7' : SiagaColors.primary }}
-          onPress={handleSupport}
-          activeOpacity={0.8}
-        >
-          <ThumbsUp size={18} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
-          <Text className="text-[14px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
-            {supported ? 'Didukung' : 'Dukung'} ({votes})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
-          style={{ borderColor: SiagaColors.info, backgroundColor: '#eff6ff' }}
-          activeOpacity={0.8}
-          onPress={handleVerify}
-        >
-          <Flag size={18} color={SiagaColors.info} weight="duotone" />
-          <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
-        </TouchableOpacity>
+        {/* Tombol Selesai — hanya tampil untuk pelapor sendiri */}
+        {canResolve && (
+          <TouchableOpacity
+            className="flex-row items-center justify-center gap-2 rounded-xl py-3 mb-2 border"
+            style={{ backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }}
+            onPress={handleResolve}
+            activeOpacity={0.8}
+          >
+            <CheckCircle size={18} color="#059669" weight="fill" />
+            <Text className="text-[14px] font-bold" style={{ color: '#059669' }}>Tandai Masalah Selesai</Text>
+          </TouchableOpacity>
+        )}
+        {report.status === 'Selesai' ? (
+          <View className="flex-row items-center justify-center gap-2 rounded-xl py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+            <CheckCircle size={18} color="#94a3b8" weight="fill" />
+            <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Laporan Telah Selesai</Text>
+          </View>
+        ) : (
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
+              style={{ backgroundColor: supported ? '#dcfce7' : SiagaColors.primary }}
+              onPress={handleSupport}
+              activeOpacity={0.8}
+            >
+              <ThumbsUp size={18} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
+              <Text className="text-[14px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
+                {supported ? 'Didukung' : 'Dukung'} ({votes})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
+              style={{ borderColor: SiagaColors.info, backgroundColor: '#eff6ff' }}
+              activeOpacity={0.8}
+              onPress={handleVerify}
+            >
+              <Flag size={18} color={SiagaColors.info} weight="duotone" />
+              <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
+      {/* Resolve Confirmation Modal */}
+      <Modal
+        visible={resolveModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isResolving && setResolveModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', elevation: 10 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <CheckCircle size={32} color="#059669" weight="fill" />
+            </View>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: '#082a4c', textAlign: 'center', marginBottom: 8 }}>Tandai Masalah Selesai</Text>
+            <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              Apakah masalah ini sudah benar-benar teratasi di lokasi?{'\n\n'}Tindakan ini tidak dapat dibatalkan.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
+                onPress={() => setResolveModalVisible(false)}
+                disabled={isResolving}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#64748b' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#059669', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, opacity: isResolving ? 0.7 : 1 }}
+                onPress={confirmResolve}
+                disabled={isResolving}
+                activeOpacity={0.8}
+              >
+                {isResolving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <CheckCircle size={16} color="#fff" weight="fill" />
+                )}
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>{isResolving ? 'Memproses...' : 'Ya, Selesai'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

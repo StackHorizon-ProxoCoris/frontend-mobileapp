@@ -37,6 +37,13 @@ export interface AuthUser {
   badgeCount: { active: number; total: number };
   settings: Record<string, boolean>;
   role: UserRole;
+  // Gov-specific fields (optional — only for role 'pemerintah')
+  nip?: string;
+  jabatan?: string;
+  instansi?: string;
+  unitKerja?: string;
+  golongan?: string;
+  tmt?: string;
 }
 
 /** Data yang dibutuhkan untuk register */
@@ -150,6 +157,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         badgeCount: d.badgeCount || { active: 0, total: 0 },
         settings: d.settings || {},
         role: backendRole,
+        // Gov-specific
+        nip: d.nip || '',
+        jabatan: d.jabatan || '',
+        instansi: d.instansi || '',
+        unitKerja: d.unitKerja || d.unit_kerja || '',
+        golongan: d.golongan || '',
+        tmt: d.tmt || '',
       });
       setRole(backendRole);
 

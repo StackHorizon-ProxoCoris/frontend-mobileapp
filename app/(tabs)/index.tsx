@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, Linking, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -49,13 +49,13 @@ export default function HomeScreen() {
   const greeting = useMemo(() => getGreeting(), []);
 
   // Helper: konversi data API ke format UI Report
-  const mapReportToUI = useCallback((r: ReportData): Report => ({
+  const mapReportToUI = useCallback((r: ReportData): Report & { status: string } => ({
     id: r.id,
     type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
-    gradient: '#3b82f6',
-    badge: r.urgency >= 80 ? 'Kritis' : r.urgency >= 40 ? 'Sedang' : 'Rendah',
-    badgeBg: r.urgency >= 80 ? '#fee2e2' : r.urgency >= 40 ? '#fef3c7' : '#dcfce7',
-    badgeColor: r.urgency >= 80 ? '#dc2626' : r.urgency >= 40 ? '#f59e0b' : '#10b981',
+    gradient: r.status === 'Selesai' ? '#10b981' : '#3b82f6',
+    badge: r.status === 'Selesai' ? 'Rendah' : r.urgency >= 80 ? 'Kritis' : r.urgency >= 40 ? 'Sedang' : 'Rendah',
+    badgeBg: r.status === 'Selesai' ? '#ecfdf5' : r.urgency >= 80 ? '#fee2e2' : r.urgency >= 40 ? '#fef3c7' : '#dcfce7',
+    badgeColor: r.status === 'Selesai' ? '#10b981' : r.urgency >= 80 ? '#dc2626' : r.urgency >= 40 ? '#f59e0b' : '#10b981',
     title: r.title,
     desc: r.description?.slice(0, 60) + (r.description?.length > 60 ? '...' : '') || '',
     distance: `${r.district || '-'}`,
@@ -63,16 +63,21 @@ export default function HomeScreen() {
     photos: r.photosCount,
     time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
     urgency: r.urgency,
-    urgencyColor: r.urgency >= 80 ? '#dc2626' : r.urgency >= 40 ? '#f59e0b' : '#10b981',
+    urgencyColor: r.status === 'Selesai' ? '#10b981' : r.urgency >= 80 ? '#dc2626' : r.urgency >= 40 ? '#f59e0b' : '#10b981',
     supported: r.hasVoted || false,
+    status: r.status,
   }), []);
+
+  // Ref untuk district agar loadData selalu baca nilai terbaru tanpa jadi dependency
+  const userDistrictRef = useRef(user?.district || '');
+  userDistrictRef.current = user?.district || '';
 
   // Fungsi load data (reusable untuk refresh)
   const loadData = useCallback(async () => {
     const [reportsResult, actionsResult, areaStatusResult, infoResult] = await Promise.all([
       getReports({ limit: 5 }),
       getActions({ limit: 5 }),
-      getAreaStatus(),
+      getAreaStatus(userDistrictRef.current),
       getInfoList({ limit: 3 }),
     ]);
     if (reportsResult.success && reportsResult.data) {
@@ -92,24 +97,25 @@ export default function HomeScreen() {
     if (notifResult.success && notifResult.data) {
       setUnreadCount(notifResult.data.unreadCount || 0);
     }
-    // Refresh user profile to get updated ecoPoints
-    if (refreshUser) await refreshUser();
-  }, [mapReportToUI, refreshUser]);
+  }, [mapReportToUI]);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Load awal
   useEffect(() => {
     loadData();
+    // Refresh user profile sekali saat mount (terpisah dari loadData agar tidak loop)
+    if (refreshUser) refreshUser();
   }, [loadData]);
 
   // Pull-to-refresh handler
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await loadData();
+    if (refreshUser) await refreshUser();
     setIsRefreshing(false);
     showToast({ type: 'success', title: 'Data diperbarui', message: 'Data terbaru berhasil dimuat.', duration: 2000 });
-  }, [loadData, showToast]);
+  }, [loadData, showToast, refreshUser]);
 
   const handleSupport = async (reportId: string) => {
     const result = await toggleReportVote(reportId);
@@ -212,13 +218,32 @@ export default function HomeScreen() {
             <View>
               <View className="flex-row items-center gap-1.5">
                 <MapPin size={20} color="rgba(255,255,255,0.8)" weight="duotone" />
-                <Text className="text-xl font-bold text-white">{user?.district || 'Kecamatan'}</Text>
+                <Text className="text-xl font-bold text-white">{user?.district || 'Lokasi Belum Diatur'}</Text>
               </View>
-              <Text className="text-[14px] text-white/60 ml-7">{user?.city || 'Kota'}, {user?.province || 'Provinsi'}</Text>
+              <Text className="text-[14px] text-white/60 ml-7">
+                {user?.district ? `${user?.city || '-'}, ${user?.province || '-'}` : ''}
+              </Text>
+              {!user?.district && (
+                <TouchableOpacity
+                  className="flex-row items-center gap-1.5 ml-7 mt-1 px-3 py-1.5 rounded-lg"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                  activeOpacity={0.7}
+                  onPress={() => router.push('/edit-profil')}
+                >
+                  <MapPin size={13} color="#fff" weight="bold" />
+                  <Text className="text-[12px] font-semibold text-white">Atur Lokasi</Text>
+                  <CaretRight size={12} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
+              )}
             </View>
-            <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: areaStatus?.levelBg || 'rgba(5,150,105,0.2)', borderWidth: 1, borderColor: (areaStatus?.levelColor || '#059669') + '4D' }}>
-              <ShieldWarning size={16} color={areaStatus?.levelColor || '#059669'} weight="duotone" />
-              <Text className="text-[11px] font-bold" style={{ color: areaStatus?.levelColor || '#059669' }}>{areaStatus?.level || 'AMAN'}</Text>
+            <View>
+              <View className="rounded-lg px-3 py-2 flex-row items-center gap-1.5" style={{ backgroundColor: areaStatus?.levelBg || 'rgba(5,150,105,0.2)', borderWidth: 1, borderColor: (areaStatus?.levelColor || '#059669') + '4D' }}>
+                <ShieldWarning size={16} color={areaStatus?.levelColor || '#059669'} weight="duotone" />
+                <Text className="text-[11px] font-bold" style={{ color: areaStatus?.levelColor || '#059669' }}>{areaStatus?.level || 'AMAN'}</Text>
+              </View>
+              {areaStatus?.isGlobal && (
+                <Text className="text-[9px] text-white/40 text-center mt-1">Data Global</Text>
+              )}
             </View>
           </View>
           <View className="flex-row gap-2">
@@ -313,11 +338,17 @@ export default function HomeScreen() {
                       {reportIcon}
                     </View>
                     <View className="flex-1">
-                      <View className="flex-row items-center gap-2 mb-1">
+                      <View className="flex-row items-center gap-2 mb-1 flex-wrap">
                         <View className="px-3 py-1 rounded flex-row items-center gap-1" style={{ backgroundColor: r.badgeBg }}>
                           <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.badgeColor }} />
                           <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: r.badgeColor }}>{r.badge}</Text>
                         </View>
+                        {(r as any).status === 'Selesai' && (
+                          <View className="px-2 py-1 rounded flex-row items-center gap-1" style={{ backgroundColor: '#ecfdf5' }}>
+                            <CheckCircle size={10} color="#059669" weight="fill" />
+                            <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#059669' }}>Selesai</Text>
+                          </View>
+                        )}
                         <View className="flex-row items-center gap-1">
                           <Clock size={14} color={SiagaColors.secondary} />
                           <Text className="text-[12px] text-secondary">{r.time}</Text>
@@ -325,41 +356,55 @@ export default function HomeScreen() {
                       </View>
                       <Text className="text-[16px] font-bold text-primary">{r.title}</Text>
                       <Text className="text-[13px] text-secondary mt-0.5" numberOfLines={1}>{r.desc}</Text>
-                      <View className="flex-row items-center gap-3 mt-2">
+                      <View className="flex-row items-center gap-2 mt-2 flex-wrap">
                         <View className="flex-row items-center gap-1">
                           <MapPin size={15} color={SiagaColors.secondary} weight="duotone" />
-                          <Text className="text-[12px] text-secondary">{r.distance}</Text>
+                          <Text className="text-[11px] text-secondary">{r.distance}</Text>
                         </View>
                         <View className="flex-row items-center gap-1">
                           <Users size={15} color={SiagaColors.primary} weight="duotone" />
-                          <Text className="text-[12px] font-semibold text-primary">{r.votes} dukungan</Text>
+                          <Text className="text-[11px] font-semibold text-primary">{r.votes}</Text>
                         </View>
                         <View className="flex-row items-center gap-1">
                           <Camera size={15} color={SiagaColors.secondary} weight="duotone" />
-                          <Text className="text-[12px] text-secondary">{r.photos} foto</Text>
+                          <Text className="text-[11px] text-secondary">{r.photos} foto</Text>
                         </View>
                       </View>
                     </View>
                   </View>
                   <View className="flex-row items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
-                    <View className="flex-row items-center gap-2">
-                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.urgencyColor }} />
-                      <Text className="text-[12px] font-semibold" style={{ color: r.urgencyColor }}>Urgensi: {r.urgency} poin</Text>
-                      <View className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <View className="h-full rounded-full" style={{ width: `${Math.min(r.urgency, 100)}%`, backgroundColor: r.urgencyColor }} />
+                    {(r as any).status !== 'Selesai' ? (
+                      <View className="flex-row items-center gap-2">
+                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.urgencyColor }} />
+                        <Text className="text-[12px] font-semibold" style={{ color: r.urgencyColor }}>Urgensi: {r.urgency} poin</Text>
+                        <View className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <View className="h-full rounded-full" style={{ width: `${Math.min(r.urgency, 100)}%`, backgroundColor: r.urgencyColor }} />
+                        </View>
                       </View>
-                    </View>
-                    <TouchableOpacity
-                      className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
-                      style={{ backgroundColor: r.supported ? '#dcfce7' : SiagaColors.primary }}
-                      onPress={(e) => { e.stopPropagation?.(); handleSupport(r.id); }}
-                      activeOpacity={0.7}
-                    >
-                      <ThumbsUp size={14} color={r.supported ? '#15803d' : '#fff'} weight={r.supported ? 'fill' : 'bold'} />
-                      <Text className="text-[13px] font-semibold" style={{ color: r.supported ? '#15803d' : '#fff' }}>
-                        {r.supported ? 'Didukung' : 'Dukung'}
-                      </Text>
-                    </TouchableOpacity>
+                    ) : (
+                      <View className="flex-row items-center gap-1.5">
+                        <CheckCircle size={16} color="#059669" weight="fill" />
+                        <Text className="text-[12px] font-semibold" style={{ color: '#059669' }}>Masalah Teratasi</Text>
+                      </View>
+                    )}
+                    {(r as any).status !== 'Selesai' ? (
+                      <TouchableOpacity
+                        className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
+                        style={{ backgroundColor: r.supported ? '#dcfce7' : SiagaColors.primary }}
+                        onPress={(e) => { e.stopPropagation?.(); handleSupport(r.id); }}
+                        activeOpacity={0.7}
+                      >
+                        <ThumbsUp size={14} color={r.supported ? '#15803d' : '#fff'} weight={r.supported ? 'fill' : 'bold'} />
+                        <Text className="text-[13px] font-semibold" style={{ color: r.supported ? '#15803d' : '#fff' }}>
+                          {r.supported ? 'Didukung' : 'Dukung'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2 bg-slate-100">
+                        <ThumbsUp size={14} color="#94a3b8" weight="bold" />
+                        <Text className="text-[13px] font-semibold text-secondary">{r.votes}</Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               );

@@ -190,6 +190,11 @@ export async function verifyReport(reportId: string): Promise<ApiResponse> {
   return apiPost(`/reports/${reportId}/verify`);
 }
 
+/** Pelapor menutup laporannya sendiri (masalah teratasi) */
+export async function resolveReportByUser(reportId: string): Promise<ApiResponse> {
+  return apiPatch(`/reports/${reportId}/resolve-by-user`, {});
+}
+
 /** Toggle bookmark (polymorphic — report, action, info) */
 export async function toggleBookmark(refType: string, refId: string): Promise<ApiResponse> {
   return apiPost('/bookmarks', { refType, refId });

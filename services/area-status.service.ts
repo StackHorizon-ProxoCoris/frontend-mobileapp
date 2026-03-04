@@ -20,13 +20,15 @@ export interface AreaStatusData {
   warningType: string;
   warningMessage: string;
   hasWarning: boolean;
+  isGlobal: boolean;
 }
 
 // ============================================================
 // API Calls
 // ============================================================
 
-/** Ambil data status area (aggregate dari semua laporan) */
-export async function getAreaStatus(): Promise<ApiResponse<AreaStatusData>> {
-  return apiGet<AreaStatusData>('/area-status', false);
+/** Ambil data status area — filter by district jika tersedia */
+export async function getAreaStatus(district?: string): Promise<ApiResponse<AreaStatusData>> {
+  const params = district ? `?district=${encodeURIComponent(district)}` : '';
+  return apiGet<AreaStatusData>(`/area-status${params}`, false);
 }

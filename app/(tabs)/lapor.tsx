@@ -463,8 +463,17 @@ export default function LaporScreen() {
                                     }
                                 }}
                             >
-                                <PaperPlaneTilt size={20} color="#fff" weight="duotone" />
-                                <Text className="text-[15px] font-bold text-white">Kirim Laporan</Text>
+                                {isSubmitting ? (
+                                    <>
+                                        <ActivityIndicator size="small" color="#fff" />
+                                        <Text className="text-[15px] font-bold text-white">{isUploading ? 'Mengupload foto...' : 'Mengirim...'}</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <PaperPlaneTilt size={20} color="#fff" weight="duotone" />
+                                        <Text className="text-[15px] font-bold text-white">Kirim Laporan</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
                             <View className="flex-row items-center justify-center gap-1">
                                 <ShieldCheck size={12} color={SiagaColors.success} weight="duotone" />
