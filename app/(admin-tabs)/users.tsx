@@ -4,6 +4,7 @@ import {
     Animated, Dimensions, RefreshControl, Modal, FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
     Users, UserGear, Buildings, UserCheck, UserCircleCheck,
     MagnifyingGlass, FunnelSimple, Plus, CaretRight, CaretDown,
@@ -117,10 +118,12 @@ function UserActionSheet({
     user,
     visible,
     onClose,
+    onViewProfile,
 }: {
     user: UserItem | null;
     visible: boolean;
     onClose: () => void;
+    onViewProfile?: (user: UserItem) => void;
 }) {
     if (!user) return null;
     const statusCfg = STATUS_CONFIG[user.status];
@@ -201,7 +204,14 @@ function UserActionSheet({
                                     backgroundColor: isDelete ? '#fef2f2' : '#f8fafc',
                                 }}
                                 activeOpacity={0.7}
-                                onPress={onClose}
+                                onPress={() => {
+                                    if (action.label === 'Lihat Profil' && onViewProfile && user) {
+                                        onClose();
+                                        onViewProfile(user);
+                                    } else {
+                                        onClose();
+                                    }
+                                }}
                             >
                                 <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${action.color}18`, alignItems: 'center', justifyContent: 'center' }}>
                                     <IconComp size={18} color={action.color} weight="duotone" />
@@ -315,6 +325,7 @@ function getSortIcon(k: SortKey, sortKey: SortKey, sortAsc: boolean) {
 // ────────────────────────────────────────────
 export default function AdminUsersScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const [query, setQuery] = useState('');
     const [filterRole, setFilterRole] = useState<UserRole | 'Semua'>('Semua');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'Semua'>('Semua');
@@ -391,7 +402,9 @@ export default function AdminUsersScreen() {
                             </View>
                         </View>
                         {/* Add user button */}
-                        <TouchableOpacity style={{
+                        <TouchableOpacity
+                            onPress={() => router.push('/tambah-pengguna' as any)}
+                            style={{
                             flexDirection: 'row', alignItems: 'center', gap: 6,
                             backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 14, paddingVertical: 8,
                             borderRadius: 12,
@@ -606,7 +619,12 @@ export default function AdminUsersScreen() {
                         </View>
                     }
                     renderItem={({ item }) => (
-                        <UserCard user={item} onAction={(u) => { setSelectedUser(u); setSheetVisible(true); }} />
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() => router.push({ pathname: '/admin-user-detail' as any, params: { id: item.id } })}
+                        >
+                            <UserCard user={item} onAction={(u) => { setSelectedUser(u); setSheetVisible(true); }} />
+                        </TouchableOpacity>
                     )}
                     ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
                 />
@@ -617,6 +635,7 @@ export default function AdminUsersScreen() {
                 user={selectedUser}
                 visible={sheetVisible}
                 onClose={() => { setSheetVisible(false); setSelectedUser(null); }}
+                onViewProfile={(u) => router.push({ pathname: '/admin-user-detail' as any, params: { id: u.id } })}
             />
         </View>
     );

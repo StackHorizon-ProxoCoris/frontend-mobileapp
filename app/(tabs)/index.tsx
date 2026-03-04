@@ -172,7 +172,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
               style={{ elevation: 1 }}
-              onPress={() => showToast({ type: 'info', title: 'Pencarian', message: 'Fitur pencarian akan segera hadir.' })}
+              onPress={() => router.push('/cari')}
             >
               <MagnifyingGlass size={22} color={SiagaColors.primary} weight="duotone" />
             </TouchableOpacity>
@@ -395,7 +395,7 @@ export default function HomeScreen() {
 
         {/* Positive Actions */}
         <View>
-          <SectionHeader title="Aksi Positif" icon={<HandsClapping size={18} color="#f59e0b" weight="duotone" />} onAction={() => router.push('/(tabs)/lapor')} actionLabel="Ikut Aksi" />
+          <SectionHeader title="Aksi Positif" icon={<HandsClapping size={18} color="#f59e0b" weight="duotone" />} onAction={() => router.push('/semua-aksi')} actionLabel="Lihat Semua" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
             {actions.map((a) => {
               return (
@@ -433,7 +433,7 @@ export default function HomeScreen() {
 
         {/* Info Feed */}
         <View>
-          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={16} color={SiagaColors.info} weight="duotone" />} onAction={() => showToast({ type: 'info', title: 'Info & Edukasi', message: 'Halaman lengkap akan segera hadir.' })} actionLabel="Semua" />
+          <SectionHeader title="Info & Edukasi" icon={<Newspaper size={16} color={SiagaColors.info} weight="duotone" />} onAction={() => router.push('/semua-info')} actionLabel="Semua" />
           <View className="gap-2.5">
             {infoFeed.map((info) => {
               const infoIcon = info.type === 'CloudRain'

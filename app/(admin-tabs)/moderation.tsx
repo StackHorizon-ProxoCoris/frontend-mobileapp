@@ -4,6 +4,7 @@ import {
     Animated, Dimensions, RefreshControl, Modal, FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
     ShieldWarning, ShieldCheck, Shield,
     MagnifyingGlass, FunnelSimple, CaretRight, CaretDown,
@@ -148,10 +149,12 @@ function ModerationActionSheet({
     item,
     visible,
     onClose,
+    onViewDetail,
 }: {
     item: ModerationItem | null;
     visible: boolean;
     onClose: () => void;
+    onViewDetail?: (item: ModerationItem) => void;
 }) {
     if (!item) return null;
     const sevStyle = SEVERITY_STYLE[item.severity];
@@ -238,7 +241,14 @@ function ModerationActionSheet({
                                     backgroundColor: isDanger ? '#fef2f2' : '#f8fafc',
                                 }}
                                 activeOpacity={0.7}
-                                onPress={onClose}
+                                onPress={() => {
+                                    if (action.label === 'Lihat Detail' && onViewDetail && item) {
+                                        onClose();
+                                        onViewDetail(item);
+                                    } else {
+                                        onClose();
+                                    }
+                                }}
                             >
                                 <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${action.color}18`, alignItems: 'center', justifyContent: 'center' }}>
                                     <IconComp size={18} color={action.color} weight="duotone" />
@@ -380,6 +390,7 @@ function ModerationCard({ item, onAction }: { item: ModerationItem; onAction: (i
 // ────────────────────────────────────────────
 export default function AdminModerationScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState<FilterTab>('Semua');
     const [refreshing, setRefreshing] = useState(false);
@@ -598,7 +609,12 @@ export default function AdminModerationScreen() {
                         </View>
                     }
                     renderItem={({ item }) => (
-                        <ModerationCard item={item} onAction={(i) => { setSelectedItem(i); setSheetVisible(true); }} />
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() => router.push({ pathname: '/moderasi-detail' as any, params: { id: item.id } })}
+                        >
+                            <ModerationCard item={item} onAction={(i) => { setSelectedItem(i); setSheetVisible(true); }} />
+                        </TouchableOpacity>
                     )}
                     ListFooterComponent={
                         filteredItems.length > 0 ? (
@@ -648,6 +664,7 @@ export default function AdminModerationScreen() {
                 item={selectedItem}
                 visible={sheetVisible}
                 onClose={() => { setSheetVisible(false); setSelectedItem(null); }}
+                onViewDetail={(i) => router.push({ pathname: '/moderasi-detail' as any, params: { id: i.id } })}
             />
         </View>
     );

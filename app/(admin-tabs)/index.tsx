@@ -247,7 +247,6 @@ export default function AdminDashboardScreen() {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         {[
                             { label: 'Kelola Pengguna', icon: Users, color: '#3b82f6', bg: '#eff6ff', route: '/(admin-tabs)/users' },
-                            { label: 'Verifikasi Akun', icon: UserCheck, color: '#059669', bg: '#ecfdf5', route: '/(admin-tabs)/users' },
                             { label: 'Buat Akun Gov', icon: Buildings, color: '#d97706', bg: '#fffbeb', route: '/(admin-tabs)/users' },
                             { label: 'Kelola Laporan', icon: FileText, color: SiagaColors.danger, bg: '#fef2f2', route: '/(admin-tabs)/moderation' },
                         ].map((action, i) => {
@@ -256,19 +255,19 @@ export default function AdminDashboardScreen() {
                                 <TouchableOpacity
                                     key={i}
                                     style={{
-                                        width: (width - 32 - 24) / 4, // 32 for screen padding, 24 for gaps between 4 items (3 gaps * 8)
-                                        backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 4,
-                                        alignItems: 'center', gap: 6,
+                                        width: (width - 32 - 16) / 3, // 32 for screen padding, 16 for gaps between 3 items (2 gaps * 8)
+                                        backgroundColor: '#fff', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 8,
+                                        alignItems: 'center', gap: 8,
                                         borderWidth: 1, borderColor: '#edf2f9',
                                         elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3,
                                     }}
                                     activeOpacity={0.8}
                                     onPress={() => router.push(action.route as any)}
                                 >
-                                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: action.bg, alignItems: 'center', justifyContent: 'center' }}>
-                                        <IconComp size={18} color={action.color} weight="duotone" />
+                                    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: action.bg, alignItems: 'center', justifyContent: 'center' }}>
+                                        <IconComp size={22} color={action.color} weight="duotone" />
                                     </View>
-                                    <Text style={{ fontSize: 9.5, fontWeight: '700', color: SiagaColors.primary, textAlign: 'center', lineHeight: 12 }} numberOfLines={2}>
+                                    <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.primary, textAlign: 'center', lineHeight: 14 }} numberOfLines={2}>
                                         {action.label}
                                     </Text>
                                 </TouchableOpacity>
