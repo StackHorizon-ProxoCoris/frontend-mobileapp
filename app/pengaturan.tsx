@@ -217,7 +217,7 @@ export default function PengaturanScreen() {
         >
           <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
         </TouchableOpacity>
-        <Text className="text-sm font-bold text-primary">Pengaturan</Text>
+        <Text className="text-base font-bold text-primary">Pengaturan</Text>
         <View className="w-9" />
       </View>
 
@@ -237,10 +237,10 @@ export default function PengaturanScreen() {
             <Text className="text-lg font-bold text-white">{user?.initials || 'U'}</Text>
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-bold text-primary">{user?.fullName || 'User'}</Text>
+            <Text className="text-[15px] font-bold text-primary">{user?.fullName || 'User'}</Text>
             <View className="flex-row items-center gap-1.5 mt-0.5">
               <CheckCircle size={10} color="#059669" weight="fill" />
-              <Text className="text-xs text-secondary">{user?.email || '-'}</Text>
+              <Text className="text-[13px] text-secondary">{user?.email || '-'}</Text>
             </View>
           </View>
           <CaretRight size={16} color={SiagaColors.secondary} />
@@ -250,12 +250,12 @@ export default function PengaturanScreen() {
         <View className="gap-5">
           {SETTINGS_GROUPS.map((group, gi) => (
             <View key={gi}>
-              <Text className="text-[11px] font-bold text-secondary uppercase tracking-widest mb-2 ml-1">{group.title}</Text>
+              <Text className="text-[12px] font-bold text-secondary uppercase tracking-widest mb-2.5 ml-1">{group.title}</Text>
               <View className="bg-white border border-slate-100 rounded-2xl overflow-hidden" style={{ elevation: 1 }}>
                 {group.items.map((item, ii) => (
                   <TouchableOpacity
                     key={ii}
-                    className="flex-row items-center gap-3 px-4 py-3.5"
+                    className="flex-row items-center gap-3.5 px-4 py-4"
                     style={{
                       borderBottomWidth: ii < group.items.length - 1 ? 1 : 0,
                       borderBottomColor: '#f8fafc',
@@ -263,24 +263,24 @@ export default function PengaturanScreen() {
                     onPress={item.toggle ? undefined : item.onPress}
                     activeOpacity={item.toggle ? 1 : 0.7}
                   >
-                    <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: `${item.color}12` }}>
-                      <item.icon size={16} color={item.color} weight="duotone" />
+                    <View className="w-9 h-9 rounded-lg items-center justify-center" style={{ backgroundColor: `${item.color}12` }}>
+                      <item.icon size={18} color={item.color} weight="duotone" />
                     </View>
-                    <Text className="flex-1 text-sm font-semibold text-primary">{item.label}</Text>
+                    <Text className="flex-1 text-[15px] font-semibold text-primary">{item.label}</Text>
                     {item.badge && (
                       <View className="px-1.5 py-0.5 rounded flex-row items-center gap-0.5" style={{ backgroundColor: item.badgeBg }}>
                         <CheckCircle size={8} color={item.badgeColor} weight="fill" />
-                        <Text className="text-[10px] font-bold" style={{ color: item.badgeColor }}>{item.badge}</Text>
+                        <Text className="text-[11px] font-bold" style={{ color: item.badgeColor }}>{item.badge}</Text>
                       </View>
                     )}
-                    {item.extra && <Text className="text-[11px] font-medium text-secondary max-w-[120px]" numberOfLines={1}>{item.extra}</Text>}
+                    {item.extra && <Text className="text-[12px] font-medium text-secondary max-w-[120px]" numberOfLines={1}>{item.extra}</Text>}
                     {item.toggle ? (
                       <Switch
                         value={toggleStates[item.label]}
                         onValueChange={(val) => toggleSwitch(item.label, val)}
                         trackColor={{ false: '#e2e8f0', true: `${item.color}40` }}
                         thumbColor={toggleStates[item.label] ? item.color : '#f4f3f4'}
-                        style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
+                        style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
                       />
                     ) : (
                       <CaretRight size={14} color={SiagaColors.secondary} />

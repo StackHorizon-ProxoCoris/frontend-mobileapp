@@ -21,6 +21,7 @@ import { getReports, toggleReportVote, type ReportData } from '@/services/report
 import { getActions, type ActionData } from '@/services/action.service';
 import { getAreaStatus, type AreaStatusData } from '@/services/area-status.service';
 import { getInfoList, type InfoFeedData } from '@/services/info.service';
+import { getNotifications } from '@/services/notification.service';
 import {
   type Report,
 } from '@/services/report.service';
@@ -40,9 +41,10 @@ export default function HomeScreen() {
   const [actions, setActions] = useState<ActionData[]>([]);
   const [areaStatus, setAreaStatus] = useState<AreaStatusData | null>(null);
   const [infoFeed, setInfoFeed] = useState<InfoFeedData[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const greeting = useMemo(() => getGreeting(), []);
 
@@ -85,7 +87,14 @@ export default function HomeScreen() {
     if (infoResult.success && infoResult.data) {
       setInfoFeed(infoResult.data);
     }
-  }, [mapReportToUI]);
+    // Fetch unread notification count
+    const notifResult = await getNotifications();
+    if (notifResult.success && notifResult.data) {
+      setUnreadCount(notifResult.data.unreadCount || 0);
+    }
+    // Refresh user profile to get updated ecoPoints
+    if (refreshUser) await refreshUser();
+  }, [mapReportToUI, refreshUser]);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -165,9 +174,21 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="relative w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"
               style={{ elevation: 1 }}
-              onPress={() => router.push('/notifikasi')}
+              onPress={() => { setUnreadCount(0); router.push('/notifikasi'); }}
             >
               <Bell size={22} color={SiagaColors.primary} weight="duotone" />
+              {unreadCount > 0 && (
+                <View style={{
+                  position: 'absolute', top: -2, right: -2,
+                  minWidth: 18, height: 18, borderRadius: 9,
+                  backgroundColor: '#dc2626', borderWidth: 2, borderColor: '#fff',
+                  alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               className="w-10 h-10 rounded-full bg-white border border-slate-100 items-center justify-center"

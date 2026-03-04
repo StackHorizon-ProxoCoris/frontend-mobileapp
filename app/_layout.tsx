@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
 import { AuthProvider, useAuth } from "../context/auth";
 import { ToastProvider, useToast } from "@/contexts/toast.context";
@@ -175,14 +176,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ToastProvider>
       <AuthProvider>
         <AuthGuard>
-          <Stack>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(gov-tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(gov-tabs)" />
+            <Stack.Screen name="(admin-tabs)" />
             <Stack.Screen
               name="report-detail"
               options={{
@@ -349,5 +351,6 @@ export default function RootLayout() {
         </AuthGuard>
       </AuthProvider>
     </ToastProvider>
+    </GestureHandlerRootView>
   );
 }

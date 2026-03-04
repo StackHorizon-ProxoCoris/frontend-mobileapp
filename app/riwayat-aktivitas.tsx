@@ -68,24 +68,24 @@ export default function RiwayatAktivitasScreen() {
         onPress={() => handlePress(item)}
         activeOpacity={item.refId ? 0.7 : 1}
       >
-        <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: item.bgColor }}>
-          <IconComp size={20} color={item.color} weight="duotone" />
+        <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: item.bgColor }}>
+          <IconComp size={22} color={item.color} weight="duotone" />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-bold text-primary" numberOfLines={1}>{item.title}</Text>
-          <Text className="text-xs text-secondary mt-0.5" numberOfLines={1}>{item.desc}</Text>
+          <Text className="text-[15px] font-bold text-primary" numberOfLines={1}>{item.title}</Text>
+          <Text className="text-[13px] text-secondary mt-0.5" numberOfLines={1}>{item.desc}</Text>
           <View className="flex-row items-center gap-2.5 mt-1.5">
             <View className="flex-row items-center gap-0.5">
-              <Clock size={10} color={SiagaColors.secondary} />
-              <Text className="text-[11px] text-secondary">{item.time}</Text>
+              <Clock size={11} color={SiagaColors.secondary} />
+              <Text className="text-[12px] text-secondary">{item.time}</Text>
             </View>
             <View className="flex-row items-center gap-0.5">
-              <Leaf size={10} color="#059669" weight="duotone" />
-              <Text className="text-[11px] font-bold text-success">+{item.points} pts</Text>
+              <Leaf size={11} color="#059669" weight="duotone" />
+              <Text className="text-[12px] font-bold text-success">+{item.points} pts</Text>
             </View>
             {item.status && (
-              <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: `${item.statusColor}15` }}>
-                <Text className="text-[10px] font-bold" style={{ color: item.statusColor }}>{item.status}</Text>
+              <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: `${item.statusColor}15` }}>
+                <Text className="text-[11px] font-bold" style={{ color: item.statusColor }}>{item.status}</Text>
               </View>
             )}
           </View>
@@ -114,7 +114,7 @@ export default function RiwayatAktivitasScreen() {
           >
             <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
           </TouchableOpacity>
-          <Text className="text-sm font-bold text-primary">Riwayat Aktivitas</Text>
+          <Text className="text-[14px] font-bold text-primary">Riwayat Aktivitas</Text>
           <View className="w-9" />
         </View>
 
@@ -122,19 +122,19 @@ export default function RiwayatAktivitasScreen() {
         <View className="flex-row gap-2 mt-3">
           <View className="flex-1 bg-green-50 border border-green-100 rounded-xl p-2.5 items-center">
             <Text className="text-base font-bold text-success">{totalPoints}</Text>
-            <Text className="text-[10px] font-medium text-secondary">Total Poin</Text>
+            <Text className="text-[11px] font-medium text-secondary">Total Poin</Text>
           </View>
           <View className="flex-1 bg-blue-50 border border-blue-100 rounded-xl p-2.5 items-center">
             <Text className="text-base font-bold text-info">{activities.filter(a => a.type === 'report').length}</Text>
-            <Text className="text-[10px] font-medium text-secondary">Laporan</Text>
+            <Text className="text-[11px] font-medium text-secondary">Laporan</Text>
           </View>
           <View className="flex-1 bg-purple-50 border border-purple-100 rounded-xl p-2.5 items-center">
             <Text className="text-base font-bold" style={{ color: '#7c3aed' }}>{activities.filter(a => a.type === 'action').length}</Text>
-            <Text className="text-[10px] font-medium text-secondary">Aksi</Text>
+            <Text className="text-[11px] font-medium text-secondary">Aksi</Text>
           </View>
           <View className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-2.5 items-center">
             <Text className="text-base font-bold" style={{ color: '#d97706' }}>{activities.filter(a => a.type === 'support' || a.type === 'verify').length}</Text>
-            <Text className="text-[10px] font-medium text-secondary">Kontribusi</Text>
+            <Text className="text-[11px] font-medium text-secondary">Kontribusi</Text>
           </View>
         </View>
 
@@ -152,7 +152,7 @@ export default function RiwayatAktivitasScreen() {
                 onPress={() => setActiveFilter(tab.key)}
                 activeOpacity={0.7}
               >
-                <Text className="text-[11px] font-semibold" style={{ color: isActive ? '#fff' : SiagaColors.secondary }}>{tab.label}</Text>
+                <Text className="text-[12px] font-semibold" style={{ color: isActive ? '#fff' : SiagaColors.secondary }}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}

@@ -76,6 +76,51 @@ export default function AIChatScreen() {
         setMessages(prev => [...prev, aiMsg]);
     };
 
+    // Simple markdown renderer for AI responses
+    const renderMarkdown = (text: string) => {
+        const lines = text.split('\n');
+        return (
+            <Text className="text-[14px] leading-5" style={{ color: SiagaColors.primary }}>
+                {lines.map((line, i) => {
+                    const isLast = i === lines.length - 1;
+                    const nl = isLast ? '' : '\n';
+
+                    // Headers (### or ##)
+                    const headerMatch = line.match(/^#{1,3}\s+(.+)/);
+                    if (headerMatch) {
+                        return <Text key={i} style={{ fontWeight: '700', fontSize: 15 }}>{parseBold(headerMatch[1])}{nl}</Text>;
+                    }
+
+                    // Bullet points (- or *)
+                    const bulletMatch = line.match(/^[\-\*]\s+(.+)/);
+                    if (bulletMatch) {
+                        return <Text key={i}>  •  {parseBold(bulletMatch[1])}{nl}</Text>;
+                    }
+
+                    // Numbered list
+                    const numMatch = line.match(/^(\d+)\.\s+(.+)/);
+                    if (numMatch) {
+                        return <Text key={i}>  {numMatch[1]}.  {parseBold(numMatch[2])}{nl}</Text>;
+                    }
+
+                    // Regular line with bold support
+                    return <Text key={i}>{parseBold(line)}{nl}</Text>;
+                })}
+            </Text>
+        );
+    };
+
+    // Parse **bold** within a line
+    const parseBold = (text: string): React.ReactNode[] => {
+        const parts = text.split(/(\*\*[^*]+\*\*)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <Text key={i} style={{ fontWeight: '700' }}>{part.slice(2, -2)}</Text>;
+            }
+            return <Text key={i}>{part}</Text>;
+        });
+    };
+
     const renderMessage = ({ item }: { item: Message }) => (
         <View className={`mb-3 ${item.type === 'user' ? 'items-end' : 'items-start'}`}>
             {item.type === 'ai' && (
@@ -96,7 +141,9 @@ export default function AIChatScreen() {
                     elevation: item.type === 'ai' ? 1 : 0,
                 }}
             >
-                <Text className="text-[14px] leading-5" style={{ color: item.type === 'user' ? '#fff' : SiagaColors.primary }}>{item.text}</Text>
+                {item.type === 'ai' ? renderMarkdown(item.text) : (
+                    <Text className="text-[14px] leading-5" style={{ color: '#fff' }}>{item.text}</Text>
+                )}
             </View>
             {item.type === 'user' && (
                 <View className="flex-row items-center gap-1 mt-0.5 mr-1">

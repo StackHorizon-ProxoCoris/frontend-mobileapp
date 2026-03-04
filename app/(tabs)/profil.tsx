@@ -30,12 +30,14 @@ export default function ProfilScreen() {
     const [sosVisible, setSosVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
     const { showToast } = useToast();
     const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
 
     useEffect(() => {
         async function load() {
+            // Refresh user profile to get updated ecoPoints
+            if (refreshUser) await refreshUser();
             const result = await getActivities();
             if (result.success && result.data) setRecentActivities(result.data.slice(0, 3));
         }

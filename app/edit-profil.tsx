@@ -93,7 +93,7 @@ export default function EditProfilScreen() {
         >
           <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
         </TouchableOpacity>
-        <Text className="text-sm font-bold text-primary">Edit Profil</Text>
+        <Text className="text-base font-bold text-primary">Edit Profil</Text>
         <TouchableOpacity
           className="px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
           style={{ backgroundColor: isSaving ? '#e2e8f0' : SiagaColors.primary }}
@@ -101,8 +101,8 @@ export default function EditProfilScreen() {
           disabled={isSaving}
           activeOpacity={0.7}
         >
-          <FloppyDisk size={14} color="#fff" weight="bold" />
-          <Text className="text-xs font-bold text-white">{isSaving ? 'Menyimpan...' : 'Simpan'}</Text>
+          <FloppyDisk size={16} color="#fff" weight="bold" />
+          <Text className="text-[13px] font-bold text-white">{isSaving ? 'Menyimpan...' : 'Simpan'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -132,7 +132,7 @@ export default function EditProfilScreen() {
                 <Camera size={14} color="#fff" weight="bold" />
               </TouchableOpacity>
             </View>
-            <Text className="text-xs text-secondary mt-2">Tap ikon kamera untuk mengganti foto</Text>
+            <Text className="text-[13px] text-secondary mt-2">Tap ikon kamera untuk mengganti foto</Text>
           </View>
 
           {/* Verification Banner */}
@@ -142,10 +142,10 @@ export default function EditProfilScreen() {
             </View>
             <View className="flex-1">
               <View className="flex-row items-center gap-1.5">
-                <Text className="text-sm font-bold text-primary">Identitas Terverifikasi</Text>
-                <CheckCircle size={12} color="#059669" weight="fill" />
+                <Text className="text-[14px] font-bold text-primary">Identitas Terverifikasi</Text>
+                <CheckCircle size={14} color="#059669" weight="fill" />
               </View>
-              <Text className="text-[11px] text-secondary mt-0.5">KTP telah diverifikasi pada 10 Jan 2026</Text>
+              <Text className="text-[12px] text-secondary mt-0.5">KTP telah diverifikasi pada 10 Jan 2026</Text>
             </View>
           </View>
 
@@ -155,16 +155,16 @@ export default function EditProfilScreen() {
               const IconComp = field.icon;
               return (
                 <View key={field.key}>
-                  <Text className="text-xs font-semibold text-primary mb-1.5 ml-1">{field.label}</Text>
+                  <Text className="text-[13px] font-semibold text-primary mb-2 ml-1">{field.label}</Text>
                   <View
-                    className="bg-white border border-slate-100 rounded-xl flex-row items-start gap-3 px-3.5 py-3"
+                    className="bg-white border border-slate-100 rounded-xl flex-row items-start gap-3 px-4 py-3.5"
                     style={{ elevation: 1, opacity: field.editable === false ? 0.6 : 1 }}
                   >
-                    <View className="w-8 h-8 rounded-lg items-center justify-center mt-0.5" style={{ backgroundColor: `${field.iconColor}12` }}>
-                      <IconComp size={16} color={field.iconColor} weight="duotone" />
+                    <View className="w-9 h-9 rounded-lg items-center justify-center mt-0.5" style={{ backgroundColor: `${field.iconColor}12` }}>
+                      <IconComp size={18} color={field.iconColor} weight="duotone" />
                     </View>
                     <TextInput
-                      className="flex-1 text-[13px] text-primary py-0"
+                      className="flex-1 text-[14px] text-primary py-0"
                       value={field.value}
                       onChangeText={(val) => updateField(field.key, val)}
                       placeholder={field.placeholder}
@@ -185,23 +185,23 @@ export default function EditProfilScreen() {
 
           {/* Member Info */}
           <View className="mx-5 mt-6 bg-slate-50 border border-slate-100 rounded-2xl p-4">
-            <Text className="text-[11px] font-semibold text-secondary uppercase tracking-wider mb-2">Informasi Keanggotaan</Text>
+            <Text className="text-[12px] font-semibold text-secondary uppercase tracking-wider mb-2">Informasi Keanggotaan</Text>
             <View className="gap-2">
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">Bergabung sejak</Text>
-                <Text className="text-xs font-semibold text-primary">-</Text>
+                <Text className="text-[13px] text-secondary">Bergabung sejak</Text>
+                <Text className="text-[13px] font-semibold text-primary">-</Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">ID Pengguna</Text>
-                <Text className="text-xs font-semibold text-primary font-mono">{user?.id?.slice(0, 8) || '-'}...</Text>
+                <Text className="text-[13px] text-secondary">ID Pengguna</Text>
+                <Text className="text-[13px] font-semibold text-primary font-mono">{user?.id?.slice(0, 8) || '-'}...</Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">Total Laporan</Text>
-                <Text className="text-xs font-semibold text-primary">{user?.totalReports || 0}</Text>
+                <Text className="text-[13px] text-secondary">Total Laporan</Text>
+                <Text className="text-[13px] font-semibold text-primary">{user?.totalReports || 0}</Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">Total Aksi</Text>
-                <Text className="text-xs font-semibold text-primary">{user?.totalActions || 0}</Text>
+                <Text className="text-[13px] text-secondary">Total Aksi</Text>
+                <Text className="text-[13px] font-semibold text-primary">{user?.totalActions || 0}</Text>
               </View>
             </View>
           </View>
