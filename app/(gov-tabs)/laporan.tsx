@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity,
+    View, Text, ScrollView, FlatList, TouchableOpacity,
     Animated, TextInput, Dimensions, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,6 +43,10 @@ type GovReportItem = {
     icon: any;
     iconColor: string;
     bgColor: string;
+    // Sortable raw values
+    createdAt: string;
+    urgency: number;
+    category: string;
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -113,7 +117,7 @@ function StatCard({ item }: { item: StatItem }) {
     );
 }
 
-function ReportCard({
+const ReportCard = React.memo(function ReportCard({
     report,
     onPress,
     onStatusAction,
@@ -262,7 +266,7 @@ function ReportCard({
             </View>
         </TouchableOpacity>
     );
-}
+});
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function GovLaporanScreen() {
@@ -361,6 +365,9 @@ export default function GovLaporanScreen() {
                 icon: cat.icon,
                 iconColor: cat.iconColor,
                 bgColor: cat.bgColor,
+                createdAt: r.createdAt,
+                urgency: r.urgency ?? 0,
+                category: r.category,
             };
         });
     }, [apiReports]);
@@ -500,11 +507,34 @@ export default function GovLaporanScreen() {
     // Kritis count from live data
     const kritisCount = REPORTS_LIVE.filter(r => r.severity === 'Kritis').length;
 
-    const filteredReports = REPORTS_LIVE.filter((r) => {
-        const matchFilter = activeFilter === 'Semua' || r.status === activeFilter || (activeFilter === 'Darurat' && r.severity === 'Kritis');
-        const matchSearch = searchQuery === '' || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.area.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.includes(searchQuery);
-        return matchFilter && matchSearch;
-    });
+    const filteredReports = useMemo(() => {
+        const filtered = REPORTS_LIVE.filter((r) => {
+            const matchFilter = activeFilter === 'Semua' || r.status === activeFilter || (activeFilter === 'Darurat' && r.severity === 'Kritis');
+            const matchSearch = searchQuery === '' || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.area.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.includes(searchQuery);
+            return matchFilter && matchSearch;
+        });
+
+        // Apply sorting based on activeSort
+        const SEVERITY_ORDER: Record<SeverityLevel, number> = { Kritis: 0, Tinggi: 1, Sedang: 2, Rendah: 3 };
+        switch (activeSort) {
+            case 'Terbaru':
+                filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                break;
+            case 'Prioritas':
+                filtered.sort((a, b) => {
+                    const sevDiff = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
+                    return sevDiff !== 0 ? sevDiff : b.urgency - a.urgency;
+                });
+                break;
+            case 'Lokasi':
+                filtered.sort((a, b) => a.area.localeCompare(b.area));
+                break;
+            case 'Kategori':
+                filtered.sort((a, b) => a.category.localeCompare(b.category));
+                break;
+        }
+        return filtered;
+    }, [REPORTS_LIVE, activeFilter, searchQuery, activeSort]);
 
     return (
         <View className="flex-1" style={{ backgroundColor: '#f4f7fb' }}>
@@ -787,7 +817,7 @@ export default function GovLaporanScreen() {
             </View>
 
             {/* ── REPORT LIST ───────────────────────────────────────── */}
-            <ScrollView
+            <FlatList
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
@@ -799,66 +829,60 @@ export default function GovLaporanScreen() {
                         colors={[SiagaColors.info]}
                     />
                 }
-            >
-                {/* Results header */}
-                <Animated.View
-                    style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                    className="flex-row items-center justify-between"
-                >
-                    <View className="flex-row items-center gap-1.5">
-                        <View className="w-1 h-4 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
-                        <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
-                            {filteredReports.length} Laporan
-                            {activeFilter !== 'Semua' && (
-                                <Text style={{ color: SiagaColors.secondary }}> · {activeFilter}</Text>
-                            )}
-                        </Text>
-                    </View>
-
-                    {/* Quick action buttons */}
-                    <View className="flex-row items-center gap-2">
-                        <TouchableOpacity
-                            className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
-                            style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
-                            activeOpacity={0.7}
-                        >
-                            <Megaphone size={14} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>
-                                Broadcast
+                data={filteredReports}
+                keyExtractor={(item) => item.id}
+                initialNumToRender={5}
+                maxToRenderPerBatch={8}
+                windowSize={7}
+                ListHeaderComponent={
+                    <Animated.View
+                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+                        className="flex-row items-center justify-between"
+                    >
+                        <View className="flex-row items-center gap-1.5">
+                            <View className="w-1 h-4 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
+                            <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
+                                {filteredReports.length} Laporan
+                                {activeFilter !== 'Semua' && (
+                                    <Text style={{ color: SiagaColors.secondary }}> · {activeFilter}</Text>
+                                )}
                             </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
-                            style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
-                            activeOpacity={0.7}
-                        >
-                            <CheckSquare size={14} color={SiagaColors.success} weight="duotone" />
-                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>
-                                Tandai Selesai
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </Animated.View>
+                        </View>
 
-                {/* Cards */}
-                {filteredReports.length > 0 ? (
-                    filteredReports.map((report, i) => (
-                        <Animated.View
-                            key={report.id}
-                            style={{
-                                opacity: fadeAnim,
-                                transform: [{ translateY: slideAnim }],
-                            }}
-                        >
-                            <ReportCard
-                                report={report}
-                                onPress={() => openReportDetail(report.id)}
-                                onStatusAction={() => handleStatusAction(report)}
-                                isStatusUpdating={!!updatingStatusIds[report.id]}
-                            />
-                        </Animated.View>
-                    ))
-                ) : (
+                        {/* Quick action buttons */}
+                        <View className="flex-row items-center gap-2">
+                            <TouchableOpacity
+                                className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
+                                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
+                                activeOpacity={0.7}
+                            >
+                                <Megaphone size={14} color={SiagaColors.info} weight="duotone" />
+                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>
+                                    Broadcast
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
+                                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
+                                activeOpacity={0.7}
+                            >
+                                <CheckSquare size={14} color={SiagaColors.success} weight="duotone" />
+                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>
+                                    Tandai Selesai
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                }
+                renderItem={({ item: report }) => (
+                    <ReportCard
+                        report={report}
+                        onPress={() => openReportDetail(report.id)}
+                        onStatusAction={() => handleStatusAction(report)}
+                        isStatusUpdating={!!updatingStatusIds[report.id]}
+                    />
+                )}
+                ListEmptyComponent={
                     <View className="flex-1 items-center justify-center py-16">
                         <View
                             className="w-16 h-16 rounded-2xl items-center justify-center mb-3"
@@ -881,38 +905,38 @@ export default function GovLaporanScreen() {
                             <Text className="text-[13px] font-bold text-white">Reset Filter</Text>
                         </TouchableOpacity>
                     </View>
-                )}
-
-                {/* Load more */}
-                {filteredReports.length > 0 && (
-                    <TouchableOpacity
-                        className="py-3 rounded-2xl flex-row items-center justify-center gap-1.5"
-                        style={{
-                            backgroundColor: '#fff',
-                            borderWidth: 1,
-                            borderColor: '#edf2f9',
-                            elevation: 1,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.04,
-                            shadowRadius: 3,
-                        }}
-                        activeOpacity={0.7}
-                    >
-                        <ArrowClockwise size={15} color={SiagaColors.info} weight="duotone" />
-                        <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
-                            Muat Laporan Lainnya
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Info footer */}
-                <View className="items-center pt-1">
-                    <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
-                        Data diperbarui otomatis setiap 30 detik
-                    </Text>
-                </View>
-            </ScrollView>
+                }
+                ListFooterComponent={
+                    filteredReports.length > 0 ? (
+                        <>
+                            <TouchableOpacity
+                                className="py-3 rounded-2xl flex-row items-center justify-center gap-1.5"
+                                style={{
+                                    backgroundColor: '#fff',
+                                    borderWidth: 1,
+                                    borderColor: '#edf2f9',
+                                    elevation: 1,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 1 },
+                                    shadowOpacity: 0.04,
+                                    shadowRadius: 3,
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <ArrowClockwise size={15} color={SiagaColors.info} weight="duotone" />
+                                <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
+                                    Muat Laporan Lainnya
+                                </Text>
+                            </TouchableOpacity>
+                            <View className="items-center pt-1">
+                                <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
+                                    Data diperbarui otomatis setiap 30 detik
+                                </Text>
+                            </View>
+                        </>
+                    ) : null
+                }
+            />
         </View>
     );
 }
