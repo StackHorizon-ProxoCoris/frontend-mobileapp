@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, Image,
+  ScrollView, View, Text, TouchableOpacity,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -227,9 +228,10 @@ export default function InfoDetailScreen() {
               renderItem={({ item }) => (
                 <Image
                   source={{ uri: item }}
-                  style={{ width: PHOTO_WIDTH, height: 200 }}
-                  className="bg-slate-200"
-                  resizeMode="cover"
+                  style={{ width: PHOTO_WIDTH, height: 200, backgroundColor: '#e2e8f0' }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
                 />
               )}
             />

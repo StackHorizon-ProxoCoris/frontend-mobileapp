@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Image as RNImage, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -263,7 +264,7 @@ export default function LaporScreen() {
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                                     {photos.map((photo, i) => (
                                         <TouchableOpacity key={i} className="w-28 h-28 rounded-2xl overflow-hidden" onPress={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}>
-                                            <RNImage source={{ uri: photo.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                            <ExpoImage source={{ uri: photo.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                                             <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 items-center justify-center">
                                                 <Text className="text-white text-[10px] font-bold">✕</Text>
                                             </View>
@@ -535,7 +536,7 @@ export default function LaporScreen() {
                                     >
                                         {beforePhoto ? (
                                             <View className="w-full h-full">
-                                                <RNImage source={{ uri: beforePhoto }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                                <ExpoImage source={{ uri: beforePhoto }} style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                                                 <View className="absolute bottom-0 left-0 right-0 bg-black/50 py-1 items-center">
                                                     <Text className="text-[10px] font-bold text-white">SEBELUM ✓</Text>
                                                 </View>
@@ -562,7 +563,7 @@ export default function LaporScreen() {
                                     >
                                         {afterPhoto ? (
                                             <View className="w-full h-full">
-                                                <RNImage source={{ uri: afterPhoto }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                                <ExpoImage source={{ uri: afterPhoto }} style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                                                 <View className="absolute bottom-0 left-0 right-0 bg-black/50 py-1 items-center">
                                                     <Text className="text-[10px] font-bold text-white">SESUDAH ✓</Text>
                                                 </View>

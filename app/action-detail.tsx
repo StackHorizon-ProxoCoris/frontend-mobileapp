@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, Image,
+  ScrollView, View, Text, TouchableOpacity,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, Alert, TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -78,8 +79,7 @@ export default function ActionDetailScreen() {
           },
           participants: [],
           totalParticipants: a.totalParticipants,
-          maxParticipants: a.maxParticipants,
-          photoUrls: a.photoUrls || [],
+          maxParticipants: a.maxParticipants,          photoUrls: a.photoUrls || [],
           impact: [
             { label: 'Peserta', value: `${a.totalParticipants}/${a.maxParticipants}`, type: 'Users' },
             { label: 'Durasi', value: a.duration || '-', type: 'Clock' },
@@ -271,9 +271,10 @@ export default function ActionDetailScreen() {
               renderItem={({ item }) => (
                 <Image
                   source={{ uri: item }}
-                  style={{ width: PHOTO_WIDTH, height: 200 }}
-                  className="bg-slate-200"
-                  resizeMode="cover"
+                  style={{ width: PHOTO_WIDTH, height: 200, backgroundColor: '#e2e8f0' }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
                 />
               )}
             />

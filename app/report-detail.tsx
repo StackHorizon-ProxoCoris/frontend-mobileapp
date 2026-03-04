@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, Image, Modal, ActivityIndicator,
+  ScrollView, View, Text, TouchableOpacity, Modal, ActivityIndicator,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -19,7 +20,7 @@ import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
 
 export default function ReportDetailScreen() {
@@ -41,6 +42,7 @@ export default function ReportDetailScreen() {
   const [reporterId, setReporterId] = useState<string | null>(null);
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -346,13 +348,16 @@ export default function ReportDetailScreen() {
               keyExtractor={(_, i) => `photo-${i}`}
               snapToInterval={PHOTO_WIDTH}
               decelerationRate="fast"
-              renderItem={({ item }) => (
-                <Image
-                  source={{ uri: item }}
-                  style={{ width: PHOTO_WIDTH, height: 200 }}
-                  className="bg-slate-200"
-                  resizeMode="cover"
-                />
+              renderItem={({ item, index }) => (
+                <TouchableOpacity activeOpacity={0.9} onPress={() => setFullscreenPhoto(index)}>
+                  <Image
+                    source={{ uri: item }}
+                    style={{ width: PHOTO_WIDTH, height: 200, backgroundColor: '#e2e8f0' }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                </TouchableOpacity>
               )}
             />
             {/* Photo Indicator */}
@@ -800,6 +805,95 @@ export default function ReportDetailScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Fullscreen Photo Viewer */}
+      <Modal
+        visible={fullscreenPhoto !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setFullscreenPhoto(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setFullscreenPhoto(null)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.95)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setFullscreenPhoto(null)}
+            style={{
+              position: 'absolute',
+              top: insets.top + 12,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>✕</Text>
+          </TouchableOpacity>
+
+          {/* Photo */}
+          <FlatList
+            data={report?.photoUrls || []}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={fullscreenPhoto ?? 0}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+            keyExtractor={(_, i) => `fullscreen-${i}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+                <Image
+                  source={{ uri: item }}
+                  style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.7 }}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
+              </TouchableOpacity>
+            )}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              setFullscreenPhoto(index);
+            }}
+          />
+
+          {/* Photo counter */}
+          <View style={{
+            position: 'absolute',
+            bottom: insets.bottom + 24,
+            alignSelf: 'center',
+            flexDirection: 'row',
+            gap: 6,
+          }}>
+            {(report?.photoUrls || []).map((_, i) => (
+              <View
+                key={i}
+                style={{
+                  width: i === fullscreenPhoto ? 24 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: i === fullscreenPhoto ? '#fff' : 'rgba(255,255,255,0.35)',
+                }}
+              />
+            ))}
+          </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

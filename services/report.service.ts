@@ -135,6 +135,26 @@ export async function getReportStats(): Promise<ApiResponse<ReportStats>> {
   return apiGet<ReportStats>('/reports/stats', false);
 }
 
+/** Tipe data ringan untuk marker peta */
+export interface MapMarkerData {
+  id: string;
+  title: string;
+  category: string;
+  lat: number;
+  lng: number;
+  urgency: number;
+  votesCount: number;
+  district: string;
+  city: string;
+  description: string;
+  createdAt: string;
+}
+
+/** Ambil marker peta (payload ringan) */
+export async function getMapMarkers(): Promise<ApiResponse<MapMarkerData[]>> {
+  return apiGet<MapMarkerData[]>('/reports/map-markers', false);
+}
+
 /** Ambil daftar laporan dengan filter & pagination */
 export async function getReports(params?: {
   category?: string;
