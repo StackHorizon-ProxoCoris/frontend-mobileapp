@@ -298,17 +298,17 @@ export default function PantauScreen() {
 
                                             {/* Meta row */}
                                             <View className="flex-row items-center gap-3 mt-2">
-                                                <View className="flex-row items-center gap-1">
+                                                <View className="flex-row items-center gap-1" style={{ flexShrink: 0 }}>
                                                     <Clock size={12} color={SiagaColors.secondary} />
                                                     <Text className="text-[13px] text-secondary font-medium">{r.time}</Text>
                                                 </View>
-                                                <View className="flex-row items-center gap-1">
-                                                    <MapPin size={12} color={SiagaColors.secondary} weight="duotone" />
-                                                    <Text className="text-[13px] text-secondary font-medium">{r.distance}</Text>
+                                                <View className="flex-row items-center gap-1" style={{ flexShrink: 1, minWidth: 0 }}>
+                                                    <MapPin size={12} color={SiagaColors.secondary} weight="duotone" style={{ flexShrink: 0 }} />
+                                                    <Text className="text-[13px] text-secondary font-medium" numberOfLines={1}>{r.distance}</Text>
                                                 </View>
-                                                <View className="flex-row items-center gap-1">
+                                                <View className="flex-row items-center gap-1" style={{ flexShrink: 0 }}>
                                                     <Users size={12} color={SiagaColors.primary} weight="duotone" />
-                                                    <Text className="text-[13px] font-bold text-primary">{r.votes} dukungan</Text>
+                                                    <Text className="text-[13px] font-bold text-primary" numberOfLines={1}>{r.votes} dukungan</Text>
                                                 </View>
                                             </View>
                                         </View>
