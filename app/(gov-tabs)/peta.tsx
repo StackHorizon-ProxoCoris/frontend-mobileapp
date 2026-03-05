@@ -12,7 +12,7 @@ import {
     Stack, ChartBar, CaretDown, CaretUp,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { getReports, type ReportData } from '@/services/report.service';
+import { getMapMarkers, type MapMarkerData } from '@/services/report.service';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,46 +56,14 @@ const FILTER_CATEGORIES: FilterKey[] = ['Semua', 'Darurat', 'Banjir', 'Longsor',
 
 // ─── Map HTML Generator ───────────────────────────────────────────────────────
 function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number; radius: number; count: number; label: string }[], activeFilter: string, showHotspot: boolean) {
-    const filtered = activeFilter === 'Semua'
-        ? markers
-        : activeFilter === 'Darurat'
-            ? markers.filter(r => r.severity === 'Kritis')
-            : markers.filter(r => r.category === activeFilter);
-
-    const markersJS = filtered.map((m, i) => {
-        const cat = CATEGORY_MAP[m.category];
-        const sevColor = SEVERITY_COLOR[m.severity];
-        const isPulse = m.severity === 'Kritis';
-        const ringColor = sevColor;
-        return `
-            var div${i} = L.divIcon({
-                className: '',
-                html: \`<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
-                    ${isPulse ? `<div style="position:absolute;inset:0;border-radius:50%;background:${ringColor};opacity:0.25;animation:pulse 1.5s infinite;"></div>` : ''}
-                    <div style="width:32px;height:32px;border-radius:50%;background:${cat.color};border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;">${cat.emoji}</div>
-                    <div style="position:absolute;top:-6px;right:-6px;background:${sevColor};color:white;border-radius:8px;padding:1px 5px;font-size:8px;font-weight:700;border:1.5px solid white;">${m.cluster}</div>
-                </div>\`,
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-                popupAnchor: [0, -20]
-            });
-            var m${i} = L.marker([${m.lat}, ${m.lng}], {icon: div${i}}).addTo(map);
-            m${i}.on('click', function() {
-                window.ReactNativeWebView.postMessage(JSON.stringify({type:'marker', id:'${m.id}'}));
-            });
-        `;
-    }).join('\n');
-
-    const hotspotsJS = showHotspot ? hotspots.map((h, i) => `
-        var heat${i} = L.circle([${h.lat}, ${h.lng}], {
-            radius: ${h.radius},
-            color: 'rgba(239,68,68,0.6)',
-            fillColor: 'rgba(239,68,68,0.12)',
-            fillOpacity: 1,
-            weight: 1.5,
-        }).addTo(map);
-        heat${i}.bindTooltip('<b>🔴 ${h.label}</b><br>${h.count} laporan', {permanent: false, direction: 'top'});
-    `).join('\n') : '';
+    // Build initial markers and hotspots data as JSON for reuse by JS functions
+    const allMarkersJSON = JSON.stringify(markers.map(m => ({
+        id: m.id, title: m.title, category: m.category, severity: m.severity,
+        lat: m.lat, lng: m.lng, area: m.area, cluster: m.cluster, desc: m.desc,
+    })));
+    const allHotspotsJSON = JSON.stringify(hotspots);
+    const categoryMapJSON = JSON.stringify(CATEGORY_MAP);
+    const severityColorJSON = JSON.stringify(SEVERITY_COLOR);
 
     return `<!DOCTYPE html>
 <html>
@@ -124,12 +92,73 @@ function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number
             attributionControl: true,
         });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
+            attribution: '\u00a9 OpenStreetMap',
             maxZoom: 19,
         }).addTo(map);
 
-        ${hotspotsJS}
-        ${markersJS}
+        // Persistent layer groups for markers and hotspots
+        var markerLayerGroup = L.layerGroup().addTo(map);
+        var hotspotLayerGroup = L.layerGroup().addTo(map);
+
+        var CATEGORY_MAP = ${categoryMapJSON};
+        var SEVERITY_COLOR = ${severityColorJSON};
+
+        // ── Reusable functions for marker/hotspot updates ──
+        function clearAllLayers() {
+            markerLayerGroup.clearLayers();
+            hotspotLayerGroup.clearLayers();
+        }
+
+        function updateMarkers(allMarkers, activeFilter) {
+            markerLayerGroup.clearLayers();
+            var filtered = allMarkers;
+            if (activeFilter === 'Darurat') {
+                filtered = allMarkers.filter(function(r) { return r.severity === 'Kritis'; });
+            } else if (activeFilter !== 'Semua') {
+                filtered = allMarkers.filter(function(r) { return r.category === activeFilter; });
+            }
+            filtered.forEach(function(m) {
+                var cat = CATEGORY_MAP[m.category] || CATEGORY_MAP['Lainnya'];
+                var sevColor = SEVERITY_COLOR[m.severity] || '#10b981';
+                var isPulse = m.severity === 'Kritis';
+                var divIcon = L.divIcon({
+                    className: '',
+                    html: '<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">'
+                        + (isPulse ? '<div style="position:absolute;inset:0;border-radius:50%;background:' + sevColor + ';opacity:0.25;animation:pulse 1.5s infinite;"></div>' : '')
+                        + '<div style="width:32px;height:32px;border-radius:50%;background:' + cat.color + ';border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;">' + cat.emoji + '</div>'
+                        + '<div style="position:absolute;top:-6px;right:-6px;background:' + sevColor + ';color:white;border-radius:8px;padding:1px 5px;font-size:8px;font-weight:700;border:1.5px solid white;">' + m.cluster + '</div>'
+                        + '</div>',
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18],
+                    popupAnchor: [0, -20]
+                });
+                var marker = L.marker([m.lat, m.lng], { icon: divIcon }).addTo(markerLayerGroup);
+                marker.on('click', function() {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'marker', id: m.id }));
+                });
+            });
+        }
+
+        function updateHotspots(hotspots, show) {
+            hotspotLayerGroup.clearLayers();
+            if (!show) return;
+            hotspots.forEach(function(h) {
+                var circle = L.circle([h.lat, h.lng], {
+                    radius: h.radius,
+                    color: 'rgba(239,68,68,0.6)',
+                    fillColor: 'rgba(239,68,68,0.12)',
+                    fillOpacity: 1,
+                    weight: 1.5,
+                }).addTo(hotspotLayerGroup);
+                circle.bindTooltip('<b>\ud83d\udd34 ' + h.label + '</b><br>' + h.count + ' laporan', { permanent: false, direction: 'top' });
+            });
+        }
+
+        // Render initial state
+        var initialMarkers = ${allMarkersJSON};
+        var initialHotspots = ${allHotspotsJSON};
+        updateMarkers(initialMarkers, '${activeFilter}');
+        updateHotspots(initialHotspots, ${showHotspot});
 
         // Tap on map (empty area) to dismiss bottom sheet
         map.on('click', function(e) {
@@ -330,28 +359,28 @@ export default function GovPetaScreen() {
     const [showHotspot, setShowHotspot] = useState(true);
     const [showLegend, setShowLegend] = useState(false);
     const [selectedReport, setSelectedReport] = useState<MapMarker | null>(null);
-    const [mapKey, setMapKey] = useState(0);
+    const [mapReady, setMapReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [dataLoading, setDataLoading] = useState(true);
     const [showStats, setShowStats] = useState(false);
-    const [apiReports, setApiReports] = useState<ReportData[]>([]);
+    const [apiReports, setApiReports] = useState<MapMarkerData[]>([]);
 
     const sheetAnim = useRef(new Animated.Value(0)).current;
 
-    // Ambil laporan dari API
+    // Ambil marker dari API (endpoint ringan)
     useEffect(() => {
         async function load() {
             setDataLoading(true);
-            const result = await getReports({ limit: 100 });
+            const result = await getMapMarkers();
             if (result.success && result.data) setApiReports(result.data);
             setDataLoading(false);
         }
         load();
     }, []);
 
-    // Konversi API data ke MapMarker format
+    // Konversi API data ke MapMarker format (backend sudah filter null lat/lng)
     const LIVE_MARKERS = useMemo<MapMarker[]>(() => {
-        return apiReports.filter(r => r.lat && r.lng).map(r => {
+        return apiReports.map(r => {
             const category: CategoryKey = (['Banjir', 'Longsor', 'Jalan Rusak', 'Kebakaran', 'Sampah'].includes(r.category) ? r.category : 'Lainnya') as CategoryKey;
             const severity: SeverityLevel = r.urgency >= 80 ? 'Kritis' : r.urgency >= 60 ? 'Tinggi' : r.urgency >= 40 ? 'Sedang' : 'Rendah';
             return {
@@ -359,12 +388,12 @@ export default function GovPetaScreen() {
                 title: r.title,
                 category,
                 severity,
-                lat: r.lat!,
-                lng: r.lng!,
+                lat: r.lat,
+                lng: r.lng,
                 area: r.district || r.city || '-',
                 cluster: r.votesCount,
                 time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-                desc: r.description?.slice(0, 100) || '',
+                desc: r.description || '',
             };
         });
     }, [apiReports]);
@@ -414,14 +443,29 @@ export default function GovPetaScreen() {
 
     const handleFilterChange = (cat: FilterKey) => {
         setActiveFilter(cat);
-        setMapKey(k => k + 1);
         closeSheet();
     };
 
     const toggleHotspot = () => {
         setShowHotspot(h => !h);
-        setMapKey(k => k + 1);
     };
+
+    // Inject JS to update markers/hotspots without remounting WebView
+    useEffect(() => {
+        if (!mapReady || !webviewRef.current) return;
+        const markersData = LIVE_MARKERS.map(m => ({
+            id: m.id, title: m.title, category: m.category, severity: m.severity,
+            lat: m.lat, lng: m.lng, area: m.area, cluster: m.cluster, desc: m.desc,
+        }));
+        const js = `updateMarkers(${JSON.stringify(markersData)}, '${activeFilter}'); true;`;
+        webviewRef.current.injectJavaScript(js);
+    }, [activeFilter, LIVE_MARKERS, mapReady]);
+
+    useEffect(() => {
+        if (!mapReady || !webviewRef.current) return;
+        const js = `updateHotspots(${JSON.stringify(DYNAMIC_HOTSPOTS)}, ${showHotspot}); true;`;
+        webviewRef.current.injectJavaScript(js);
+    }, [showHotspot, DYNAMIC_HOTSPOTS, mapReady]);
 
     const criticalCount = LIVE_MARKERS.filter(r => r.severity === 'Kritis').length;
     const filteredCount = activeFilter === 'Semua'
@@ -466,7 +510,15 @@ export default function GovPetaScreen() {
                             </TouchableOpacity>
                             {/* Reload */}
                             <TouchableOpacity
-                                onPress={() => { setMapKey(k => k + 1); setLoading(true); }}
+                                onPress={() => {
+                                    if (webviewRef.current) {
+                                        const markersData = LIVE_MARKERS.map(m => ({
+                                            id: m.id, title: m.title, category: m.category, severity: m.severity,
+                                            lat: m.lat, lng: m.lng, area: m.area, cluster: m.cluster, desc: m.desc,
+                                        }));
+                                        webviewRef.current.injectJavaScript(`updateMarkers(${JSON.stringify(markersData)}, '${activeFilter}'); updateHotspots(${JSON.stringify(DYNAMIC_HOTSPOTS)}, ${showHotspot}); true;`);
+                                    }
+                                }}
                                 activeOpacity={0.7}
                                 style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.1)' }}
                             >
@@ -556,14 +608,13 @@ export default function GovPetaScreen() {
             {/* ── FULL SCREEN MAP ──────────────────────────────────── */}
             <View style={{ flex: 1, position: 'relative' }}>
                 <WebView
-                    key={mapKey}
                     ref={webviewRef}
                     source={{ html: buildMapHtml(LIVE_MARKERS, DYNAMIC_HOTSPOTS, activeFilter, showHotspot) }}
                     style={{ flex: 1 }}
                     javaScriptEnabled
                     domStorageEnabled
                     startInLoadingState
-                    onLoadEnd={() => setLoading(false)}
+                    onLoadEnd={() => { setLoading(false); setMapReady(true); }}
                     onMessage={handleMessage}
                     renderLoading={() => (
                         <View style={{

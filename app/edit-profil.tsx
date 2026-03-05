@@ -5,12 +5,13 @@ import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Camera, UserCircle, Envelope, Phone, MapPin,
   CalendarBlank, GenderIntersex, House, PencilSimple, CheckCircle,
-  FloppyDisk, IdentificationCard,
+  FloppyDisk, IdentificationCard, Crosshair,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
 import { apiPatch } from '@/services/api';
+import * as Location from 'expo-location';
 
 interface FormField {
   key: string;
@@ -32,7 +33,7 @@ export default function EditProfilScreen() {
 
   const [form, setForm] = useState({
     name: user?.fullName || '',
-    bio: 'Warga aktif yang peduli lingkungan dan infrastruktur kota.',
+    bio: user?.bio || 'Warga aktif yang peduli lingkungan dan infrastruktur kota.',
     email: user?.email || '',
     phone: user?.phone || '',
     birthDate: '',
@@ -40,9 +41,11 @@ export default function EditProfilScreen() {
     address: '',
     district: user?.district || '',
     city: user?.city || '',
+    province: user?.province || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
 
   const fields: FormField[] = [
     { key: 'name', label: 'Nama Lengkap', icon: UserCircle, iconColor: SiagaColors.primary, value: form.name, placeholder: 'Masukkan nama lengkap' },
@@ -52,18 +55,21 @@ export default function EditProfilScreen() {
     { key: 'birthDate', label: 'Tanggal Lahir', icon: CalendarBlank, iconColor: '#f59e0b', value: form.birthDate, placeholder: 'DD MMMM YYYY' },
     { key: 'gender', label: 'Jenis Kelamin', icon: GenderIntersex, iconColor: '#ec4899', value: form.gender, placeholder: 'Laki-laki / Perempuan' },
     { key: 'address', label: 'Alamat', icon: House, iconColor: '#ea580c', value: form.address, placeholder: 'Masukkan alamat lengkap', multiline: true },
-    { key: 'district', label: 'Kecamatan', icon: MapPin, iconColor: SiagaColors.info, value: form.district, placeholder: 'Kecamatan', editable: false },
-    { key: 'city', label: 'Kota', icon: MapPin, iconColor: SiagaColors.info, value: form.city, placeholder: 'Kota', editable: false },
+    { key: 'district', label: 'Kecamatan', icon: MapPin, iconColor: SiagaColors.info, value: form.district, placeholder: 'Kecamatan' },
+    { key: 'city', label: 'Kota / Kabupaten', icon: MapPin, iconColor: SiagaColors.info, value: form.city, placeholder: 'Kota' },
+    { key: 'province', label: 'Provinsi', icon: MapPin, iconColor: SiagaColors.info, value: form.province, placeholder: 'Provinsi' },
   ];
 
   const handleSave = async () => {
     setIsSaving(true);
     const result = await apiPatch('/auth/profile', {
       fullName: form.name,
+      bio: form.bio,
       email: form.email,
       phone: form.phone,
       district: form.district,
       city: form.city,
+      province: form.province,
     });
     setIsSaving(false);
     if (result.success) {
@@ -77,6 +83,40 @@ export default function EditProfilScreen() {
 
   const updateField = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const detectLocation = async () => {
+    setIsDetecting(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showToast({ type: 'error', title: 'Izin Ditolak', message: 'Aktifkan izin lokasi di pengaturan perangkat.' });
+        setIsDetecting(false);
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = position.coords;
+
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+      if (geocode.length > 0) {
+        const geo = geocode[0];
+        setForm(prev => ({
+          ...prev,
+          district: geo.subregion || geo.district || prev.district,
+          city: geo.city || prev.city,
+          province: geo.region || prev.province,
+        }));
+        showToast({ type: 'success', title: 'Lokasi Terdeteksi ✅', message: `${geo.subregion || '-'}, ${geo.city || '-'}` });
+      } else {
+        showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat menentukan alamat dari lokasi GPS.' });
+      }
+    } catch {
+      showToast({ type: 'error', title: 'Error', message: 'Gagal mendeteksi lokasi. Pastikan GPS aktif.' });
+    } finally {
+      setIsDetecting(false);
+    }
   };
 
   return (
@@ -153,8 +193,28 @@ export default function EditProfilScreen() {
           <View className="px-5 gap-3.5">
             {fields.map((field) => {
               const IconComp = field.icon;
+              const isLocationField = field.key === 'district';
               return (
-                <View key={field.key}>
+                <React.Fragment key={field.key}>
+                  {/* Tombol Deteksi Lokasi — tampil sekali sebelum field Kecamatan */}
+                  {isLocationField && (
+                    <TouchableOpacity
+                      className="flex-row items-center justify-center gap-2 py-3 rounded-xl border"
+                      style={{
+                        backgroundColor: isDetecting ? '#f1f5f9' : '#eff6ff',
+                        borderColor: isDetecting ? '#e2e8f0' : '#bfdbfe',
+                      }}
+                      activeOpacity={0.7}
+                      onPress={detectLocation}
+                      disabled={isDetecting}
+                    >
+                      <Crosshair size={18} color={SiagaColors.info} weight="duotone" />
+                      <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
+                        {isDetecting ? 'Mendeteksi lokasi...' : 'Deteksi Lokasi Saya'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                <View>
                   <Text className="text-[13px] font-semibold text-primary mb-2 ml-1">{field.label}</Text>
                   <View
                     className="bg-white border border-slate-100 rounded-xl flex-row items-start gap-3 px-4 py-3.5"
@@ -179,6 +239,7 @@ export default function EditProfilScreen() {
                     />
                   </View>
                 </View>
+                </React.Fragment>
               );
             })}
           </View>

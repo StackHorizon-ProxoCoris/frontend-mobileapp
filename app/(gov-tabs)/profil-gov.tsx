@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity, Animated, Alert,
+    View, Text, ScrollView, TouchableOpacity, Animated, Alert, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,28 +16,18 @@ import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
 import { getReportStats, type ReportStats } from '@/services/report.service';
+import { getActivities, type ActivityItem } from '@/services/activity.service';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-// Fields yang tidak ada di auth context tetap sebagai defaults
-const GOV_DEFAULTS = {
-    nip: '198001012005011001',
-    jabatan: 'Kepala Seksi Jalan & Jembatan',
-    instansi: 'Dinas Pekerjaan Umum',
-    unit: 'Bidang Bina Marga',
-    golongan: 'III/d',
-    tmt: '01 Januari 2005',
-    accessLevel: 'Supervisor',
+// Gov-specific fields now come from auth context (user?.nip, user?.jabatan, etc.)
+
+
+
+// Icon string → Phosphor component mapping for activity items
+const ACTIVITY_ICON_MAP: Record<string, React.ComponentType<any>> = {
+    CheckCircle, ChatCircle, Warning, ArrowClockwise, Bell,
+    ClipboardText, Star, ShieldCheck, Eye, TrendUp,
 };
-
-
-
-const RECENT_ACTIVITIES = [
-    { text: 'Menyelesaikan Laporan', highlight: '#1042 — Jl. Merdeka', color: SiagaColors.success, time: '10 menit lalu', icon: CheckCircle, iconColor: SiagaColors.success, bg: '#ecfdf5' },
-    { text: 'Mengirim respons ke', highlight: 'Laporan #1039', color: SiagaColors.info, time: '1 jam lalu', icon: ChatCircle, iconColor: SiagaColors.info, bg: '#eff6ff' },
-    { text: 'Menandai anomali pada', highlight: 'Proyek P-003', color: '#f59e0b', time: '3 jam lalu', icon: Warning, iconColor: '#f59e0b', bg: '#fffbeb' },
-    { text: 'Update status', highlight: '#1038 → Diproses', color: SiagaColors.info, time: '5 jam lalu', icon: ArrowClockwise, iconColor: SiagaColors.info, bg: '#eff6ff' },
-    { text: 'Broadcast peringatan ke', highlight: 'Kec. Dayeuhkolot', color: '#7c3aed', time: 'Kemarin', icon: Bell, iconColor: '#7c3aed', bg: '#f5f3ff' },
-];
 
 const ACCESS_PERMISSIONS = [
     { label: 'Lihat Laporan', granted: true },
@@ -118,12 +108,21 @@ export default function GovProfilScreen() {
     const { showToast } = useToast();
     const [showAccess, setShowAccess] = useState(false);
     const [stats, setStats] = useState<ReportStats | null>(null);
+    const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
+    const [loadingActivities, setLoadingActivities] = useState(true);
 
-    // Load stats from API
+    // Load stats + activities from API
     useEffect(() => {
         (async () => {
-            const result = await getReportStats();
-            if (result.success && result.data) setStats(result.data);
+            const [statsResult, activitiesResult] = await Promise.all([
+                getReportStats(),
+                getActivities(),
+            ]);
+            if (statsResult.success && statsResult.data) setStats(statsResult.data);
+            if (activitiesResult.success && activitiesResult.data) {
+                setRecentActivities(activitiesResult.data.slice(0, 5));
+            }
+            setLoadingActivities(false);
         })();
     }, []);
 
@@ -141,21 +140,21 @@ export default function GovProfilScreen() {
         ];
     }, [stats]);
 
-    // Derive USER from auth context + gov defaults
+    // Derive USER from auth context
     const USER = {
         name: user?.fullName || 'Gov User',
         initials: user?.initials || 'GU',
-        nip: GOV_DEFAULTS.nip,
-        jabatan: GOV_DEFAULTS.jabatan,
-        instansi: GOV_DEFAULTS.instansi,
-        unit: GOV_DEFAULTS.unit,
+        nip: user?.nip || '-',
+        jabatan: user?.jabatan || '-',
+        instansi: user?.instansi || '-',
+        unit: user?.unitKerja || '-',
         wilayah: user?.city || 'Kota Bandung',
-        golongan: GOV_DEFAULTS.golongan,
+        golongan: user?.golongan || '-',
         email: user?.email || 'gov@bandung.go.id',
         phone: user?.phone || '-',
-        tmt: GOV_DEFAULTS.tmt,
+        tmt: user?.tmt || '-',
         lastLogin: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB',
-        accessLevel: GOV_DEFAULTS.accessLevel,
+        accessLevel: 'Supervisor',
     };
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -321,29 +320,45 @@ export default function GovProfilScreen() {
                         elevation: 2, shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5,
                     }}>
-                        {RECENT_ACTIVITIES.map((act, i) => {
-                            const IconComp = act.icon;
-                            const isLast = i === RECENT_ACTIVITIES.length - 1;
-                            return (
-                                <View key={i} style={{ flexDirection: 'row', gap: 12, paddingBottom: isLast ? 0 : 14 }}>
-                                    {/* Timeline */}
-                                    <View style={{ alignItems: 'center', width: 36 }}>
-                                        <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: act.bg, alignItems: 'center', justifyContent: 'center' }}>
-                                            <IconComp size={18} color={act.iconColor} weight="duotone" />
+                        {loadingActivities ? (
+                            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                                <ActivityIndicator size="small" color={SiagaColors.info} />
+                                <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 8 }}>Memuat aktivitas...</Text>
+                            </View>
+                        ) : recentActivities.length === 0 ? (
+                            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                                <ClipboardText size={28} color={SiagaColors.secondary} weight="duotone" />
+                                <Text style={{ fontSize: 13, color: SiagaColors.secondary, marginTop: 6 }}>Belum ada aktivitas</Text>
+                            </View>
+                        ) : (
+                            <>
+                                {recentActivities.map((act, i) => {
+                                    const IconComp = ACTIVITY_ICON_MAP[act.icon] || CheckCircle;
+                                    const isLast = i === recentActivities.length - 1;
+                                    return (
+                                        <View key={act.id || i} style={{ flexDirection: 'row', gap: 12, paddingBottom: isLast ? 0 : 14 }}>
+                                            {/* Timeline */}
+                                            <View style={{ alignItems: 'center', width: 36 }}>
+                                                <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: act.bgColor || '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <IconComp size={18} color={act.color || SiagaColors.info} weight="duotone" />
+                                                </View>
+                                                {!isLast && <View style={{ width: 1.5, flex: 1, backgroundColor: '#f1f5f9', marginTop: 4 }} />}
+                                            </View>
+                                            {/* Content */}
+                                            <View style={{ flex: 1, paddingTop: 3 }}>
+                                                <Text style={{ fontSize: 14, fontWeight: '600', color: SiagaColors.primary, lineHeight: 17 }}>
+                                                    {act.title}
+                                                </Text>
+                                                {act.desc ? (
+                                                    <Text style={{ fontSize: 12, fontWeight: '700', color: act.color || SiagaColors.info, marginTop: 1 }}>{act.desc}</Text>
+                                                ) : null}
+                                                <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 2 }}>{act.time}</Text>
+                                            </View>
                                         </View>
-                                        {!isLast && <View style={{ width: 1.5, flex: 1, backgroundColor: '#f1f5f9', marginTop: 4 }} />}
-                                    </View>
-                                    {/* Content */}
-                                    <View style={{ flex: 1, paddingTop: 3 }}>
-                                        <Text style={{ fontSize: 14, fontWeight: '600', color: SiagaColors.primary, lineHeight: 17 }}>
-                                            {act.text + ' '}
-                                            <Text style={{ fontWeight: '800', color: act.color }}>{act.highlight}</Text>
-                                        </Text>
-                                        <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 2 }}>{act.time}</Text>
-                                    </View>
-                                </View>
-                            );
-                        })}
+                                    );
+                                })}
+                            </>
+                        )}
 
                         {/* See all */}
                         <TouchableOpacity

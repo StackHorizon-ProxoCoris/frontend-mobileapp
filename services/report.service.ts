@@ -135,6 +135,26 @@ export async function getReportStats(): Promise<ApiResponse<ReportStats>> {
   return apiGet<ReportStats>('/reports/stats', false);
 }
 
+/** Tipe data ringan untuk marker peta */
+export interface MapMarkerData {
+  id: string;
+  title: string;
+  category: string;
+  lat: number;
+  lng: number;
+  urgency: number;
+  votesCount: number;
+  district: string;
+  city: string;
+  description: string;
+  createdAt: string;
+}
+
+/** Ambil marker peta (payload ringan) */
+export async function getMapMarkers(): Promise<ApiResponse<MapMarkerData[]>> {
+  return apiGet<MapMarkerData[]>('/reports/map-markers', false);
+}
+
 /** Ambil daftar laporan dengan filter & pagination */
 export async function getReports(params?: {
   category?: string;
@@ -188,6 +208,11 @@ export async function updateReportStatus(
 /** Verifikasi laporan */
 export async function verifyReport(reportId: string): Promise<ApiResponse> {
   return apiPost(`/reports/${reportId}/verify`);
+}
+
+/** Pelapor menutup laporannya sendiri (masalah teratasi) */
+export async function resolveReportByUser(reportId: string): Promise<ApiResponse> {
+  return apiPatch(`/reports/${reportId}/resolve-by-user`, {});
 }
 
 /** Toggle bookmark (polymorphic — report, action, info) */

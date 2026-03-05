@@ -13,15 +13,7 @@ import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
 import { apiPatch } from '@/services/api';
 
-// ─── Default gov data (belum tersedia di auth context) ────────────────────────
-const GOV_DEFAULTS = {
-  nip: '198001012005011001',
-  jabatan: 'Kepala Seksi Jalan & Jembatan',
-  instansi: 'Dinas Pekerjaan Umum',
-  unit: 'Bidang Bina Marga',
-  golongan: 'III/d',
-  tmt: '01 Januari 2005',
-};
+
 
 interface FormField {
   key: string;
@@ -44,15 +36,15 @@ export default function EditProfilGovScreen() {
 
   const [form, setForm] = useState({
     name: user?.fullName || '',
-    bio: 'Aparatur Sipil Negara yang bertanggung jawab atas pengawasan infrastruktur dan penanganan laporan warga.',
+    bio: user?.bio || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    nip: GOV_DEFAULTS.nip,
-    jabatan: GOV_DEFAULTS.jabatan,
-    instansi: GOV_DEFAULTS.instansi,
-    unit: GOV_DEFAULTS.unit,
-    golongan: GOV_DEFAULTS.golongan,
-    tmt: GOV_DEFAULTS.tmt,
+    nip: user?.nip || '',
+    jabatan: user?.jabatan || '',
+    instansi: user?.instansi || '',
+    unit: user?.unitKerja || '',
+    golongan: user?.golongan || '',
+    tmt: user?.tmt || '',
     district: user?.district || '',
     city: user?.city || 'Kota Bandung',
   });
@@ -84,10 +76,18 @@ export default function EditProfilGovScreen() {
     setIsSaving(true);
     const result = await apiPatch('/auth/profile', {
       fullName: form.name,
+      bio: form.bio,
       email: form.email,
       phone: form.phone,
       district: form.district,
       city: form.city,
+      // Gov-specific fields
+      nip: form.nip,
+      jabatan: form.jabatan,
+      instansi: form.instansi,
+      unitKerja: form.unit,
+      golongan: form.golongan,
+      tmt: form.tmt,
     });
     setIsSaving(false);
     if (result.success) {
