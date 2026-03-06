@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     KeyboardAvoidingView, Platform, Alert, Animated, Dimensions,
-    ActivityIndicator, Modal,
+    ActivityIndicator, Modal, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-    ShieldCheck, Envelope, Lock, Eye, EyeSlash,
-    GoogleLogo, ArrowRight, CaretRight,
+    Envelope, Lock, Eye, EyeSlash,
+    ArrowRight, CaretRight,
     Fingerprint, Globe, Lightning,
     Users, Buildings, UserGear,
 } from 'phosphor-react-native';
@@ -80,10 +80,6 @@ export default function LoginScreen() {
         // Jika sukses, AuthGuard otomatis redirect sesuai role
     };
 
-    const handleGoogleLogin = () => {
-        showToast({ type: 'info', title: 'Segera Hadir', message: 'Login dengan Google akan tersedia di versi berikutnya.' });
-    };
-
     const handleForgotPassword = async () => {
         if (!forgotEmail.trim()) {
             showToast({ type: 'warning', title: 'Email diperlukan', message: 'Masukkan alamat email terdaftar Anda.' });
@@ -126,11 +122,11 @@ export default function LoginScreen() {
                             className="items-center mb-6"
                         >
                             {/* App Logo */}
-                            <View className="w-20 h-20 rounded-3xl items-center justify-center mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-                                <ShieldCheck size={40} color="#fff" weight="duotone" />
+                            <View className="w-28 h-28 rounded-3xl items-center justify-center mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                                <Image source={require('@/assets/images/logo.png')} style={{ width: 300, height: 300 }} resizeMode="contain" />
                             </View>
                             <Text className="text-3xl font-extrabold text-white tracking-wider">SIAGA</Text>
-                            <Text className="text-[11px] text-white/50 mt-1 tracking-widest uppercase">Smart Indonesia Adaptive Governance</Text>
+                            <Text className="text-[11px] text-white/50 mt-1 tracking-widest uppercase">Aplikasi Pelaporan Masyarakat</Text>
                         </Animated.View>
                     </View>
 
@@ -194,25 +190,6 @@ export default function LoginScreen() {
                             <Text className="text-[10px] text-secondary/80 mt-2 ml-1">
                                 Akses fitur ditentukan dari role akun Anda di server.
                             </Text>
-                        </View>
-
-                        {/* Google Login */}
-                        <TouchableOpacity
-                            className="flex-row items-center justify-center gap-3 py-3.5 rounded-2xl border-2 border-slate-100 mb-5"
-                            style={{ backgroundColor: '#fafbfc' }}
-                            onPress={handleGoogleLogin}
-                            activeOpacity={0.7}
-                            disabled={isLoading}
-                        >
-                            <GoogleLogo size={20} color="#4285F4" weight="bold" />
-                            <Text className="text-[13px] font-bold text-primary">Masuk dengan Google</Text>
-                        </TouchableOpacity>
-
-                        {/* Divider */}
-                        <View className="flex-row items-center gap-3 mb-5">
-                            <View className="flex-1 h-px bg-slate-100" />
-                            <Text className="text-[10px] font-semibold text-secondary/60 uppercase tracking-wider">atau</Text>
-                            <View className="flex-1 h-px bg-slate-100" />
                         </View>
 
                         {/* Email Input */}
@@ -337,7 +314,7 @@ export default function LoginScreen() {
                                 <Text className="font-bold text-secondary/60">Kebijakan Privasi</Text>
                                 {' '}SIAGA.
                             </Text>
-                            <Text className="text-center text-[8px] text-secondary/30 mt-2">SIAGA v1.0.0 — PROXOCORIS 2026</Text>
+                            <Text className="text-center text-[8px] text-secondary/30 mt-2">SIAGA v1.0.0</Text>
                         </View>
                     </Animated.View>
                 </ScrollView>
