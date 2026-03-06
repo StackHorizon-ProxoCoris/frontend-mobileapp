@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, FlatList, View, Text, TouchableOpacity, Linking, Alert, RefreshControl } from 'react-native';
+import { ScrollView, FlatList, View, Text, TouchableOpacity, Linking, Alert, RefreshControl, Modal } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -9,7 +10,7 @@ import {
   Waves, RoadHorizon, Trash, Users, Camera, ThumbsUp,
   Leaf, Star, Medal, Trophy, CaretRight, HandsClapping,
   Plant, Tree, Newspaper, CloudRain, BookOpenText, MegaphoneSimple,
-  CheckCircle,
+  CheckCircle, ShieldCheck as ShieldCheckIcon, ArrowDown, Globe, Crosshair,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import SOSButton from '@/components/ui/SOSButton';
@@ -22,6 +23,7 @@ import { getActions, type ActionData } from '@/services/action.service';
 import { getAreaStatus, type AreaStatusData } from '@/services/area-status.service';
 import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import { getNotifications } from '@/services/notification.service';
+import { getGempaTerkini, type GempaData } from '@/services/bmkg.service';
 import {
   type Report,
 } from '@/services/report.service';
@@ -34,6 +36,30 @@ function getGreeting(): { text: string; Icon: React.ComponentType<any> } {
   return { text: 'Selamat Malam', Icon: Moon };
 }
 
+// Color scheme berdasarkan magnitudo gempa
+function getGempaColors(mag: number) {
+  if (mag >= 6.0) return {
+    bg: '#7f1d1d', accent: '#ef4444', text: '#fecaca', muted: 'rgba(254,202,202,0.5)',
+    subtle: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', overlay: 'rgba(127,29,29,0.85)',
+    label: 'DAHSYAT', labelBg: 'rgba(239,68,68,0.2)',
+  };
+  if (mag >= 5.0) return {
+    bg: '#7c2d12', accent: '#f97316', text: '#fed7aa', muted: 'rgba(253,186,116,0.5)',
+    subtle: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.3)', overlay: 'rgba(124,45,18,0.85)',
+    label: 'KUAT', labelBg: 'rgba(249,115,22,0.2)',
+  };
+  if (mag >= 3.0) return {
+    bg: '#78350f', accent: '#f59e0b', text: '#fde68a', muted: 'rgba(253,230,138,0.5)',
+    subtle: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', overlay: 'rgba(120,53,15,0.85)',
+    label: 'SEDANG', labelBg: 'rgba(245,158,11,0.2)',
+  };
+  return {
+    bg: '#064e3b', accent: '#10b981', text: '#a7f3d0', muted: 'rgba(167,243,208,0.5)',
+    subtle: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', overlay: 'rgba(6,78,59,0.85)',
+    label: 'RINGAN', labelBg: 'rgba(16,185,129,0.2)',
+  };
+}
+
 export default function HomeScreen() {
   const [showWarning, setShowWarning] = useState(true);
   const [sosVisible, setSosVisible] = useState(false);
@@ -42,6 +68,11 @@ export default function HomeScreen() {
   const [areaStatus, setAreaStatus] = useState<AreaStatusData | null>(null);
   const [infoFeed, setInfoFeed] = useState<InfoFeedData[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [gempaData, setGempaData] = useState<GempaData | null>(null);
+  const [showGempa, setShowGempa] = useState(true);
+  const [gempaModalVisible, setGempaModalVisible] = useState(false);
+  const [showFullShakemap, setShowFullShakemap] = useState(false);
+  const gempaColors = useMemo(() => getGempaColors(gempaData?.magnitude ?? 0), [gempaData]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, refreshUser } = useAuth();
@@ -74,11 +105,12 @@ export default function HomeScreen() {
 
   // Fungsi load data (reusable untuk refresh)
   const loadData = useCallback(async () => {
-    const [reportsResult, actionsResult, areaStatusResult, infoResult] = await Promise.all([
+    const [reportsResult, actionsResult, areaStatusResult, infoResult, gempaResult] = await Promise.all([
       getReports({ limit: 5 }),
       getActions({ limit: 5 }),
       getAreaStatus(userDistrictRef.current),
       getInfoList({ limit: 3 }),
+      getGempaTerkini(),
     ]);
     if (reportsResult.success && reportsResult.data) {
       const mapped = reportsResult.data.map(mapReportToUI);
@@ -104,6 +136,10 @@ export default function HomeScreen() {
     if (notifResult.success && notifResult.data) {
       setUnreadCount(notifResult.data.unreadCount || 0);
     }
+    // BMKG gempa — graceful: jika gagal, tetap null (card tersembunyi)
+    if (gempaResult.success && gempaResult.data) {
+      setGempaData(gempaResult.data);
+    }
   }, [mapReportToUI]);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -118,6 +154,7 @@ export default function HomeScreen() {
   // Pull-to-refresh handler
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    setShowGempa(true);
     await loadData();
     if (refreshUser) await refreshUser();
     setIsRefreshing(false);
@@ -226,6 +263,106 @@ export default function HomeScreen() {
         windowSize={5}
         ListHeaderComponent={
           <>
+            {/* BMKG Gempa Terkini Card */}
+            {showGempa && gempaData && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setGempaModalVisible(true)}
+                style={{
+                  backgroundColor: gempaColors.bg,
+                  borderRadius: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: gempaColors.border,
+                }}
+              >
+                {/* Header */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: gempaColors.subtle, alignItems: 'center', justifyContent: 'center' }}>
+                      <Warning size={18} color={gempaColors.accent} weight="fill" />
+                    </View>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: gempaColors.text, letterSpacing: 1, textTransform: 'uppercase' }}>Gempa Terkini</Text>
+                        <View style={{ backgroundColor: gempaColors.labelBg, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                          <Text style={{ fontSize: 8, fontWeight: '800', color: gempaColors.accent }}>{gempaColors.label}</Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 10, color: gempaColors.muted }}>Sumber: BMKG</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity onPress={(e) => { e.stopPropagation(); setShowGempa(false); }} style={{ padding: 4 }}>
+                    <X size={16} color={gempaColors.muted} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Two-column: Info Left + Shakemap Right */}
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 10 }}>
+                  {/* Left: Text info */}
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <View style={{
+                        width: 50, height: 50, borderRadius: 12,
+                        backgroundColor: gempaColors.subtle,
+                        borderWidth: 1, borderColor: gempaColors.border,
+                        alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Text style={{ fontSize: 20, fontWeight: '900', color: gempaColors.accent }}>{gempaData.magnitude}</Text>
+                        <Text style={{ fontSize: 7, fontWeight: '700', color: gempaColors.muted, marginTop: -2 }}>MAG</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: gempaColors.text }} numberOfLines={2}>{gempaData.wilayah}</Text>
+                        <Text style={{ fontSize: 10, color: gempaColors.muted, marginTop: 2 }}>{gempaData.tanggal} • {gempaData.jam}</Text>
+                      </View>
+                    </View>
+                    <View style={{ gap: 4 }}>
+                      {[
+                        { label: 'Kedalaman', value: gempaData.kedalaman },
+                        { label: 'Koordinat', value: `${gempaData.lintang}, ${gempaData.bujur}` },
+                      ].map((item, i) => (
+                        <View key={i} style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 6,
+                          backgroundColor: 'rgba(255,255,255,0.06)',
+                          borderRadius: 8, paddingVertical: 5, paddingHorizontal: 8,
+                        }}>
+                          <Text style={{ fontSize: 10, color: gempaColors.muted, fontWeight: '600' }}>{item.label}:</Text>
+                          <Text style={{ fontSize: 11, color: gempaColors.text, fontWeight: '700', flex: 1 }} numberOfLines={1}>{item.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                  {/* Right: Shakemap image */}
+                  {gempaData.shakemapUrl && (
+                    <View style={{
+                      width: 110, height: 130, borderRadius: 10,
+                      overflow: 'hidden',
+                      borderWidth: 1.5, borderColor: gempaColors.border,
+                      backgroundColor: 'rgba(0,0,0,0.2)',
+                    }}>
+                      <ExpoImage
+                        source={{ uri: gempaData.shakemapUrl }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={200}
+                      />
+                      <View style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        backgroundColor: gempaColors.overlay,
+                        paddingVertical: 3, alignItems: 'center',
+                      }}>
+                        <Text style={{ fontSize: 8, fontWeight: '700', color: gempaColors.muted, letterSpacing: 0.5 }}>SHAKEMAP</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Hint */}
+                <Text style={{ fontSize: 10, color: gempaColors.muted, textAlign: 'center', marginTop: 8 }}>Ketuk untuk melihat detail ›</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Status Card */}
             <View className="rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary }}>
               <View className="flex-row items-center gap-1.5 mb-3">
@@ -549,6 +686,225 @@ export default function HomeScreen() {
       {/* Floating SOS */}
       <SOSButton onPress={() => setSosVisible(true)} />
       <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />
+
+      {/* Gempa Detail Modal */}
+      <Modal
+        visible={gempaModalVisible}
+        animationType="slide"
+        transparent={false}
+        statusBarTranslucent
+        onRequestClose={() => setGempaModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#1c1917' }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {/* Shakemap full-width */}
+            {gempaData?.shakemapUrl && (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowFullShakemap(true)}
+                style={{ backgroundColor: '#0c0a09' }}
+              >
+                <ExpoImage
+                  source={{ uri: gempaData.shakemapUrl }}
+                  style={{ width: '100%', height: 260 }}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <View style={{
+                  position: 'absolute', bottom: 8, right: 8,
+                  backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6,
+                  paddingVertical: 3, paddingHorizontal: 8,
+                  flexDirection: 'row', alignItems: 'center', gap: 4,
+                }}>
+                  <MagnifyingGlass size={10} color="#fff" weight="bold" />
+                  <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>Tap untuk perbesar</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Header bar */}
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              paddingHorizontal: 20, paddingTop: gempaData?.shakemapUrl ? 16 : (insets.top + 16), paddingBottom: 12,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: gempaColors.subtle, alignItems: 'center', justifyContent: 'center' }}>
+                  <Warning size={20} color={gempaColors.accent} weight="fill" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: gempaColors.text }}>Detail Gempa Bumi</Text>
+                  <Text style={{ fontSize: 11, color: gempaColors.muted }}>Data resmi BMKG Indonesia</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setGempaModalVisible(false)}
+                style={{
+                  width: 34, height: 34, borderRadius: 17,
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={18} color={gempaColors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Magnitude highlight */}
+            <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+              <View style={{
+                flexDirection: 'row', alignItems: 'center', gap: 14,
+                backgroundColor: gempaColors.bg, borderRadius: 16, padding: 16,
+                borderWidth: 1, borderColor: gempaColors.border,
+              }}>
+                <View style={{
+                  width: 64, height: 64, borderRadius: 16,
+                  backgroundColor: gempaColors.subtle,
+                  borderWidth: 1.5, borderColor: gempaColors.border,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Text style={{ fontSize: 26, fontWeight: '900', color: gempaColors.accent }}>{gempaData?.magnitude}</Text>
+                  <Text style={{ fontSize: 8, fontWeight: '700', color: gempaColors.muted, marginTop: -2 }}>MAG</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: gempaColors.text, lineHeight: 20 }}>{gempaData?.wilayah}</Text>
+                  <Text style={{ fontSize: 12, color: gempaColors.muted, marginTop: 4 }}>{gempaData?.tanggal} • {gempaData?.jam}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Detail Grid */}
+            <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: gempaColors.muted, marginBottom: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>Informasi Detail</Text>
+              <View style={{ gap: 8 }}>
+                {[
+                  { icon: <ArrowDown size={16} color={gempaColors.accent} weight="bold" />, label: 'Kedalaman', value: gempaData?.kedalaman || '-' },
+                  { icon: <Crosshair size={16} color={gempaColors.accent} weight="bold" />, label: 'Koordinat', value: `${gempaData?.lintang || '-'}, ${gempaData?.bujur || '-'}` },
+                  { icon: <Clock size={16} color={gempaColors.accent} weight="bold" />, label: 'Waktu', value: `${gempaData?.tanggal || '-'}, ${gempaData?.jam || '-'}` },
+                  { icon: <Globe size={16} color={gempaColors.accent} weight="bold" />, label: 'Dirasakan', value: gempaData?.dirasakan || 'Tidak dilaporkan' },
+                ].map((item, i) => (
+                  <View key={i} style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 12,
+                    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12,
+                    paddingVertical: 12, paddingHorizontal: 14,
+                    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+                  }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: gempaColors.subtle, alignItems: 'center', justifyContent: 'center' }}>
+                      {item.icon}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 10, color: gempaColors.muted, fontWeight: '600' }}>{item.label}</Text>
+                      <Text style={{ fontSize: 13, color: gempaColors.text, fontWeight: '700', marginTop: 1 }}>{item.value}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Safety Guidelines */}
+            <View style={{ paddingHorizontal: 20 }}>
+              <View style={{
+                backgroundColor: gempaColors.subtle, borderRadius: 16,
+                padding: 16, borderWidth: 1, borderColor: gempaColors.border,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <ShieldCheckIcon size={20} color={gempaColors.accent} weight="fill" />
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: gempaColors.text }}>🛡️ Panduan Keselamatan Darurat</Text>
+                </View>
+                {[
+                  { num: '1', text: 'Jangan panik dan lindungi kepala Anda.' },
+                  { num: '2', text: 'Berlindung di bawah meja yang kokoh.' },
+                  { num: '3', text: 'Jauhi jendela kaca dan benda yang mudah jatuh.' },
+                  { num: '4', text: 'Jika guncangan mereda, keluar ruangan dengan teratur.' },
+                ].map((step, i) => (
+                  <View key={i} style={{
+                    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+                    marginBottom: i < 3 ? 10 : 0,
+                  }}>
+                    <View style={{
+                      width: 22, height: 22, borderRadius: 11,
+                      backgroundColor: gempaColors.labelBg,
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: gempaColors.accent }}>{step.num}</Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: gempaColors.text, fontWeight: '500', flex: 1, lineHeight: 19 }}>{step.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Bottom close button */}
+          <View style={{
+            paddingHorizontal: 20, paddingBottom: insets.bottom + 12, paddingTop: 12,
+            borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
+            backgroundColor: '#1c1917',
+          }}>
+            <TouchableOpacity
+              onPress={() => setGempaModalVisible(false)}
+              style={{
+                backgroundColor: gempaColors.bg, borderRadius: 14,
+                paddingVertical: 14, alignItems: 'center',
+                borderWidth: 1, borderColor: gempaColors.border,
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: gempaColors.text }}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Fullscreen Shakemap Viewer */}
+      <Modal
+        visible={showFullShakemap}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowFullShakemap(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowFullShakemap(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.95)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setShowFullShakemap(false)}
+            style={{
+              position: 'absolute',
+              top: insets.top + 12,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>✕</Text>
+          </TouchableOpacity>
+
+          {/* Full shakemap */}
+          <ExpoImage
+            source={{ uri: gempaData?.shakemapUrl || '' }}
+            style={{ width: '100%', height: '80%' }}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
+
+          {/* Label */}
+          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 12 }}>Shakemap BMKG • Tap di mana saja untuk tutup</Text>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
