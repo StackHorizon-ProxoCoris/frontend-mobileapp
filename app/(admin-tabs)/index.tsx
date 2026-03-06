@@ -17,8 +17,10 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import Svg, { Circle } from 'react-native-svg';
 import { useAuth } from '@/context/auth';
-import { getReports } from '@/services/report.service';
+import { getReports, getReportStats } from '@/services/report.service';
 import { getActions } from '@/services/action.service';
+import { getNotifications } from '@/services/notification.service';
+import { getAdminUserStats } from '@/services/admin.service';
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
@@ -85,6 +87,9 @@ export default function AdminDashboardScreen() {
     const [totalReports, setTotalReports] = useState(0);
     const [totalActions, setTotalActions] = useState(0);
     const [pendingReports, setPendingReports] = useState(0);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [resolvedReports, setResolvedReports] = useState(0);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
@@ -98,15 +103,20 @@ export default function AdminDashboardScreen() {
     }, []);
 
     async function loadStats() {
-        const [rRes, aRes] = await Promise.all([
-            getReports({ limit: 50 }),
+        const [statsRes, aRes, notifRes, userStatsRes] = await Promise.all([
+            getReportStats(),
             getActions({ limit: 50 }),
+            getNotifications(),
+            getAdminUserStats(),
         ]);
-        if (rRes.success && rRes.data) {
-            setTotalReports(rRes.data.length);
-            setPendingReports(rRes.data.filter(r => r.status === 'Menunggu').length);
+        if (statsRes.success && statsRes.data) {
+            setTotalReports(statsRes.data.total);
+            setPendingReports(statsRes.data.pending);
+            setResolvedReports(statsRes.data.resolved);
         }
         if (aRes.success && aRes.data) setTotalActions(aRes.data.length);
+        if (notifRes.success && notifRes.data) setUnreadCount(notifRes.data.unreadCount);
+        if (userStatsRes.success && userStatsRes.data) setTotalUsers(userStatsRes.data.total);
     }
 
     const onRefresh = async () => {
@@ -117,22 +127,22 @@ export default function AdminDashboardScreen() {
 
     const STATS: AdminStat[] = useMemo(() => [
         {
-            value: '5,046', label: 'Total Pengguna', sub: 'Terdaftar aktif', icon: Users,
-            iconColor: '#3b82f6', bg: '#eff6ff', trend: 'up', trendValue: '+124', trendColor: SiagaColors.success,
+            value: String(totalUsers), label: 'Total Pengguna', sub: 'Terdaftar aktif', icon: Users,
+            iconColor: '#3b82f6', bg: '#eff6ff', trend: 'up', trendValue: `${totalUsers} user`, trendColor: SiagaColors.success,
         },
         {
-            value: String(totalReports), label: 'Total Laporan', sub: 'Sepanjang waktu', icon: FileText,
-            iconColor: SiagaColors.danger, bg: '#fef2f2', trend: 'up', trendValue: `+${pendingReports}`, trendColor: SiagaColors.warning,
+            value: String(totalReports), label: 'Total Laporan', sub: `${pendingReports} menunggu`, icon: FileText,
+            iconColor: SiagaColors.danger, bg: '#fef2f2', trend: 'up', trendValue: `+${pendingReports} baru`, trendColor: SiagaColors.warning,
         },
         {
             value: String(totalActions), label: 'Aksi Komunitas', sub: 'Terdokumentasi', icon: CheckCircle,
-            iconColor: SiagaColors.success, bg: '#ecfdf5', trend: 'up', trendValue: '+8 hari ini', trendColor: SiagaColors.success,
+            iconColor: SiagaColors.success, bg: '#ecfdf5', trend: 'up', trendValue: `${resolvedReports} selesai`, trendColor: SiagaColors.success,
         },
         {
             value: '99.8%', label: 'Uptime Sistem', sub: '30 hari terakhir', icon: Globe,
             iconColor: '#7c3aed', bg: '#f5f3ff', trend: 'neutral', trendValue: 'Stabil', trendColor: SiagaColors.secondary,
         },
-    ], [totalReports, totalActions, pendingReports]);
+    ], [totalReports, totalActions, pendingReports, totalUsers, resolvedReports]);
 
     // ── Moderation queue items ──
     const MOD_QUEUE = useMemo(() => [
@@ -167,9 +177,14 @@ export default function AdminDashboardScreen() {
                             <TouchableOpacity
                                 style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
                                 activeOpacity={0.7}
+                                onPress={() => router.push('/notifikasi')}
                             >
                                 <Bell size={20} color="rgba(255,255,255,0.8)" weight="duotone" />
-                                <View style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: SiagaColors.danger, borderWidth: 1.5, borderColor: '#7c3aed' }} />
+                                {unreadCount > 0 && (
+                                    <View style={{ position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: SiagaColors.danger, borderWidth: 1.5, borderColor: '#7c3aed', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
+                                        <Text style={{ color: '#fff', fontSize: 8, fontWeight: '800' }}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}

@@ -16,6 +16,7 @@ import {
     CalendarBlank, Funnel,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { getReportStats } from '@/services/report.service';
 
 const { width } = Dimensions.get('window');
 
@@ -396,20 +397,29 @@ export default function AdminModerationScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedItem, setSelectedItem] = useState<ModerationItem | null>(null);
     const [sheetVisible, setSheetVisible] = useState(false);
+    const [reportPending, setReportPending] = useState(0);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
+
+    const loadStats = async () => {
+        try {
+            const res = await getReportStats();
+            if (res.success && res.data) setReportPending(res.data.pending);
+        } catch { /* no-op */ }
+    };
 
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 480, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 480, useNativeDriver: true }),
         ]).start();
+        loadStats();
     }, []);
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await new Promise(r => setTimeout(r, 800));
+        await loadStats();
         setRefreshing(false);
     };
 
