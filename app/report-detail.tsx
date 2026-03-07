@@ -1,27 +1,40 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, Modal, ActivityIndicator,
-  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform, RefreshControl,
+  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, RefreshControl,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft, ShareNetwork, Bookmark, MapPin, Clock, Users, Camera,
-  ThumbsUp, ChatCircle, ShieldCheck, Waves, RoadHorizon, Trash,
+  ThumbsUp, ChatCircle, ShieldCheck,
   CheckCircle, DotsThree, Heart, Warning, Flag,
-  CalendarBlank, Buildings, UserCircle, Medal, CaretRight, PaperPlaneTilt,
+  CalendarBlank, Buildings, Medal, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { type ReportDetail } from '@/services/report.service';
+import { type ReportDetail, type BackendReportStatus } from '@/services/report.service';
 import { useAuth } from '@/context/auth';
-import { getReportById, toggleReportVote, verifyReport, toggleBookmark, resolveReportByUser } from '@/services/report.service';
+import { getReportById, toggleReportVote, verifyReport, toggleBookmark, resolveReportByUser, updateReportStatus } from '@/services/report.service';
 import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
+
+const STATUS_COLOR_MAP: Record<ReportDetail['status'], { color: string; bg: string }> = {
+  Menunggu: { color: SiagaColors.warning, bg: SiagaColors.warningSoft },
+  Diverifikasi: { color: SiagaColors.info, bg: SiagaColors.infoSoft },
+  Ditangani: { color: '#7c3aed', bg: '#f5f3ff' },
+  Selesai: { color: SiagaColors.success, bg: SiagaColors.successSoft },
+};
+
+const GOV_STATUS_ACTION_TARGET: Partial<Record<ReportDetail['status'], BackendReportStatus>> = {
+  Menunggu: 'Ditangani',
+  Diverifikasi: 'Ditangani',
+  Ditangani: 'Selesai',
+};
 
 export default function ReportDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -42,9 +55,9 @@ export default function ReportDetailScreen() {
   const [reporterId, setReporterId] = useState<string | null>(null);
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
+  const [isGovStatusUpdating, setIsGovStatusUpdating] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<number | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { showToast } = useToast();
 
   // Fetch report + comments dari API
@@ -61,13 +74,7 @@ export default function ReportDetailScreen() {
       const r = result.data;
       const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
       const badge: 'Kritis' | 'Sedang' | 'Rendah' = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
-      const statusColorMap: Record<string, { color: string; bg: string }> = {
-        'Menunggu': { color: '#d97706', bg: '#fffbeb' },
-        'Diverifikasi': { color: '#2563eb', bg: '#eff6ff' },
-        'Ditangani': { color: '#7c3aed', bg: '#f5f3ff' },
-        'Selesai': { color: '#059669', bg: '#ecfdf5' },
-      };
-      const sc = statusColorMap[r.status] || statusColorMap['Menunggu'];
+      const sc = STATUS_COLOR_MAP[r.status] || STATUS_COLOR_MAP.Menunggu;
       const mapped: ReportDetail = {
         id: r.id,
         type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
@@ -176,12 +183,6 @@ export default function ReportDetailScreen() {
     );
   }
 
-  const reportIcon = report.type === 'Waves'
-    ? <Waves size={30} color="#fff" weight="duotone" />
-    : report.type === 'RoadHorizon'
-      ? <RoadHorizon size={30} color="#fff" weight="duotone" />
-      : <Trash size={30} color="#fff" weight="duotone" />;
-
   const handleSupport = async () => {
     const result = await toggleReportVote(report.id);
     if (result.success) {
@@ -255,10 +256,50 @@ export default function ReportDetailScreen() {
   };
 
   const isOwner = !!user?.id && !!reporterId && String(user.id) === String(reporterId);
+  const isGovRole = role === 'pemerintah' || role === 'admin';
   const canResolve = isOwner && report.status !== 'Selesai';
+  const govActionTarget = GOV_STATUS_ACTION_TARGET[report.status];
+  const govActionLabel = report.status === 'Ditangani' ? 'Tandai Selesai' : 'Proses';
+  const GovActionIcon = report.status === 'Ditangani' ? CheckCircle : Buildings;
 
   const handleResolve = () => {
     setResolveModalVisible(true);
+  };
+
+  const handleGovStatusAction = async () => {
+    if (!govActionTarget) return;
+
+    setIsGovStatusUpdating(true);
+    try {
+      const result = await updateReportStatus(report.id, govActionTarget);
+      if (result.success) {
+        showToast({
+          type: 'success',
+          title: 'Status Diperbarui',
+          message: `Laporan berhasil diubah ke "${govActionTarget}".`,
+        });
+        await loadAll();
+        return;
+      }
+
+      if (result.statusCode === 403) {
+        return;
+      }
+
+      showToast({
+        type: 'error',
+        title: 'Gagal Memperbarui',
+        message: result.message || 'Tidak dapat memperbarui status laporan.',
+      });
+    } catch {
+      showToast({
+        type: 'error',
+        title: 'Gagal Memperbarui',
+        message: 'Terjadi gangguan jaringan saat memperbarui status laporan.',
+      });
+    } finally {
+      setIsGovStatusUpdating(false);
+    }
   };
 
   const confirmResolve = async () => {
@@ -721,46 +762,79 @@ export default function ReportDetailScreen() {
         className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5"
         style={{ paddingBottom: insets.bottom + 8, paddingTop: 12, elevation: 8 }}
       >
-        {/* Tombol Selesai — hanya tampil untuk pelapor sendiri */}
-        {canResolve && (
-          <TouchableOpacity
-            className="flex-row items-center justify-center gap-2 rounded-xl py-3 mb-2 border"
-            style={{ backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }}
-            onPress={handleResolve}
-            activeOpacity={0.8}
-          >
-            <CheckCircle size={18} color="#059669" weight="fill" />
-            <Text className="text-[14px] font-bold" style={{ color: '#059669' }}>Tandai Masalah Selesai</Text>
-          </TouchableOpacity>
-        )}
-        {report.status === 'Selesai' ? (
-          <View className="flex-row items-center justify-center gap-2 rounded-xl py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
-            <CheckCircle size={18} color="#94a3b8" weight="fill" />
-            <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Laporan Telah Selesai</Text>
-          </View>
-        ) : (
-          <View className="flex-row items-center gap-3">
+        {isGovRole ? (
+          report.status === 'Selesai' ? (
+            <View className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+              <CheckCircle size={18} color="#94a3b8" weight="fill" />
+              <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Laporan Telah Selesai</Text>
+            </View>
+          ) : govActionTarget ? (
             <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
-              style={{ backgroundColor: supported ? '#dcfce7' : SiagaColors.primary }}
-              onPress={handleSupport}
+              className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3.5"
+              style={{ backgroundColor: report.status === 'Ditangani' ? SiagaColors.success : SiagaColors.primary, opacity: isGovStatusUpdating ? 0.7 : 1 }}
+              onPress={handleGovStatusAction}
               activeOpacity={0.8}
+              disabled={isGovStatusUpdating}
             >
-              <ThumbsUp size={18} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
-              <Text className="text-[14px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
-                {supported ? 'Didukung' : 'Dukung'} ({votes})
+              {isGovStatusUpdating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <GovActionIcon size={18} color="#fff" weight="duotone" />
+              )}
+              <Text className="text-[14px] font-bold text-white">
+                {isGovStatusUpdating ? 'Memproses...' : govActionLabel}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
-              style={{ borderColor: SiagaColors.info, backgroundColor: '#eff6ff' }}
-              activeOpacity={0.8}
-              onPress={handleVerify}
-            >
-              <Flag size={18} color={SiagaColors.info} weight="duotone" />
-              <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
-            </TouchableOpacity>
-          </View>
+          ) : (
+            <View className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+              <Buildings size={18} color="#94a3b8" weight="duotone" />
+              <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Status Tidak Dapat Diproses</Text>
+            </View>
+          )
+        ) : (
+          <>
+            {/* Tombol Selesai — hanya tampil untuk pelapor sendiri */}
+            {canResolve && (
+              <TouchableOpacity
+                className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl py-3 mb-2 border"
+                style={{ backgroundColor: SiagaColors.successSoft, borderColor: '#a7f3d0' }}
+                onPress={handleResolve}
+                activeOpacity={0.8}
+              >
+                <CheckCircle size={18} color={SiagaColors.success} weight="fill" />
+                <Text className="text-[14px] font-bold" style={{ color: SiagaColors.success }}>Tandai Masalah Selesai</Text>
+              </TouchableOpacity>
+            )}
+            {report.status === 'Selesai' ? (
+              <View className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+                <CheckCircle size={18} color="#94a3b8" weight="fill" />
+                <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Laporan Telah Selesai</Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center gap-3">
+                <TouchableOpacity
+                  className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
+                  style={{ backgroundColor: supported ? '#dcfce7' : SiagaColors.primary }}
+                  onPress={handleSupport}
+                  activeOpacity={0.8}
+                >
+                  <ThumbsUp size={18} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
+                  <Text className="text-[14px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
+                    {supported ? 'Didukung' : 'Dukung'} ({votes})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
+                  style={{ borderColor: SiagaColors.info, backgroundColor: SiagaColors.infoSoft }}
+                  activeOpacity={0.8}
+                  onPress={handleVerify}
+                >
+                  <Flag size={18} color={SiagaColors.info} weight="duotone" />
+                  <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
       </View>
 

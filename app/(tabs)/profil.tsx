@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-    MapPin, DotsThreeVertical, ShieldCheck,
+    MapPin, ShieldCheck,
     FileText, HandsClapping, Leaf, TrendUp,
     Star, Medal, Trophy, Crown, Target,
     CaretRight, Clock, Camera, Trash, Wrench,
     Bell, SignOut, PencilSimple,
     CheckCircle, Sparkle, Gear, ArrowRight,
     ChartBar, Eye, ShieldCheckered,
+    Plant, Newspaper, CloudRain, BookOpenText, MegaphoneSimple,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { getActivities, type ActivityItem } from '@/services/activity.service';
+import { getActions, type ActionData } from '@/services/action.service';
+import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
 import SOSButton from '@/components/ui/SOSButton';
@@ -33,13 +36,21 @@ export default function ProfilScreen() {
     const { user, logout, refreshUser } = useAuth();
     const { showToast } = useToast();
     const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
+    const [rewardActions, setRewardActions] = useState<ActionData[]>([]);
+    const [infoFeed, setInfoFeed] = useState<InfoFeedData[]>([]);
 
     useEffect(() => {
         async function load() {
             // Refresh user profile to get updated ecoPoints
             if (refreshUser) await refreshUser();
-            const result = await getActivities();
-            if (result.success && result.data) setRecentActivities(result.data.slice(0, 3));
+            const [activitiesResult, actionsResult, infoResult] = await Promise.all([
+                getActivities(),
+                getActions({ limit: 5 }),
+                getInfoList({ limit: 3 }),
+            ]);
+            if (activitiesResult.success && activitiesResult.data) setRecentActivities(activitiesResult.data.slice(0, 3));
+            if (actionsResult.success && actionsResult.data) setRewardActions(actionsResult.data);
+            if (infoResult.success && infoResult.data) setInfoFeed(infoResult.data);
         }
         load();
     }, []);
@@ -190,6 +201,58 @@ export default function ProfilScreen() {
                     </View>
                 </View>
 
+                {/* Positive Actions */}
+                <View className="mt-5 px-5">
+                    <View className="flex-row items-center justify-between mb-3">
+                        <View className="flex-row items-center gap-2">
+                            <View className="w-8 h-8 rounded-xl bg-emerald-50 items-center justify-center">
+                                <Plant size={18} color="#059669" weight="duotone" />
+                            </View>
+                            <View>
+                                <Text className="text-base font-bold text-primary">Aksi Positif</Text>
+                                <Text className="text-xs text-secondary">Kontribusi yang menambah rewards Anda</Text>
+                            </View>
+                        </View>
+                        <View className="px-3 py-2 rounded-xl bg-emerald-50">
+                            <Text className="text-xs font-bold text-success">{rewardActions.length} aksi</Text>
+                        </View>
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                        {rewardActions.map((action) => (
+                            <TouchableOpacity
+                                key={action.id}
+                                className="w-[260px] bg-white border border-emerald-100 rounded-2xl p-4"
+                                style={{ elevation: 1 }}
+                                onPress={() => router.push({ pathname: '/action-detail', params: { id: action.id } })}
+                                activeOpacity={0.7}
+                            >
+                                <View className="flex-row items-start justify-between mb-3">
+                                    <View className="w-11 h-11 rounded-2xl bg-emerald-50 items-center justify-center">
+                                        <Plant size={22} color="#059669" weight="duotone" />
+                                    </View>
+                                    <View className="px-2.5 py-1 rounded-full bg-emerald-50">
+                                        <Text className="text-xs font-bold text-success">{action.status}</Text>
+                                    </View>
+                                </View>
+
+                                <Text className="text-base font-bold text-primary" numberOfLines={2}>{action.title}</Text>
+                                <Text className="text-xs text-secondary mt-1" numberOfLines={2}>
+                                    {action.address}, {action.district}
+                                </Text>
+
+                                <View className="flex-row items-center justify-between mt-4">
+                                    <Text className="text-xs text-secondary">{action.date || 'Jadwal menyusul'}</Text>
+                                    <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50">
+                                        <Leaf size={12} color="#b45309" weight="duotone" />
+                                        <Text className="text-xs font-bold" style={{ color: '#b45309' }}>+{action.points} pts</Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
                 {/* Badges */}
                 <View className="mt-5 px-5">
                     <View className="flex-row items-center justify-between mb-3">
@@ -288,6 +351,59 @@ export default function ProfilScreen() {
                                         </View>
                                     </View>
                                     {a.refId && <CaretRight size={16} color={SiagaColors.secondary} />}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* Education Feed */}
+                <View className="mt-5 px-5">
+                    <View className="flex-row items-center justify-between mb-3">
+                        <View className="flex-row items-center gap-2">
+                            <View className="w-8 h-8 rounded-xl bg-sky-50 items-center justify-center">
+                                <Newspaper size={18} color={SiagaColors.info} weight="duotone" />
+                            </View>
+                            <View>
+                                <Text className="text-base font-bold text-primary">Info & Edukasi</Text>
+                                <Text className="text-xs text-secondary">Bacaan singkat untuk kesiapsiagaan harian</Text>
+                            </View>
+                        </View>
+                        <View className="px-3 py-2 rounded-xl bg-sky-50">
+                            <Text className="text-xs font-bold text-info">Topik Pilihan</Text>
+                        </View>
+                    </View>
+
+                    <View className="gap-3">
+                        {infoFeed.map((info) => {
+                            const InfoIcon = info.type === 'CloudRain'
+                                ? CloudRain
+                                : info.type === 'BookOpenText'
+                                    ? BookOpenText
+                                    : MegaphoneSimple;
+
+                            return (
+                                <TouchableOpacity
+                                    key={info.id}
+                                    className="bg-white border border-slate-100 rounded-2xl p-4 flex-row items-center gap-3"
+                                    style={{ elevation: 1 }}
+                                    onPress={() => router.push({ pathname: '/info-detail', params: { id: info.id } })}
+                                    activeOpacity={0.7}
+                                >
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: info.bg }}>
+                                        <InfoIcon size={22} color={info.color} weight="duotone" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <View className="flex-row items-center gap-2 mb-1">
+                                            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: info.bg }}>
+                                                <Text className="text-xs font-bold" style={{ color: info.color }}>{info.category}</Text>
+                                            </View>
+                                            <Text className="text-xs text-secondary">{info.source}</Text>
+                                        </View>
+                                        <Text className="text-[15px] font-bold text-primary" numberOfLines={2}>{info.title}</Text>
+                                        <Text className="text-xs text-secondary mt-1" numberOfLines={2}>{info.subtitle}</Text>
+                                    </View>
+                                    <CaretRight size={16} color={SiagaColors.secondary} />
                                 </TouchableOpacity>
                             );
                         })}
