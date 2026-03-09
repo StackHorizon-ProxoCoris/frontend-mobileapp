@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl,
+    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -165,9 +165,7 @@ export default function AdminDashboardScreen() {
                     {/* Top row */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-                                <ShieldCheck size={22} color="#fff" weight="duotone" />
-                            </View>
+                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: -0.3 }}>SIAGA</Text>
                                 <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' }}>Admin Panel</Text>
@@ -524,9 +522,7 @@ export default function AdminDashboardScreen() {
                 {/* ── FOOTER ── */}
                 <View style={{ paddingVertical: 8, alignItems: 'center', gap: 4 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: '#7c3aed', alignItems: 'center', justifyContent: 'center' }}>
-                            <ShieldCheck size={13} color="#fff" weight="duotone" />
-                        </View>
+                        <Image source={require('@/assets/images/logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
                         <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>SIAGA Admin Panel</Text>
                     </View>
                     <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>v1.0.0 · Super Admin Access · PROXOCORIS 2026</Text>

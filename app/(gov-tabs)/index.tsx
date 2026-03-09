@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl,
+    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -200,9 +200,7 @@ export default function GovDashboardScreen() {
                     {/* Top row */}
                     <View className="flex-row items-center justify-between mb-5">
                         <View className="flex-row items-center gap-2.5">
-                            <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
-                                <ShieldCheck size={22} color="#fff" weight="duotone" />
-                            </View>
+                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-base font-extrabold text-white tracking-tight">SIAGA</Text>
                                 <Text className="text-[10px] font-semibold text-white/35 uppercase tracking-[3px]">Gov Dashboard</Text>
@@ -599,9 +597,7 @@ export default function GovDashboardScreen() {
                 {/* ── FOOTER ── */}
                 <View className="pt-2 pb-2 items-center gap-1">
                     <View className="flex-row items-center gap-1.5">
-                        <View className="w-6 h-6 rounded-md items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                            <ShieldCheck size={14} color="#fff" weight="duotone" />
-                        </View>
+                        <Image source={require('@/assets/images/logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
                         <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>SIAGA Dashboard</Text>
                     </View>
                     <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>v1.0.0 · Smart Indonesia Adaptive Governance Application</Text>

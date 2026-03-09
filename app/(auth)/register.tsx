@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     KeyboardAvoidingView, Platform, Alert, Animated,
-    ActivityIndicator,
+    ActivityIndicator, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -429,9 +429,7 @@ export default function RegisterScreen() {
 
                         {/* Header */}
                         <View className="flex-row items-center gap-3 mb-3">
-                            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
-                                <ShieldCheck size={24} color="#fff" weight="duotone" />
-                            </View>
+                            <Image source={require('@/assets/images/logo.png')} style={{ width: 48, height: 48 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-[20px] font-bold text-white">Buat Akun</Text>
                                 <Text className="text-[10px] text-white/50">Bergabung untuk lindungi komunitas Anda</Text>
