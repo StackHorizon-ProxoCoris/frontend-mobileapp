@@ -6,7 +6,7 @@ import { apiGet } from './api';
 
 export interface ActivityItem {
   id: string;
-  type: 'report' | 'action' | 'support' | 'verify' | 'comment' | 'badge';
+  type: 'report' | 'action' | 'support' | 'verify' | 'comment' | 'badge' | 'user' | 'status';
   icon: string;
   bgColor: string;
   color: string;
@@ -18,6 +18,7 @@ export interface ActivityItem {
   status?: string;
   statusColor?: string;
   refId?: string;
+  targetType?: 'report' | 'action' | 'user';
 }
 
 /**

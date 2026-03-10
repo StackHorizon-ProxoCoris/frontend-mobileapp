@@ -38,6 +38,8 @@ interface UserItem {
     avatarColor: string;
     verified: boolean;
     district: string;
+    phone: string;
+    instansi?: string;
 }
 
 // ────────────────────────────────────────────
@@ -51,12 +53,13 @@ function getInitials(name: string): string {
 }
 
 function mapAdminUserToItem(u: AdminUser, idx: number): UserItem {
+    const isSuspended = !!u.settings?.suspended;
     return {
         id: u.id,
         name: u.full_name || 'Tanpa Nama',
         email: u.email || '-',
         role: ROLE_MAP[u.role] || 'Masyarakat',
-        status: 'Aktif',
+        status: isSuspended ? 'Ditangguhkan' : 'Aktif',
         reports: u.eco_points || 0,
         joined: new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
         lastActive: '-',
@@ -64,6 +67,27 @@ function mapAdminUserToItem(u: AdminUser, idx: number): UserItem {
         avatarColor: AVATAR_COLORS[idx % AVATAR_COLORS.length],
         verified: u.current_badge !== null,
         district: u.district || u.instansi || '-',
+        phone: u.phone || '-',
+        instansi: u.instansi || undefined,
+    };
+}
+
+function toAdminUserDetailParams(user: UserItem) {
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        reports: String(user.reports),
+        joined: user.joined,
+        lastActive: user.lastActive,
+        initials: user.initials,
+        avatarColor: user.avatarColor,
+        verified: String(user.verified),
+        district: user.district,
+        phone: user.phone,
+        ...(user.instansi ? { instansi: user.instansi } : {}),
     };
 }
 
@@ -393,9 +417,7 @@ export default function AdminUsersScreen() {
     }, [users, filterStatus, sortKey, sortAsc]);
 
     // ── Summary stats ──
-    const totalActive = stats?.total || users.length;
     const totalPending = 0;
-    const totalSuspended = 0;
 
     const toggleSort = (key: SortKey) => {
         if (sortKey === key) setSortAsc(prev => !prev);
@@ -642,7 +664,7 @@ export default function AdminUsersScreen() {
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             activeOpacity={0.85}
-                            onPress={() => router.push({ pathname: '/admin-user-detail' as any, params: { id: item.id } })}
+                            onPress={() => router.push({ pathname: '/admin-user-detail' as any, params: toAdminUserDetailParams(item) })}
                         >
                             <UserCard user={item} onAction={(u) => { setSelectedUser(u); setSheetVisible(true); }} />
                         </TouchableOpacity>
@@ -656,7 +678,7 @@ export default function AdminUsersScreen() {
                 user={selectedUser}
                 visible={sheetVisible}
                 onClose={() => { setSheetVisible(false); setSelectedUser(null); }}
-                onViewProfile={(u) => router.push({ pathname: '/admin-user-detail' as any, params: { id: u.id } })}
+                onViewProfile={(u) => router.push({ pathname: '/admin-user-detail' as any, params: toAdminUserDetailParams(u) })}
                 onSuspendToggle={handleSuspendToggle}
             />
         </View>

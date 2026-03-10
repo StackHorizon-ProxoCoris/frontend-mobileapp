@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
-    Animated, KeyboardAvoidingView, Platform, Modal,
+    Animated, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     ArrowLeft, UserPlus, User, Envelope, MapPin,
     Buildings, Users, UserGear, Eye, EyeSlash,
@@ -13,6 +13,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useToast } from '@/contexts/toast.context';
+import { createAdminUser } from '@/services/admin.service';
 
 // ────────────────────────────────────────────
 // Types
@@ -55,6 +56,7 @@ const KECAMATAN_LIST = [
 export default function TambahPenggunaScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const params = useLocalSearchParams<{ role?: string }>();
     const { showToast } = useToast();
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -70,6 +72,12 @@ export default function TambahPenggunaScreen() {
     const [showRolePicker, setShowRolePicker] = useState(false);
     const [showKecamatanPicker, setShowKecamatanPicker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (params.role === 'Pemerintah' || params.role === 'Admin' || params.role === 'Masyarakat') {
+            setForm(prev => ({ ...prev, role: params.role as UserRole }));
+        }
+    }, [params.role]);
 
     useEffect(() => {
         Animated.parallel([
@@ -102,11 +110,36 @@ export default function TambahPenggunaScreen() {
     const handleSubmit = async () => {
         if (!validate()) return;
         setIsSubmitting(true);
-        // Simulate API call
-        await new Promise(r => setTimeout(r, 1200));
+        const roleMap = {
+            Masyarakat: 'user',
+            Pemerintah: 'pemerintah',
+            Admin: 'admin',
+        } as const;
+
+        const result = await createAdminUser({
+            fullName: form.nama.trim(),
+            email: form.email.trim(),
+            password: form.password,
+            phone: form.telepon.trim(),
+            role: roleMap[form.role],
+            district: form.kecamatan,
+            city: 'Kota Bandung',
+            province: 'Jawa Barat',
+            instansi: form.role === 'Pemerintah' ? form.instansi.trim() : undefined,
+        });
+
         setIsSubmitting(false);
+
+        if (!result.success) {
+            showToast({
+                type: 'error',
+                title: result.message || 'Gagal menambahkan pengguna',
+            });
+            return;
+        }
+
         showToast({ type: 'success', title: 'Pengguna berhasil ditambahkan!' });
-        router.back();
+        router.replace('/(admin-tabs)/users' as any);
     };
 
     const selectedRole = ROLE_OPTIONS.find(r => r.value === form.role)!;

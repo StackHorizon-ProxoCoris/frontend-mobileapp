@@ -50,6 +50,92 @@ interface UserDetail {
     instansi?: string;
 }
 
+type RouteParamValue = string | string[] | undefined;
+
+interface AdminUserDetailRouteParams {
+    id?: RouteParamValue;
+    name?: RouteParamValue;
+    email?: RouteParamValue;
+    role?: RouteParamValue;
+    status?: RouteParamValue;
+    reports?: RouteParamValue;
+    joined?: RouteParamValue;
+    lastActive?: RouteParamValue;
+    initials?: RouteParamValue;
+    avatarColor?: RouteParamValue;
+    verified?: RouteParamValue;
+    district?: RouteParamValue;
+    phone?: RouteParamValue;
+    instansi?: RouteParamValue;
+}
+
+function getParamValue(value: RouteParamValue): string | undefined {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+function getInitials(name: string): string {
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0]?.toUpperCase() || '')
+        .join('');
+}
+
+function isUserRole(value: string | undefined): value is UserRole {
+    return value === 'Masyarakat' || value === 'Pemerintah' || value === 'Admin';
+}
+
+function isUserStatus(value: string | undefined): value is UserStatus {
+    return value === 'Aktif' || value === 'Nonaktif' || value === 'Ditangguhkan' || value === 'Menunggu Verifikasi';
+}
+
+function parseNumberParam(value: string | undefined, fallback = 0): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildUserFromParams(params: AdminUserDetailRouteParams): UserDetail | null {
+    const id = getParamValue(params.id);
+    const name = getParamValue(params.name);
+    const email = getParamValue(params.email);
+    const role = getParamValue(params.role);
+    const status = getParamValue(params.status);
+
+    if (!id || !name || !email || !isUserRole(role) || !isUserStatus(status)) {
+        return null;
+    }
+
+    const reports = parseNumberParam(getParamValue(params.reports));
+    const verified = getParamValue(params.verified) === 'true';
+
+    return {
+        id,
+        name,
+        email,
+        role,
+        status,
+        reports,
+        joined: getParamValue(params.joined) || '-',
+        lastActive: getParamValue(params.lastActive) || '-',
+        initials: getParamValue(params.initials) || getInitials(name),
+        avatarColor: getParamValue(params.avatarColor) || '#7c3aed',
+        verified,
+        district: getParamValue(params.district) || '-',
+        phone: getParamValue(params.phone) || '-',
+        totalReports: reports,
+        resolvedReports: 0,
+        pendingReports: 0,
+        totalComments: 0,
+        totalActions: 0,
+        reputation: verified ? 75 : 50,
+        registrationIp: '-',
+        lastLoginIp: '-',
+        loginCount: 0,
+        ...(getParamValue(params.instansi) ? { instansi: getParamValue(params.instansi) } : {}),
+    };
+}
+
 // ────────────────────────────────────────────
 // Dummy Data (simulated from params)
 // ────────────────────────────────────────────
@@ -271,13 +357,11 @@ function StatMini({ icon: Icon, label, value, color, trend }: {
 export default function AdminUserDetailScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string }>();
+    const params = useLocalSearchParams<AdminUserDetailRouteParams>();
     const { showToast } = useToast();
 
-    const user = DUMMY_USERS[params.id || 'u01'];
-    const roleCfg = ROLE_CONFIG[user.role];
-    const statusCfg = STATUS_CONFIG[user.status];
-    const RoleIcon = roleCfg.icon;
+    const paramId = getParamValue(params.id);
+    const user = (paramId ? DUMMY_USERS[paramId] : undefined) ?? buildUserFromParams(params);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(20)).current;
@@ -298,6 +382,67 @@ export default function AdminUserDetailScreen() {
         await new Promise(r => setTimeout(r, 800));
         setRefreshing(false);
     };
+
+    if (!user) {
+        return (
+            <View style={{ flex: 1, backgroundColor: '#f4f7fb' }}>
+                <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 8 }}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: 14,
+                            backgroundColor: '#fff',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: '#edf2f9',
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <ArrowLeft size={20} color={SiagaColors.primary} weight="bold" />
+                    </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+                    <View style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 24,
+                        backgroundColor: '#fef2f2',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 18,
+                    }}>
+                        <Warning size={32} color={SiagaColors.danger} weight="duotone" />
+                    </View>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: SiagaColors.primary, textAlign: 'center' }}>
+                        Data pengguna tidak ditemukan
+                    </Text>
+                    <Text style={{ fontSize: 13, color: SiagaColors.secondary, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+                        Buka halaman ini dari daftar pengguna agar data detail yang diperlukan ikut terkirim.
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{
+                            marginTop: 18,
+                            backgroundColor: '#7c3aed',
+                            paddingHorizontal: 18,
+                            paddingVertical: 12,
+                            borderRadius: 14,
+                        }}
+                        activeOpacity={0.85}
+                    >
+                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Kembali ke Daftar</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
+    const roleCfg = ROLE_CONFIG[user.role];
+    const statusCfg = STATUS_CONFIG[user.status];
+    const RoleIcon = roleCfg.icon;
 
     // Reputation color
     const repColor = user.reputation >= 80 ? SiagaColors.success : user.reputation >= 50 ? '#d97706' : SiagaColors.danger;
