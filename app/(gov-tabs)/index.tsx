@@ -9,9 +9,9 @@ import {
     RoadHorizon, Fire, Trash, CaretRight, Clock,
     ArrowRight, FilePlus, HourglassMedium, CheckCircle,
     Timer, WarningDiamond, TrendUp, Megaphone, MapTrifold,
-    ChartLineUp, ChartDonut, ChartBar, ChartPieSlice,
+    ChartLineUp, ChartDonut, ChartBar,
     ClockCounterClockwise, ChatText, ArrowClockwise,
-    Warning, MapPin, Tree, ClipboardText, Wallet,
+    MapPin, ClipboardText,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import Svg, { Circle } from 'react-native-svg';
@@ -27,7 +27,6 @@ const QUICK_ACTIONS = [
     { label: 'Broadcast', icon: Megaphone, color: SiagaColors.info, route: '/action-detail' },
     { label: 'Peta', icon: MapTrifold, color: SiagaColors.success, route: '/(gov-tabs)/peta' },
     { label: 'Statistik', icon: ChartLineUp, color: '#7c3aed', route: '/(gov-tabs)/laporan' },
-    { label: 'Budget', icon: Wallet, color: '#d97706', route: '/(gov-tabs)/budget' },
 ];
 
 const FILTER_CHIPS = ['Semua', 'Darurat', 'Baru', 'Proses', 'Selesai'];
@@ -42,33 +41,6 @@ const SEVERITY_STYLES: Record<SeverityLevel, { textColor: string; bgColor: strin
     'Sedang': { textColor: '#92400e', bgColor: '#fef3c7' },
     'Rendah': { textColor: '#065f46', bgColor: '#d1fae5' },
 };
-
-const CATEGORIES = [
-    { label: 'Banjir', count: 18, icon: Waves, color: '#3b82f6', bgColor: '#eff6ff', pct: 33 },
-    { label: 'Jalan Rusak', count: 14, icon: RoadHorizon, color: '#f59e0b', bgColor: '#fffbeb', pct: 26 },
-    { label: 'Sampah', count: 11, icon: Trash, color: '#10b981', bgColor: '#ecfdf5', pct: 20 },
-    { label: 'Longsor', count: 7, icon: Mountains, color: '#f97316', bgColor: '#fff7ed', pct: 13 },
-    { label: 'Kebakaran', count: 4, icon: Fire, color: '#ef4444', bgColor: '#fef2f2', pct: 8 },
-];
-
-const BUDGET_PROJECTS = [
-    {
-        title: 'Perbaikan Jl. Merdeka', org: 'Dinas PU · Kec. Coblong',
-        icon: RoadHorizon, iconColor: SiagaColors.info, bgColor: '#eff6ff',
-        status: 'Anomali', statusColor: '#92400e', statusBg: '#fef3c7',
-        budget: 'Rp 850Jt', realisasi: '95%', realisasiColor: SiagaColors.warning,
-        fisik: '80%', fisikColor: SiagaColors.danger, progress: 80,
-        gradientFrom: SiagaColors.info, gradientTo: '#2563eb',
-    },
-    {
-        title: 'Penataan Taman Kota', org: 'Dinas LH · Kec. Bandung Wetan',
-        icon: Tree, iconColor: '#059669', bgColor: '#ecfdf5',
-        status: 'Normal', statusColor: SiagaColors.success, statusBg: '#d1fae5',
-        budget: 'Rp 1.2M', realisasi: '58%', realisasiColor: SiagaColors.success,
-        fisik: '55%', fisikColor: SiagaColors.success, progress: 55,
-        gradientFrom: SiagaColors.success, gradientTo: '#059669',
-    },
-];
 
 const ACTIVITIES = [
     { text: 'Laporan #1042 ditandai', highlight: 'Selesai', highlightColor: SiagaColors.success, sub: 'Jalan Rusak Jl. Braga · 15 menit lalu', icon: CheckCircle, iconColor: SiagaColors.success, bgColor: '#ecfdf5', showLine: true },
@@ -485,74 +457,6 @@ export default function GovDashboardScreen() {
                                         <View className="h-full rounded-full" style={{ backgroundColor: cat.color, width: `${cat.pct}%` }} />
                                     </View>
                                 </View>
-                            );
-                        })}
-                    </View>
-                </View>
-
-                {/* ── BUDGET WATCH ── */}
-                <View>
-                    <View className="flex-row items-center justify-between mb-3">
-                        <View className="flex-row items-center gap-2">
-                            <ChartPieSlice size={20} color={SiagaColors.info} weight="duotone" />
-                            <Text className="text-[16px] font-bold" style={{ color: SiagaColors.primary }}>Budget Watch</Text>
-                        </View>
-                        <TouchableOpacity className="flex-row items-center gap-0.5" activeOpacity={0.7} onPress={() => router.push('/(gov-tabs)/budget')}>
-                            <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>Semua</Text>
-                            <CaretRight size={14} color={SiagaColors.info} weight="bold" />
-                        </TouchableOpacity>
-                    </View>
-                    <View className="gap-2.5">
-                        {BUDGET_PROJECTS.map((proj, i) => {
-                            const IconComp = proj.icon;
-                            return (
-                                <TouchableOpacity
-                                    key={i}
-                                    className="rounded-2xl p-3.5"
-                                    style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 }}
-                                    activeOpacity={0.85}
-                                    onPress={() => router.push('/(gov-tabs)/budget')}
-                                >
-                                    {/* Project header */}
-                                    <View className="flex-row items-start gap-3 mb-3">
-                                        <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: proj.bgColor }}>
-                                            <IconComp size={24} color={proj.iconColor} weight="duotone" />
-                                        </View>
-                                        <View className="flex-1">
-                                            <View className="flex-row items-center justify-between mb-0.5">
-                                                <Text className="text-[15px] font-bold flex-1 mr-2" style={{ color: SiagaColors.primary }} numberOfLines={1}>{proj.title}</Text>
-                                                <View className="px-3 py-1 rounded-md flex-row items-center gap-0.5" style={{ backgroundColor: proj.statusBg }}>
-                                                    {proj.status === 'Anomali' ? <Warning size={11} color={proj.statusColor} weight="fill" /> : <CheckCircle size={11} color={proj.statusColor} weight="fill" />}
-                                                    <Text className="text-[10px] font-bold" style={{ color: proj.statusColor }}>{proj.status}</Text>
-                                                </View>
-                                            </View>
-                                            <Text className="text-[13px]" style={{ color: SiagaColors.secondary }}>{proj.org}</Text>
-                                        </View>
-                                    </View>
-                                    {/* Budget grid */}
-                                    <View className="flex-row gap-3 mb-3">
-                                        {[
-                                            { label: 'Anggaran', value: proj.budget, color: SiagaColors.primary },
-                                            { label: 'Realisasi', value: proj.realisasi, color: proj.realisasiColor },
-                                            { label: 'Fisik', value: proj.fisik, color: proj.fisikColor },
-                                        ].map((cell, ci) => (
-                                            <View key={ci} className="flex-1 rounded-lg p-2.5 items-center" style={{ backgroundColor: '#fafcfe' }}>
-                                                <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: SiagaColors.secondary }}>{cell.label}</Text>
-                                                <Text className="text-[15px] font-extrabold mt-0.5" style={{ color: cell.color }}>{cell.value}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                    {/* Progress bar */}
-                                    <View>
-                                        <View className="flex-row items-center justify-between mb-1">
-                                            <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>Progress Fisik</Text>
-                                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>{proj.fisik}</Text>
-                                        </View>
-                                        <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                            <View className="h-full rounded-full" style={{ backgroundColor: proj.gradientFrom, width: `${proj.progress}%` }} />
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
                             );
                         })}
                     </View>
