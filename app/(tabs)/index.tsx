@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { ScrollView, FlatList, View, Text, TouchableOpacity, RefreshControl, Modal } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Warning, X, Sun, Moon, SunHorizon, Cloud, Bell, MagnifyingGlass, MapPin,
   Clock, Megaphone, MapTrifold, Siren,
@@ -137,12 +138,14 @@ export default function HomeScreen() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Load awal
-  useEffect(() => {
-    loadData();
-    // Refresh user profile sekali saat mount (terpisah dari loadData agar tidak loop)
-    if (refreshUser) refreshUser();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadData();
+      if (refreshUser) {
+        void refreshUser();
+      }
+    }, [loadData, refreshUser])
+  );
 
   // Pull-to-refresh handler
   const onRefresh = useCallback(async () => {

@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     ShieldCheck, MagnifyingGlass, Bell, Waves, Mountains,
     RoadHorizon, Fire, Trash, CaretRight, Clock,
@@ -59,10 +60,11 @@ export default function GovDashboardScreen() {
         if (reportsResult.success && reportsResult.data) setReports(reportsResult.data);
     }, []);
 
-    // Initial load
-    useEffect(() => {
-        loadDashboardData();
-    }, [loadDashboardData]);
+    useFocusEffect(
+        useCallback(() => {
+            void loadDashboardData();
+        }, [loadDashboardData])
+    );
 
     // Pull-to-refresh handler
     const onRefresh = useCallback(async () => {

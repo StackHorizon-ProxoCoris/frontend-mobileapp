@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, Modal, ActivityIndicator,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, RefreshControl,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,16 +10,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft, ShareNetwork, Bookmark, MapPin, Clock, Users, Camera,
   ThumbsUp, ChatCircle, ShieldCheck,
-  CheckCircle, DotsThree, Heart, Warning, Flag,
+  CheckCircle, DotsThree, Heart, Warning, Flag, ImageSquare, X,
   CalendarBlank, Buildings, Medal, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { type ReportDetail, type BackendReportStatus } from '@/services/report.service';
 import { useAuth } from '@/context/auth';
 import { getReportById, toggleReportVote, verifyReport, toggleBookmark, resolveReportByUser, updateReportStatus } from '@/services/report.service';
+import { apiUpload } from '@/services/api';
+import { supabaseRealtime } from '@/services/supabase';
 import { getComments, addComment } from '@/services/comment.service';
 import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -56,6 +60,10 @@ export default function ReportDetailScreen() {
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [isGovStatusUpdating, setIsGovStatusUpdating] = useState(false);
+  const [govResolveModalVisible, setGovResolveModalVisible] = useState(false);
+  const [govResolutionNotes, setGovResolutionNotes] = useState('');
+  const [govResolutionPhoto, setGovResolutionPhoto] = useState<{ uri: string; uploadedUrl?: string } | null>(null);
+  const [isUploadingGovProof, setIsUploadingGovProof] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<number | null>(null);
   const { user, role } = useAuth();
   const { showToast } = useToast();
@@ -123,6 +131,8 @@ export default function ReportDetailScreen() {
         respondedBy: r.respondedBy,
         estimatedCompletion: r.estimatedCompletion,
         verifiedCount: r.verifiedCount || 0,
+        resolutionNotes: r.resolutionNotes || null,
+        resolutionImageUrl: r.resolutionImageUrl || null,
       };
       setReport(mapped);
       setVotes(mapped.votes);
@@ -157,6 +167,31 @@ export default function ReportDetailScreen() {
     setLoadError(null);
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    const realtimeClient = supabaseRealtime;
+    if (!reportId || !realtimeClient) return;
+
+    const channel = realtimeClient
+      .channel(`report-detail-${reportId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'reports',
+          filter: `id=eq.${reportId}`,
+        },
+        () => {
+          void loadAll();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void realtimeClient.removeChannel(channel);
+    };
+  }, [reportId, loadAll]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -261,17 +296,68 @@ export default function ReportDetailScreen() {
   const govActionTarget = GOV_STATUS_ACTION_TARGET[report.status];
   const govActionLabel = report.status === 'Ditangani' ? 'Tandai Selesai' : 'Proses';
   const GovActionIcon = report.status === 'Ditangani' ? CheckCircle : Buildings;
+  const govResponderLabel = user?.instansi || user?.unitKerja || user?.fullName || (role === 'admin' ? 'Admin' : 'Pemerintah');
+  const shouldShowOfficialResponse = report.status === 'Selesai' || !!report.resolutionNotes || !!report.resolutionImageUrl;
+  const officialResponseText = report.resolutionNotes?.trim() || 'Laporan ini telah ditindaklanjuti dan diselesaikan oleh pihak berwenang.';
+  const officialResponderName = report.respondedBy || 'Pemerintah / Admin';
 
   const handleResolve = () => {
     setResolveModalVisible(true);
   };
 
+  const pickGovResolutionPhoto = async (source: 'camera' | 'library') => {
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      showToast({
+        type: 'warning',
+        title: 'Izin Diperlukan',
+        message: source === 'camera' ? 'Izinkan akses kamera untuk mengambil foto bukti.' : 'Izinkan akses galeri untuk memilih foto bukti.',
+      });
+      return;
+    }
+
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.8 });
+
+    if (!result.canceled && result.assets.length > 0) {
+      setGovResolutionPhoto({ uri: result.assets[0].uri });
+    }
+  };
+
+  const uploadGovResolutionPhoto = async (): Promise<string | undefined> => {
+    if (!govResolutionPhoto) return undefined;
+    if (govResolutionPhoto.uploadedUrl) return govResolutionPhoto.uploadedUrl;
+
+    const formData = new FormData();
+    const filename = govResolutionPhoto.uri.split('/').pop() || 'resolution-proof.jpg';
+    formData.append('file', { uri: govResolutionPhoto.uri, name: filename, type: 'image/jpeg' } as any);
+
+    const result = await apiUpload<{ url: string }>('/upload', formData);
+    if (result.success && result.data?.url) {
+      setGovResolutionPhoto(prev => prev ? { ...prev, uploadedUrl: result.data?.url } : prev);
+      return result.data.url;
+    }
+
+    throw new Error(result.message || 'Gagal upload foto bukti.');
+  };
+
   const handleGovStatusAction = async () => {
     if (!govActionTarget) return;
 
+    if (govActionTarget === 'Selesai') {
+      setGovResolveModalVisible(true);
+      return;
+    }
+
     setIsGovStatusUpdating(true);
     try {
-      const result = await updateReportStatus(report.id, govActionTarget);
+      const result = await updateReportStatus(report.id, govActionTarget, {
+        respondedBy: govResponderLabel,
+      });
       if (result.success) {
         showToast({
           type: 'success',
@@ -298,6 +384,58 @@ export default function ReportDetailScreen() {
         message: 'Terjadi gangguan jaringan saat memperbarui status laporan.',
       });
     } finally {
+      setIsGovStatusUpdating(false);
+    }
+  };
+
+  const submitGovResolution = async () => {
+    const defaultResolutionMessage = 'Laporan ini telah ditindaklanjuti dan diselesaikan oleh pihak berwenang.';
+
+    setIsGovStatusUpdating(true);
+    try {
+      let resolutionImageUrl: string | undefined;
+      if (govResolutionPhoto) {
+        setIsUploadingGovProof(true);
+        resolutionImageUrl = await uploadGovResolutionPhoto();
+        setIsUploadingGovProof(false);
+      }
+
+      const result = await updateReportStatus(report.id, 'Selesai', {
+        respondedBy: govResponderLabel,
+        resolutionNotes: govResolutionNotes.trim() || defaultResolutionMessage,
+        resolutionImageUrl,
+      });
+
+      if (result.success) {
+        setGovResolveModalVisible(false);
+        setGovResolutionNotes('');
+        setGovResolutionPhoto(null);
+        showToast({
+          type: 'success',
+          title: 'Laporan Diselesaikan',
+          message: 'Bukti penyelesaian berhasil dikirim dan status laporan diperbarui.',
+        });
+        await loadAll();
+        return;
+      }
+
+      if (result.statusCode === 403) {
+        return;
+      }
+
+      showToast({
+        type: 'error',
+        title: 'Gagal Menyelesaikan',
+        message: result.message || 'Tidak dapat mengirim bukti penyelesaian.',
+      });
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'Gagal Menyelesaikan',
+        message: error instanceof Error ? error.message : 'Terjadi gangguan saat mengirim bukti penyelesaian.',
+      });
+    } finally {
+      setIsUploadingGovProof(false);
       setIsGovStatusUpdating(false);
     }
   };
@@ -486,6 +624,55 @@ export default function ReportDetailScreen() {
             <Text className="text-[14px] text-primary/80 leading-5">{report.description}</Text>
           </View>
         </View>
+
+        {/* Official Government Response */}
+        {shouldShowOfficialResponse && (
+          <View className="px-5 pt-5">
+            <View className="rounded-2xl border border-blue-200 bg-blue-50 p-4" style={{ elevation: 1 }}>
+              <View className="mb-3 flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-[15px] font-bold text-primary">Tanggapan Resmi Pemerintah</Text>
+                    <View className="flex-row items-center gap-1 rounded-full bg-white px-2 py-1">
+                      <CheckCircle size={14} color={SiagaColors.info} weight="fill" />
+                      <Text className="text-xs font-bold text-info">Verified</Text>
+                    </View>
+                  </View>
+                  <Text className="mt-1 text-xs text-secondary">
+                    Pembaruan resmi dari instansi yang menangani laporan ini.
+                  </Text>
+                </View>
+              </View>
+
+              <View className="mb-3 flex-row items-center gap-3 rounded-2xl bg-white px-4 py-3">
+                <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: SiagaColors.infoSoft }}>
+                  <Buildings size={20} color={SiagaColors.info} weight="duotone" />
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <Text className="text-[13px] font-bold text-primary">{officialResponderName}</Text>
+                    <CheckCircle size={14} color={SiagaColors.info} weight="fill" />
+                  </View>
+                  <Text className="mt-0.5 text-xs text-secondary">Instansi / petugas terverifikasi</Text>
+                </View>
+              </View>
+
+              <Text className="text-[14px] leading-6 text-primary/80">{officialResponseText}</Text>
+
+              {report.resolutionImageUrl && (
+                <View className="mt-4 overflow-hidden rounded-xl border border-blue-100 bg-white">
+                  <Image
+                    source={{ uri: report.resolutionImageUrl }}
+                    style={{ width: '100%', height: 192, backgroundColor: '#dbeafe' }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Location */}
         <View className="px-5 pt-5">
@@ -879,6 +1066,147 @@ export default function ReportDetailScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={govResolveModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !isGovStatusUpdating && setGovResolveModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+        >
+          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              maxHeight: SCREEN_HEIGHT * 0.88,
+              overflow: 'hidden',
+            }}
+          >
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: insets.bottom + 16,
+              }}
+            >
+              <View className="mb-4 flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="text-[18px] font-bold text-primary">Selesaikan Laporan</Text>
+                  <Text className="mt-1 text-xs leading-5 text-secondary">
+                    Lampirkan bukti tindakan dan catatan resmi agar warga menerima umpan balik yang jelas.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="h-11 w-11 items-center justify-center rounded-full bg-slate-100"
+                  onPress={() => setGovResolveModalVisible(false)}
+                  activeOpacity={0.7}
+                  disabled={isGovStatusUpdating}
+                >
+                  <X size={18} color={SiagaColors.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <Text className="text-xs font-bold uppercase tracking-wide text-secondary">Foto Bukti</Text>
+                <Text className="mt-1 text-xs leading-5 text-secondary">Opsional, unggah satu foto hasil penanganan di lapangan.</Text>
+
+                {govResolutionPhoto ? (
+                  <View className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <Image
+                      source={{ uri: govResolutionPhoto.uri }}
+                      style={{ width: '100%', height: 180, backgroundColor: '#e2e8f0' }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
+                    <View className="flex-row items-center justify-between px-4 py-3">
+                      <Text className="text-xs font-semibold text-primary">Foto bukti siap dikirim</Text>
+                      <TouchableOpacity
+                        className="min-h-[44px] flex-row items-center justify-center rounded-xl px-3"
+                        style={{ backgroundColor: SiagaColors.dangerSoft }}
+                        onPress={() => setGovResolutionPhoto(null)}
+                        activeOpacity={0.7}
+                        disabled={isGovStatusUpdating}
+                      >
+                        <Text className="text-xs font-bold" style={{ color: SiagaColors.danger }}>Hapus</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View className="mt-4 flex-row gap-3">
+                    <TouchableOpacity
+                      className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                      onPress={() => pickGovResolutionPhoto('camera')}
+                      activeOpacity={0.8}
+                      disabled={isGovStatusUpdating}
+                    >
+                      <Camera size={18} color={SiagaColors.info} weight="duotone" />
+                      <Text className="text-xs font-bold text-info">Ambil Foto</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                      onPress={() => pickGovResolutionPhoto('library')}
+                      activeOpacity={0.8}
+                      disabled={isGovStatusUpdating}
+                    >
+                      <ImageSquare size={18} color={SiagaColors.primary} weight="duotone" />
+                      <Text className="text-xs font-bold text-primary">Upload Foto</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              <View className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <Text className="text-xs font-bold uppercase tracking-wide text-secondary">Catatan Penyelesaian</Text>
+                <Text className="mt-1 text-xs leading-5 text-secondary">
+                  Opsional. Jika dikosongkan, sistem akan mengirim pesan penyelesaian standar yang sopan.
+                </Text>
+                <TextInput
+                  className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-[14px] text-primary"
+                  placeholder="Tuliskan tindakan yang telah dilakukan di lapangan..."
+                  placeholderTextColor={SiagaColors.secondary}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={400}
+                  value={govResolutionNotes}
+                  onChangeText={setGovResolutionNotes}
+                  style={{ minHeight: 112, textAlignVertical: 'top' }}
+                />
+                <View className="mt-2 flex-row justify-end">
+                  <Text className="text-xs text-secondary">{govResolutionNotes.length}/400</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                className="mt-5 min-h-[56px] flex-row items-center justify-center gap-2 rounded-2xl px-4 py-4"
+                style={{ backgroundColor: SiagaColors.success, opacity: isGovStatusUpdating ? 0.7 : 1 }}
+                onPress={submitGovResolution}
+                activeOpacity={0.8}
+                disabled={isGovStatusUpdating}
+              >
+                {isGovStatusUpdating ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <CheckCircle size={18} color="#fff" weight="fill" />
+                )}
+                <Text className="text-[14px] font-bold text-white">
+                  {isUploadingGovProof ? 'Mengupload bukti...' : isGovStatusUpdating ? 'Memproses...' : 'Kirim & Selesaikan'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Fullscreen Photo Viewer */}

@@ -4,6 +4,7 @@ import {
     Animated, TextInput, Dimensions, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import {
     ClipboardText, MagnifyingGlass, Funnel, Bell,
@@ -305,10 +306,11 @@ export default function GovLaporanScreen() {
         if (statsResult.success && statsResult.data) setStats(statsResult.data);
     }, []);
 
-    // Initial load
-    useEffect(() => {
-        loadReports();
-    }, [loadReports]);
+    useFocusEffect(
+        useCallback(() => {
+            loadReports();
+        }, [loadReports])
+    );
 
     // Pull-to-refresh
     const onRefresh = useCallback(async () => {
