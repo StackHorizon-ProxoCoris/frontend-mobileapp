@@ -3,14 +3,14 @@ import * as Location from 'expo-location';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     KeyboardAvoidingView, Platform, Alert, Animated,
-    ActivityIndicator,
+    ActivityIndicator, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
     ShieldCheck, Envelope, Lock, Eye, EyeSlash,
     User, Phone, MapPin, ArrowLeft, ArrowRight,
-    GoogleLogo, CheckCircle, CaretRight, IdentificationCard,
+    CheckCircle, CaretRight, IdentificationCard,
     Buildings, Check, Warning as WarningIcon, GpsFix,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
@@ -132,10 +132,6 @@ export default function RegisterScreen() {
         // Jika sukses, AuthGuard otomatis redirect ke (tabs)
     };
 
-    const handleGoogleRegister = () => {
-        showToast({ type: 'info', title: 'Segera Hadir', message: 'Daftar dengan Google akan tersedia di versi berikutnya.' });
-    };
-
     const renderInput = (
         icon: React.ReactNode,
         fieldKey: string,
@@ -192,24 +188,6 @@ export default function RegisterScreen() {
             <View className="mb-5">
                 <Text className="text-[18px] font-bold text-primary">Data Diri</Text>
                 <Text className="text-[11px] text-secondary mt-0.5">Isi informasi dasar akun Anda</Text>
-            </View>
-
-            {/* Google Register */}
-            <TouchableOpacity
-                className="flex-row items-center justify-center gap-3 py-3.5 rounded-2xl border-2 border-slate-100 mb-5"
-                style={{ backgroundColor: '#fafbfc' }}
-                onPress={handleGoogleRegister}
-                activeOpacity={0.7}
-                disabled={isLoading}
-            >
-                <GoogleLogo size={20} color="#4285F4" weight="bold" />
-                <Text className="text-[13px] font-bold text-primary">Daftar dengan Google</Text>
-            </TouchableOpacity>
-
-            <View className="flex-row items-center gap-3 mb-5">
-                <View className="flex-1 h-px bg-slate-100" />
-                <Text className="text-[10px] font-semibold text-secondary/60 uppercase tracking-wider">atau isi manual</Text>
-                <View className="flex-1 h-px bg-slate-100" />
             </View>
 
             {/* Full Name */}
@@ -451,9 +429,7 @@ export default function RegisterScreen() {
 
                         {/* Header */}
                         <View className="flex-row items-center gap-3 mb-3">
-                            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
-                                <ShieldCheck size={24} color="#fff" weight="duotone" />
-                            </View>
+                            <Image source={require('@/assets/images/logo.png')} style={{ width: 48, height: 48 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-[20px] font-bold text-white">Buat Akun</Text>
                                 <Text className="text-[10px] text-white/50">Bergabung untuk lindungi komunitas Anda</Text>

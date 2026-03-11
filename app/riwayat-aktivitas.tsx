@@ -4,16 +4,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Camera, Trash, ThumbsUp, ShieldCheck, ChatCircle,
-  Medal, Tree, Clock, CaretRight, Leaf, Funnel,
+  Medal, Tree, Clock, CaretRight, Leaf, Funnel, UserCheck,
+  Buildings, UserGear, FileText, RoadHorizon, Waves, Mountains, Fire, CheckCircle,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { getActivities, type ActivityItem } from '@/services/activity.service';
+import { getAdminActivityLog, type AdminActivityLogItem } from '@/services/admin.service';
+import { useAuth } from '@/context/auth';
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Camera, Trash, ThumbsUp, ShieldCheck, ChatCircle, Medal, Tree,
+  UserCheck, Buildings, UserGear, FileText, RoadHorizon, Waves, Mountains, Fire, CheckCircle,
 };
 
-const FILTER_TABS = [
+const USER_FILTER_TABS = [
   { key: 'all', label: 'Semua' },
   { key: 'report', label: 'Laporan' },
   { key: 'action', label: 'Aksi' },
@@ -21,37 +25,46 @@ const FILTER_TABS = [
   { key: 'verify', label: 'Verifikasi' },
 ];
 
+const ADMIN_FILTER_TABS = [
+  { key: 'all', label: 'Semua' },
+  { key: 'report', label: 'Laporan' },
+  { key: 'action', label: 'Aksi' },
+  { key: 'user', label: 'Pengguna' },
+  { key: 'status', label: 'Status' },
+];
+
+type TimelineItem = ActivityItem | AdminActivityLogItem;
+
 export default function RiwayatAktivitasScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { role } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all');
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [activities, setActivities] = useState<TimelineItem[]>([]);
 
   useEffect(() => {
     async function load() {
-      const result = await getActivities();
+      const result = role === 'admin'
+        ? await getAdminActivityLog({ limit: 100 })
+        : await getActivities();
       if (result.success && result.data) setActivities(result.data);
     }
     load();
-  }, []);
+  }, [role]);
+
+  const filterTabs = role === 'admin' ? ADMIN_FILTER_TABS : USER_FILTER_TABS;
 
   const filtered = activeFilter === 'all'
     ? activities
     : activities.filter(a => a.type === activeFilter);
 
-  // Group by date
-  const grouped = filtered.reduce<Record<string, ActivityItem[]>>((acc, item) => {
-    if (!acc[item.date]) acc[item.date] = [];
-    acc[item.date].push(item);
-    return acc;
-  }, {});
-  const sections = Object.entries(grouped);
+  const totalPoints = activities.reduce((sum, a) => sum + (a.points || 0), 0);
 
-  const totalPoints = activities.reduce((sum, a) => sum + a.points, 0);
-
-  const handlePress = (item: ActivityItem) => {
+  const handlePress = (item: TimelineItem) => {
     if (item.refId) {
-      if (item.type === 'report' || item.type === 'support' || item.type === 'verify') {
+      if (role === 'admin' && (item.targetType === 'report' || item.type === 'report' || item.type === 'status')) {
+        router.push({ pathname: '/moderasi-detail', params: { id: item.refId } });
+      } else if (item.type === 'report' || item.type === 'support' || item.type === 'verify') {
         router.push({ pathname: '/report-detail', params: { id: item.refId } });
       } else if (item.type === 'action') {
         router.push({ pathname: '/action-detail', params: { id: item.refId } });
@@ -59,7 +72,7 @@ export default function RiwayatAktivitasScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: ActivityItem }) => {
+  const renderItem = ({ item }: { item: TimelineItem }) => {
     const IconComp = ICON_MAP[item.icon] || Camera;
     return (
       <TouchableOpacity
@@ -79,10 +92,12 @@ export default function RiwayatAktivitasScreen() {
               <Clock size={11} color={SiagaColors.secondary} />
               <Text className="text-[12px] text-secondary">{item.time}</Text>
             </View>
-            <View className="flex-row items-center gap-0.5">
-              <Leaf size={11} color="#059669" weight="duotone" />
-              <Text className="text-[12px] font-bold text-success">+{item.points} pts</Text>
-            </View>
+            {item.points > 0 && (
+              <View className="flex-row items-center gap-0.5">
+                <Leaf size={11} color="#059669" weight="duotone" />
+                <Text className="text-[12px] font-bold text-success">+{item.points} pts</Text>
+              </View>
+            )}
             {item.status && (
               <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: `${item.statusColor}15` }}>
                 <Text className="text-[11px] font-bold" style={{ color: item.statusColor }}>{item.status}</Text>
@@ -121,8 +136,8 @@ export default function RiwayatAktivitasScreen() {
         {/* Stats summary */}
         <View className="flex-row gap-2 mt-3">
           <View className="flex-1 bg-green-50 border border-green-100 rounded-xl p-2.5 items-center">
-            <Text className="text-base font-bold text-success">{totalPoints}</Text>
-            <Text className="text-[11px] font-medium text-secondary">Total Poin</Text>
+            <Text className="text-base font-bold text-success">{role === 'admin' ? activities.length : totalPoints}</Text>
+            <Text className="text-[11px] font-medium text-secondary">{role === 'admin' ? 'Total Event' : 'Total Poin'}</Text>
           </View>
           <View className="flex-1 bg-blue-50 border border-blue-100 rounded-xl p-2.5 items-center">
             <Text className="text-base font-bold text-info">{activities.filter(a => a.type === 'report').length}</Text>
@@ -133,14 +148,18 @@ export default function RiwayatAktivitasScreen() {
             <Text className="text-[11px] font-medium text-secondary">Aksi</Text>
           </View>
           <View className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-2.5 items-center">
-            <Text className="text-base font-bold" style={{ color: '#d97706' }}>{activities.filter(a => a.type === 'support' || a.type === 'verify').length}</Text>
-            <Text className="text-[11px] font-medium text-secondary">Kontribusi</Text>
+            <Text className="text-base font-bold" style={{ color: '#d97706' }}>
+              {role === 'admin'
+                ? activities.filter(a => a.type === 'user' || a.type === 'status').length
+                : activities.filter(a => a.type === 'support' || a.type === 'verify').length}
+            </Text>
+            <Text className="text-[11px] font-medium text-secondary">{role === 'admin' ? 'Sistem' : 'Kontribusi'}</Text>
           </View>
         </View>
 
         {/* Filter Tabs */}
         <View className="flex-row gap-1.5 mt-3">
-          {FILTER_TABS.map(tab => {
+          {filterTabs.map(tab => {
             const isActive = activeFilter === tab.key;
             return (
               <TouchableOpacity

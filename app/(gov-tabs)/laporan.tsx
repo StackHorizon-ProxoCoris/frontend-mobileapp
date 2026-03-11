@@ -7,13 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import {
-    ClipboardText, MagnifyingGlass, Funnel, Bell,
+    ClipboardText, MagnifyingGlass, Bell,
     Waves, Mountains, RoadHorizon, Fire, Trash,
     Clock, ArrowRight, CaretRight, CheckCircle,
-    HourglassMedium, WarningDiamond, FilePlus, Timer,
+    HourglassMedium, WarningDiamond, FilePlus,
     TrendUp, MapPin, ChartBar, ArrowClockwise,
-    SortAscending, XCircle, Megaphone, DotsThreeVertical,
-    Warning, Eye, ChatText, CheckSquare,
+    SortAscending, XCircle, Megaphone,
+    Warning, CheckSquare,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import {
@@ -84,13 +84,25 @@ const STATUS_ACTION_TARGET: Partial<Record<StatusType, BackendReportStatus>> = {
 
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-type StatItem = { value: string; label: string; icon: any; color: string; bg: string; trend: string };
-function StatCard({ item }: { item: StatItem }) {
+type SummaryFilterKey = 'Semua' | 'Baru' | 'Diproses' | 'Selesai' | 'Darurat';
+type StatItem = {
+    value: string;
+    label: string;
+    icon: any;
+    color: string;
+    bg: string;
+    trend: string;
+    filterKey: SummaryFilterKey;
+};
+function StatCard({ item, onPress }: { item: StatItem; onPress: () => void }) {
     const IconComp = item.icon;
     return (
-        <View
-            className="rounded-2xl p-3 flex-1"
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.82}
+            className="rounded-2xl p-3"
             style={{
+                width: (width - 44) / 2,
                 backgroundColor: '#fff',
                 borderWidth: 1,
                 borderColor: '#edf2f9',
@@ -114,7 +126,7 @@ function StatCard({ item }: { item: StatItem }) {
                 <TrendUp size={11} color={item.color} weight="fill" />
                 <Text className="text-[10px] font-bold" style={{ color: item.color }}>{item.trend}</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 }
 
@@ -277,29 +289,28 @@ export default function GovLaporanScreen() {
     const [activeFilter, setActiveFilter] = useState('Semua');
     const [activeSort, setActiveSort] = useState('Terbaru');
     const [searchQuery, setSearchQuery] = useState('');
-    const [showSearch, setShowSearch] = useState(false);
     const [showSort, setShowSort] = useState(false);
-    const [showAnalytics, setShowAnalytics] = useState(false);
+    const [showAnalytics, setShowAnalytics] = useState(true);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
     const [stats, setStats] = useState<ReportStats | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [updatingStatusIds, setUpdatingStatusIds] = useState<Record<string, boolean>>({});
+    const [visibleCount, setVisibleCount] = useState(10);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
-    const searchWidth = useRef(new Animated.Value(0)).current;
-    const analyticsHeight = useRef(new Animated.Value(0)).current;
+    const analyticsHeight = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
         ]).start();
-    }, []);
+    }, [fadeAnim, slideAnim]);
 
     const loadReports = useCallback(async () => {
         const [reportsResult, statsResult] = await Promise.all([
-            getReports({ limit: 50 }),
+            getReports({ limit: 100 }),
             getReportStats(),
         ]);
         if (reportsResult.success && reportsResult.data) setApiReports(reportsResult.data);
@@ -318,13 +329,6 @@ export default function GovLaporanScreen() {
         await loadReports();
         setRefreshing(false);
     }, [loadReports]);
-
-    const toggleSearch = () => {
-        const toValue = showSearch ? 0 : 1;
-        setShowSearch(!showSearch);
-        Animated.timing(searchWidth, { toValue, duration: 250, useNativeDriver: false }).start();
-        if (showSearch) setSearchQuery('');
-    };
 
     const toggleAnalytics = () => {
         Animated.timing(analyticsHeight, {
@@ -373,6 +377,34 @@ export default function GovLaporanScreen() {
             };
         });
     }, [apiReports]);
+
+    const kritisCount = useMemo(
+        () => REPORTS_LIVE.filter(r => r.severity === 'Kritis').length,
+        [REPORTS_LIVE],
+    );
+
+    const applyFilterAndSort = useCallback((nextFilter: SummaryFilterKey, nextSort?: string) => {
+        setActiveFilter(nextFilter);
+        if (nextSort) setActiveSort(nextSort);
+        setShowSort(false);
+    }, []);
+
+    const openNotifications = useCallback(() => {
+        router.push('/notifikasi');
+    }, [router]);
+
+    const handleCriticalAlertPress = useCallback(() => {
+        if (kritisCount === 0) {
+            showToast({
+                type: 'info',
+                title: 'Tidak Ada Laporan Kritis',
+                message: 'Semua laporan saat ini berada di level aman atau sedang diproses.',
+            });
+            return;
+        }
+
+        applyFilterAndSort('Darurat', 'Prioritas');
+    }, [applyFilterAndSort, kritisCount, showToast]);
 
     const openReportDetail = useCallback((reportId?: string) => {
         if (!reportId) {
@@ -475,21 +507,54 @@ export default function GovLaporanScreen() {
         const total = stats?.total ?? 0;
         const pct = total > 0 ? `${Math.round(resolved / total * 100)}%` : '0%';
         return [
-            { value: String(pending), label: 'Baru', icon: FilePlus, color: SiagaColors.danger, bg: '#fef2f2', trend: `+${pending} hari ini` },
-            { value: String(inProgress), label: 'Diproses', icon: HourglassMedium, color: '#d97706', bg: '#fffbeb', trend: 'Aktif' },
-            { value: String(resolved), label: 'Selesai', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', trend: pct },
-            { value: '2.4j', label: 'Avg. Respons', icon: Timer, color: SiagaColors.info, bg: '#eff6ff', trend: 'Baik' },
+            {
+                value: String(pending),
+                label: 'Butuh Tinjau',
+                icon: FilePlus,
+                color: SiagaColors.danger,
+                bg: '#fef2f2',
+                trend: pending > 0 ? `${pending} antrian aktif` : 'Tidak ada antrian',
+                filterKey: 'Baru' as const,
+            },
+            {
+                value: String(inProgress),
+                label: 'Sedang Ditindak',
+                icon: HourglassMedium,
+                color: '#d97706',
+                bg: '#fffbeb',
+                trend: inProgress > 0 ? 'Perlu pemantauan' : 'Belum ada proses aktif',
+                filterKey: 'Diproses' as const,
+            },
+            {
+                value: String(resolved),
+                label: 'Selesai',
+                icon: CheckCircle,
+                color: SiagaColors.success,
+                bg: '#ecfdf5',
+                trend: `${pct} tingkat penyelesaian`,
+                filterKey: 'Selesai' as const,
+            },
+            {
+                value: String(kritisCount),
+                label: 'Prioritas Kritis',
+                icon: WarningDiamond,
+                color: SiagaColors.info,
+                bg: '#eff6ff',
+                trend: kritisCount > 0 ? 'Respons segera' : 'Kondisi stabil',
+                filterKey: 'Darurat' as const,
+            },
         ];
-    }, [stats]);
+    }, [kritisCount, stats]);
 
     // Hitung FILTER_TABS dari live data
     const FILTER_TABS_LIVE = useMemo(() => [
         { key: 'Semua', count: REPORTS_LIVE.length },
+        { key: 'Darurat', count: kritisCount },
         { key: 'Baru', count: REPORTS_LIVE.filter(r => r.status === 'Baru').length },
         { key: 'Diproses', count: REPORTS_LIVE.filter(r => r.status === 'Diproses').length },
         { key: 'Selesai', count: REPORTS_LIVE.filter(r => r.status === 'Selesai').length },
         { key: 'Ditolak', count: REPORTS_LIVE.filter(r => r.status === 'Ditolak').length },
-    ], [REPORTS_LIVE]);
+    ], [REPORTS_LIVE, kritisCount]);
 
     // Hitung CATEGORY_DIST dari live data
     const CATEGORY_DIST_LIVE = useMemo(() => {
@@ -501,18 +566,58 @@ export default function GovLaporanScreen() {
             { label: 'Kebakaran', color: '#ef4444', bg: '#fef2f2' },
         ];
         return cats.map(c => {
-            const count = apiReports.filter(r => r.category === c.label).length;
-            return { ...c, count, pct: apiReports.length > 0 ? Math.round(count / apiReports.length * 100) : 0 };
+            const count = REPORTS_LIVE.filter(r => r.category === c.label).length;
+            return { ...c, count, pct: REPORTS_LIVE.length > 0 ? Math.round(count / REPORTS_LIVE.length * 100) : 0 };
         });
-    }, [apiReports]);
+    }, [REPORTS_LIVE]);
 
-    // Kritis count from live data
-    const kritisCount = REPORTS_LIVE.filter(r => r.severity === 'Kritis').length;
+    const dominantCategory = useMemo(() => {
+        if (REPORTS_LIVE.length === 0) return null;
+
+        return CATEGORY_DIST_LIVE.reduce<(typeof CATEGORY_DIST_LIVE)[number] | null>(
+            (top, item) => {
+                if (!top || item.count > top.count) return item;
+                return top;
+            },
+            null,
+        );
+    }, [CATEGORY_DIST_LIVE, REPORTS_LIVE.length]);
+
+    const summarySnapshotItems = useMemo(
+        () => [
+            {
+                label: 'Total Masuk',
+                value: String(REPORTS_LIVE.length),
+                helper: REPORTS_LIVE.length > 0 ? 'laporan terpantau' : 'belum ada data',
+            },
+            {
+                label: 'Filter Aktif',
+                value: activeFilter,
+                helper: activeFilter === 'Semua' ? 'seluruh status' : 'fokus monitoring',
+            },
+            {
+                label: 'Urutan Data',
+                value: activeSort,
+                helper: 'mode tampilan',
+            },
+            {
+                label: 'Respons Kritis',
+                value: `${kritisCount}`,
+                helper: kritisCount > 0 ? 'butuh tindak cepat' : 'kondisi stabil',
+            },
+        ],
+        [REPORTS_LIVE.length, activeFilter, activeSort, kritisCount],
+    );
 
     const filteredReports = useMemo(() => {
         const filtered = REPORTS_LIVE.filter((r) => {
             const matchFilter = activeFilter === 'Semua' || r.status === activeFilter || (activeFilter === 'Darurat' && r.severity === 'Kritis');
-            const matchSearch = searchQuery === '' || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.area.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.includes(searchQuery);
+            const loweredQuery = searchQuery.toLowerCase();
+            const matchSearch = searchQuery === ''
+                || r.title.toLowerCase().includes(loweredQuery)
+                || r.area.toLowerCase().includes(loweredQuery)
+                || r.category.toLowerCase().includes(loweredQuery)
+                || r.id.toLowerCase().includes(loweredQuery);
             return matchFilter && matchSearch;
         });
 
@@ -537,6 +642,44 @@ export default function GovLaporanScreen() {
         }
         return filtered;
     }, [REPORTS_LIVE, activeFilter, searchQuery, activeSort]);
+
+    useEffect(() => {
+        setVisibleCount(10);
+    }, [activeFilter, activeSort, searchQuery]);
+
+    const visibleReports = useMemo(
+        () => filteredReports.slice(0, visibleCount),
+        [filteredReports, visibleCount],
+    );
+
+    const remainingReportsCount = Math.max(filteredReports.length - visibleReports.length, 0);
+
+    const actionableReport = useMemo(
+        () => filteredReports.find(r => r.status === 'Diproses') || REPORTS_LIVE.find(r => r.status === 'Diproses') || null,
+        [REPORTS_LIVE, filteredReports],
+    );
+
+    const handleBulkComplete = useCallback(() => {
+        if (!actionableReport) {
+            showToast({
+                type: 'info',
+                title: 'Tidak Ada Laporan Aktif',
+                message: 'Tidak ada laporan berstatus Diproses yang bisa ditandai selesai saat ini.',
+            });
+            return;
+        }
+
+        handleStatusAction(actionableReport);
+    }, [actionableReport, handleStatusAction, showToast]);
+
+    const handleLoadMore = useCallback(() => {
+        if (remainingReportsCount > 0) {
+            setVisibleCount(prev => prev + 10);
+            return;
+        }
+
+        onRefresh();
+    }, [onRefresh, remainingReportsCount]);
 
     return (
         <View className="flex-1" style={{ backgroundColor: '#f4f7fb' }}>
@@ -579,6 +722,7 @@ export default function GovLaporanScreen() {
                             </TouchableOpacity>
                             {/* Bell */}
                             <TouchableOpacity
+                                onPress={openNotifications}
                                 className="w-9 h-9 rounded-xl items-center justify-center"
                                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                                 activeOpacity={0.7}
@@ -594,6 +738,7 @@ export default function GovLaporanScreen() {
 
                     {/* Alert bar — critical reports */}
                     <TouchableOpacity
+                        onPress={handleCriticalAlertPress}
                         className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-xl"
                         style={{ backgroundColor: 'rgba(231,76,60,0.18)', borderWidth: 1, borderColor: 'rgba(231,76,60,0.3)' }}
                         activeOpacity={0.8}
@@ -614,47 +759,202 @@ export default function GovLaporanScreen() {
             <Animated.View
                 style={{
                     overflow: 'hidden',
-                    maxHeight: analyticsHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 320] }),
+                    maxHeight: analyticsHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 640] }),
                     opacity: analyticsHeight,
-                    backgroundColor: '#fff',
+                    backgroundColor: '#f7fbff',
                     borderBottomWidth: 1,
-                    borderBottomColor: '#edf2f9',
+                    borderBottomColor: '#e4edf8',
                 }}
             >
-                <View className="px-4 pt-4 pb-3">
-                    <Text className="text-[14px] font-bold mb-3" style={{ color: SiagaColors.primary }}>
-                        Ringkasan Laporan
-                    </Text>
-                    {/* Stat grid 2x2 */}
-                    <View className="flex-row gap-2.5 mb-3">
-                        {SUMMARY_STATS_LIVE.map((item, i) => (
-                            <StatCard key={i} item={item} />
-                        ))}
+                <View className="px-4 pt-4 pb-4">
+                    <View
+                        className="rounded-[24px] p-4 mb-3"
+                        style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#e6eef9' }}
+                    >
+                        <View className="flex-row items-start justify-between gap-3 mb-3">
+                            <View className="flex-1">
+                                <View className="flex-row items-center gap-2 mb-1.5">
+                                    <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: SiagaColors.info }} />
+                                    <Text className="text-[15px] font-extrabold" style={{ color: SiagaColors.primary }}>
+                                        Ringkasan Laporan
+                                    </Text>
+                                </View>
+                                <Text className="text-[12px] leading-5" style={{ color: SiagaColors.secondary }}>
+                                    Ketuk kartu untuk memfilter antrian laporan yang paling perlu ditindak.
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={handleCriticalAlertPress}
+                                activeOpacity={0.8}
+                                className="px-3 py-1.5 rounded-full"
+                                style={{ backgroundColor: kritisCount > 0 ? '#fee2e2' : '#eff6ff' }}
+                            >
+                                <Text
+                                    className="text-[11px] font-bold"
+                                    style={{ color: kritisCount > 0 ? SiagaColors.danger : SiagaColors.info }}
+                                >
+                                    {kritisCount} kritis
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View
+                            className="rounded-[20px] px-3.5 py-3 mb-3"
+                            style={{ backgroundColor: '#f8fbff', borderWidth: 1, borderColor: '#e6eef9' }}
+                        >
+                            <View className="flex-row items-center justify-between mb-2.5">
+                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
+                                    Snapshot Operasional
+                                </Text>
+                                <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: '#ffffff' }}>
+                                    <Text className="text-[10px] font-bold" style={{ color: SiagaColors.info }}>
+                                        Ringkas & aktif
+                                    </Text>
+                                </View>
+                            </View>
+                            <View className="flex-row flex-wrap justify-between">
+                                {summarySnapshotItems.map((item) => (
+                                    <View
+                                        key={item.label}
+                                        className="rounded-[18px] px-3 py-3 mb-2.5"
+                                        style={{
+                                            width: '48.5%',
+                                            backgroundColor: '#ffffff',
+                                            borderWidth: 1,
+                                            borderColor: '#edf2f9',
+                                        }}
+                                    >
+                                        <Text className="text-[11px] font-semibold mb-1" style={{ color: SiagaColors.secondary }}>
+                                            {item.label}
+                                        </Text>
+                                        <Text className="text-[17px] font-extrabold mb-0.5" style={{ color: SiagaColors.primary }}>
+                                            {item.value}
+                                        </Text>
+                                        <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
+                                            {item.helper}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View
+                            className="flex-row items-center justify-between mb-3 px-0.5 pb-3"
+                            style={{ borderBottomWidth: 1, borderBottomColor: '#edf2f9' }}
+                        >
+                            <View>
+                                <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>
+                                    Status Penanganan
+                                </Text>
+                                <Text className="text-[11px] mt-0.5" style={{ color: SiagaColors.secondary }}>
+                                    Tap kartu untuk filter cepat ke daftar laporan
+                                </Text>
+                            </View>
+                            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: '#eff6ff' }}>
+                                <Text className="text-[10px] font-bold" style={{ color: SiagaColors.info }}>
+                                    4 indikator
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View className="flex-row flex-wrap gap-3">
+                            {SUMMARY_STATS_LIVE.map((item) => (
+                                <StatCard
+                                    key={item.label}
+                                    item={item}
+                                    onPress={() => applyFilterAndSort(item.filterKey, item.filterKey === 'Darurat' ? 'Prioritas' : 'Terbaru')}
+                                />
+                            ))}
+                        </View>
                     </View>
 
-                    {/* Category distribution */}
                     <View
-                        className="rounded-2xl p-3"
-                        style={{ backgroundColor: '#fafcfe', borderWidth: 1, borderColor: '#f1f5f9' }}
+                        className="rounded-[24px] p-4"
+                        style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#e6eef9' }}
                     >
-                        <Text className="text-[13px] font-bold mb-2" style={{ color: SiagaColors.primary }}>
-                            Distribusi Kategori
-                        </Text>
-                        <View className="gap-2">
+                        <View className="flex-row items-start justify-between gap-3 mb-3">
+                            <View className="flex-1">
+                                <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
+                                    Distribusi Kategori
+                                </Text>
+                                <Text className="text-[11px] mt-0.5" style={{ color: SiagaColors.secondary }}>
+                                    Komposisi laporan terbaru per jenis kejadian
+                                </Text>
+                            </View>
+                            <View className="items-end">
+                                <View
+                                    className="px-3 py-1 rounded-full"
+                                    style={{ backgroundColor: dominantCategory?.bg ?? '#eff6ff' }}
+                                >
+                                    <Text
+                                        className="text-[11px] font-bold"
+                                        style={{ color: dominantCategory?.color ?? SiagaColors.info }}
+                                    >
+                                        {dominantCategory?.label ?? 'Belum ada'}
+                                    </Text>
+                                </View>
+                                <Text className="text-[10px] mt-1" style={{ color: SiagaColors.secondary }}>
+                                    {REPORTS_LIVE.length} total laporan
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View
+                            className="rounded-[18px] px-3.5 py-3 mb-3"
+                            style={{ backgroundColor: '#f8fbff', borderWidth: 1, borderColor: '#e6eef9' }}
+                        >
+                            <View className="flex-row items-center justify-between gap-3">
+                                <View className="flex-1">
+                                    <Text className="text-[12px] font-bold mb-0.5" style={{ color: SiagaColors.primary }}>
+                                        Kategori Dominan
+                                    </Text>
+                                    <Text className="text-[11px]" style={{ color: SiagaColors.secondary }}>
+                                        {dominantCategory
+                                            ? `${dominantCategory.count} laporan mendominasi antrian saat ini`
+                                            : 'Belum ada distribusi yang bisa ditampilkan'}
+                                    </Text>
+                                </View>
+                                <View className="items-end">
+                                    <Text
+                                        className="text-[18px] font-extrabold"
+                                        style={{ color: dominantCategory?.color ?? SiagaColors.info }}
+                                    >
+                                        {dominantCategory ? `${dominantCategory.pct}%` : '0%'}
+                                    </Text>
+                                    <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
+                                        dari total data
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View className="gap-2.5">
                             {CATEGORY_DIST_LIVE.map((cat, i) => (
-                                <View key={i}>
-                                    <View className="flex-row items-center justify-between mb-0.5">
+                                <View
+                                    key={i}
+                                    className="rounded-[18px] px-3.5 py-3"
+                                    style={{ backgroundColor: '#fbfdff', borderWidth: 1, borderColor: '#edf2f9' }}
+                                >
+                                    <View className="flex-row items-center justify-between mb-2">
                                         <View className="flex-row items-center gap-1.5">
-                                            <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                            <View
+                                                className="rounded-full"
+                                                style={{ width: 10, height: 10, backgroundColor: cat.color }}
+                                            />
                                             <Text className="text-[12px] font-semibold" style={{ color: SiagaColors.primary }}>
                                                 {cat.label}
                                             </Text>
                                         </View>
-                                        <Text className="text-[12px] font-bold" style={{ color: SiagaColors.secondary }}>
-                                            {cat.count}
-                                        </Text>
+                                        <View className="items-end">
+                                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
+                                                {cat.count} laporan
+                                            </Text>
+                                            <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
+                                                {cat.pct}% dari total
+                                            </Text>
+                                        </View>
                                     </View>
-                                    <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: cat.bg }}>
+                                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: cat.bg }}>
                                         <View
                                             className="h-full rounded-full"
                                             style={{ backgroundColor: cat.color, width: `${cat.pct}%` }}
@@ -831,7 +1131,7 @@ export default function GovLaporanScreen() {
                         colors={[SiagaColors.info]}
                     />
                 }
-                data={filteredReports}
+                data={visibleReports}
                 keyExtractor={(item) => item.id}
                 initialNumToRender={5}
                 maxToRenderPerBatch={8}
@@ -839,21 +1139,30 @@ export default function GovLaporanScreen() {
                 ListHeaderComponent={
                     <Animated.View
                         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                        className="flex-row items-center justify-between"
+                        className="gap-3"
                     >
-                        <View className="flex-row items-center gap-1.5">
-                            <View className="w-1 h-4 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
-                            <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
-                                {filteredReports.length} Laporan
-                                {activeFilter !== 'Semua' && (
-                                    <Text style={{ color: SiagaColors.secondary }}> · {activeFilter}</Text>
-                                )}
-                            </Text>
+                        <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center gap-1.5">
+                                <View className="w-1 h-4 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
+                                <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
+                                    {filteredReports.length} Laporan
+                                    {activeFilter !== 'Semua' && (
+                                        <Text style={{ color: SiagaColors.secondary }}> · {activeFilter}</Text>
+                                    )}
+                                </Text>
+                            </View>
+
+                            <View className="px-3 py-1 rounded-full" style={{ backgroundColor: '#eff6ff' }}>
+                                <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>
+                                    {visibleReports.length}/{filteredReports.length} ditampilkan
+                                </Text>
+                            </View>
                         </View>
 
                         {/* Quick action buttons */}
                         <View className="flex-row items-center gap-2">
                             <TouchableOpacity
+                                onPress={openNotifications}
                                 className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
                                 style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
                                 activeOpacity={0.7}
@@ -864,13 +1173,14 @@ export default function GovLaporanScreen() {
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
+                                onPress={handleBulkComplete}
                                 className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
                                 style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
                                 activeOpacity={0.7}
                             >
                                 <CheckSquare size={14} color={SiagaColors.success} weight="duotone" />
                                 <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>
-                                    Tandai Selesai
+                                    Selesaikan Aktif
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -912,6 +1222,7 @@ export default function GovLaporanScreen() {
                     filteredReports.length > 0 ? (
                         <>
                             <TouchableOpacity
+                                onPress={handleLoadMore}
                                 className="py-3 rounded-2xl flex-row items-center justify-center gap-1.5"
                                 style={{
                                     backgroundColor: '#fff',
@@ -927,7 +1238,7 @@ export default function GovLaporanScreen() {
                             >
                                 <ArrowClockwise size={15} color={SiagaColors.info} weight="duotone" />
                                 <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
-                                    Muat Laporan Lainnya
+                                    {remainingReportsCount > 0 ? `Muat ${Math.min(10, remainingReportsCount)} Laporan Lagi` : 'Segarkan Data'}
                                 </Text>
                             </TouchableOpacity>
                             <View className="items-center pt-1">

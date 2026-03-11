@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
     View, Text, ScrollView, TextInput, TouchableOpacity,
-    Animated, Dimensions, RefreshControl, Modal, FlatList,
+    Animated, Dimensions, RefreshControl, Modal, FlatList, Alert, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
     Users, UserGear, Buildings, UserCheck, UserCircleCheck,
     MagnifyingGlass, FunnelSimple, Plus, CaretRight, CaretDown,
@@ -13,6 +14,7 @@ import {
     ArrowUp, ArrowDown, CaretUpDown,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { getAdminUsers, getAdminUserStats, toggleUserSuspend, type AdminUser, type UserStats } from '@/services/admin.service';
 
 const { width } = Dimensions.get('window');
 
@@ -36,63 +38,58 @@ interface UserItem {
     avatarColor: string;
     verified: boolean;
     district: string;
+    phone: string;
+    instansi?: string;
 }
 
 // ────────────────────────────────────────────
-// Data
+// Helpers
 // ────────────────────────────────────────────
-const USERS: UserItem[] = [
-    {
-        id: 'u01', name: 'Budi Santoso', email: 'budi.santoso@gmail.com',
-        role: 'Masyarakat', status: 'Aktif', reports: 24, joined: '10 Jan 2025',
-        lastActive: '2 menit lalu', initials: 'BS', avatarColor: '#3b82f6', verified: true, district: 'Kec. Coblong',
-    },
-    {
-        id: 'u02', name: 'Dinas PU Kota Bandung', email: 'dpu.bandung@pemkot.go.id',
-        role: 'Pemerintah', status: 'Aktif', reports: 8, joined: '3 Feb 2025',
-        lastActive: '1 jam lalu', initials: 'PU', avatarColor: '#7c3aed', verified: true, district: 'Kec. Bandung Wetan',
-    },
-    {
-        id: 'u03', name: 'Siti Rahayu', email: 'siti.rahayu@yahoo.com',
-        role: 'Masyarakat', status: 'Aktif', reports: 17, joined: '22 Jan 2025',
-        lastActive: '30 menit lalu', initials: 'SR', avatarColor: '#059669', verified: true, district: 'Kec. Sukasari',
-    },
-    {
-        id: 'u04', name: 'Ahmad Fauzi', email: 'ahmad.fauzi92@gmail.com',
-        role: 'Masyarakat', status: 'Ditangguhkan', reports: 3, joined: '5 Mar 2025',
-        lastActive: '3 hari lalu', initials: 'AF', avatarColor: '#d97706', verified: false, district: 'Kec. Cibeunying',
-    },
-    {
-        id: 'u05', name: 'Kelurahan Pasirkaliki', email: 'kel.pasirkaliki@bandung.go.id',
-        role: 'Pemerintah', status: 'Menunggu Verifikasi', reports: 0, joined: '28 Feb 2026',
-        lastActive: 'Belum aktif', initials: 'KP', avatarColor: '#0891b2', verified: false, district: 'Kec. Cicendo',
-    },
-    {
-        id: 'u06', name: 'Rina Marlina', email: 'rinamar@gmail.com',
-        role: 'Masyarakat', status: 'Aktif', reports: 41, joined: '14 Jan 2025',
-        lastActive: '10 menit lalu', initials: 'RM', avatarColor: '#dc2626', verified: true, district: 'Kec. Bojongloa',
-    },
-    {
-        id: 'u07', name: 'Dinas BPBD Kota Bandung', email: 'bpbd.bandung@pemkot.go.id',
-        role: 'Pemerintah', status: 'Aktif', reports: 22, joined: '15 Jan 2025',
-        lastActive: '5 menit lalu', initials: 'BP', avatarColor: '#7c3aed', verified: true, district: 'Kec. Regol',
-    },
-    {
-        id: 'u08', name: 'Faisal Hendra', email: 'faisalhendra@outlook.com',
-        role: 'Masyarakat', status: 'Nonaktif', reports: 0, joined: '30 Jun 2025',
-        lastActive: '2 bulan lalu', initials: 'FH', avatarColor: '#94a3b8', verified: false, district: 'Kec. Antapani',
-    },
-    {
-        id: 'u09', name: 'Super Admin', email: 'admin@siaga.id',
-        role: 'Admin', status: 'Aktif', reports: 0, joined: '1 Jan 2025',
-        lastActive: 'Sekarang', initials: 'SA', avatarColor: '#7c3aed', verified: true, district: 'Semua Wilayah',
-    },
-    {
-        id: 'u10', name: 'Nurainun Dewi', email: 'nura.dewi@gmail.com',
-        role: 'Masyarakat', status: 'Aktif', reports: 11, joined: '18 Feb 2025',
-        lastActive: '1 hari lalu', initials: 'ND', avatarColor: '#be185d', verified: true, district: 'Kec. Cicendo',
-    },
-];
+const ROLE_MAP: Record<string, UserRole> = { user: 'Masyarakat', pemerintah: 'Pemerintah', admin: 'Admin' };
+const AVATAR_COLORS = ['#3b82f6', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#be185d', '#94a3b8'];
+
+function getInitials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+}
+
+function mapAdminUserToItem(u: AdminUser, idx: number): UserItem {
+    const isSuspended = !!u.settings?.suspended;
+    return {
+        id: u.id,
+        name: u.full_name || 'Tanpa Nama',
+        email: u.email || '-',
+        role: ROLE_MAP[u.role] || 'Masyarakat',
+        status: isSuspended ? 'Ditangguhkan' : 'Aktif',
+        reports: u.eco_points || 0,
+        joined: new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        lastActive: '-',
+        initials: getInitials(u.full_name || 'NN'),
+        avatarColor: AVATAR_COLORS[idx % AVATAR_COLORS.length],
+        verified: u.current_badge !== null,
+        district: u.district || u.instansi || '-',
+        phone: u.phone || '-',
+        instansi: u.instansi || undefined,
+    };
+}
+
+function toAdminUserDetailParams(user: UserItem) {
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        reports: String(user.reports),
+        joined: user.joined,
+        lastActive: user.lastActive,
+        initials: user.initials,
+        avatarColor: user.avatarColor,
+        verified: String(user.verified),
+        district: user.district,
+        phone: user.phone,
+        ...(user.instansi ? { instansi: user.instansi } : {}),
+    };
+}
 
 const ROLE_CONFIG: Record<UserRole, { label: string; color: string; bg: string; icon: any }> = {
     Masyarakat: { label: 'Masyarakat', color: SiagaColors.info, bg: '#eff6ff', icon: Users },
@@ -117,10 +114,14 @@ function UserActionSheet({
     user,
     visible,
     onClose,
+    onViewProfile,
+    onSuspendToggle,
 }: {
     user: UserItem | null;
     visible: boolean;
     onClose: () => void;
+    onViewProfile?: (user: UserItem) => void;
+    onSuspendToggle?: (user: UserItem) => void;
 }) {
     if (!user) return null;
     const statusCfg = STATUS_CONFIG[user.status];
@@ -201,7 +202,17 @@ function UserActionSheet({
                                     backgroundColor: isDelete ? '#fef2f2' : '#f8fafc',
                                 }}
                                 activeOpacity={0.7}
-                                onPress={onClose}
+                                onPress={() => {
+                                    if (action.label === 'Lihat Profil' && onViewProfile && user) {
+                                        onClose();
+                                        onViewProfile(user);
+                                    } else if ((action.label === 'Tangguhkan Akun' || action.label === 'Aktifkan Akun') && onSuspendToggle && user) {
+                                        onClose();
+                                        onSuspendToggle(user);
+                                    } else {
+                                        onClose();
+                                    }
+                                }}
                             >
                                 <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${action.color}18`, alignItems: 'center', justifyContent: 'center' }}>
                                     <IconComp size={18} color={action.color} weight="duotone" />
@@ -315,6 +326,7 @@ function getSortIcon(k: SortKey, sortKey: SortKey, sortAsc: boolean) {
 // ────────────────────────────────────────────
 export default function AdminUsersScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const [query, setQuery] = useState('');
     const [filterRole, setFilterRole] = useState<UserRole | 'Semua'>('Semua');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'Semua'>('Semua');
@@ -325,29 +337,73 @@ export default function AdminUsersScreen() {
     const [sheetVisible, setSheetVisible] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
 
+    // API state
+    const [users, setUsers] = useState<UserItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<UserStats | null>(null);
+
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
+
+    const loadUsers = useCallback(async () => {
+        try {
+            const roleFilter = filterRole !== 'Semua'
+                ? (filterRole === 'Masyarakat' ? 'user' : filterRole === 'Pemerintah' ? 'pemerintah' : 'admin')
+                : undefined;
+            const [usersRes, statsRes] = await Promise.all([
+                getAdminUsers({ role: roleFilter, search: query || undefined, limit: 50 }),
+                getAdminUserStats(),
+            ]);
+            if (usersRes.success && usersRes.data) {
+                setUsers(usersRes.data.map((u: AdminUser, i: number) => mapAdminUserToItem(u, i)));
+            }
+            if (statsRes.success && statsRes.data) {
+                setStats(statsRes.data);
+            }
+        } catch { /* no-op */ } finally {
+            setLoading(false);
+        }
+    }, [filterRole, query]);
 
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 480, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 480, useNativeDriver: true }),
         ]).start();
-    }, []);
+        loadUsers();
+    }, [loadUsers]);
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await new Promise(r => setTimeout(r, 800));
+        await loadUsers();
         setRefreshing(false);
     };
 
+    const handleSuspendToggle = useCallback(async (user: UserItem) => {
+        const isSuspended = user.status === 'Ditangguhkan';
+        const action = isSuspended ? 'mengaktifkan' : 'menangguhkan';
+        Alert.alert(
+            isSuspended ? 'Aktifkan Akun' : 'Tangguhkan Akun',
+            `Apakah Anda yakin ingin ${action} akun ${user.name}?`,
+            [
+                { text: 'Batal', style: 'cancel' },
+                {
+                    text: 'Ya',
+                    style: isSuspended ? 'default' : 'destructive',
+                    onPress: async () => {
+                        const res = await toggleUserSuspend(user.id, !isSuspended);
+                        if (res.success) loadUsers();
+                    },
+                },
+            ]
+        );
+    }, [loadUsers]);
+
     // ── Filtered & sorted list ──
     const filteredUsers = useMemo(() => {
-        let list = USERS.filter(u => {
-            const matchQ = query === '' || u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase());
-            const matchR = filterRole === 'Semua' || u.role === filterRole;
+        let list = users.filter(u => {
             const matchS = filterStatus === 'Semua' || u.status === filterStatus;
-            return matchQ && matchR && matchS;
+            return matchS;
         });
         list = [...list].sort((a, b) => {
             let cmp = 0;
@@ -358,12 +414,10 @@ export default function AdminUsersScreen() {
             return sortAsc ? cmp : -cmp;
         });
         return list;
-    }, [query, filterRole, filterStatus, sortKey, sortAsc]);
+    }, [users, filterStatus, sortKey, sortAsc]);
 
     // ── Summary stats ──
-    const totalActive = USERS.filter(u => u.status === 'Aktif').length;
-    const totalPending = USERS.filter(u => u.status === 'Menunggu Verifikasi').length;
-    const totalSuspended = USERS.filter(u => u.status === 'Ditangguhkan').length;
+    const totalPending = 0;
 
     const toggleSort = (key: SortKey) => {
         if (sortKey === key) setSortAsc(prev => !prev);
@@ -391,7 +445,9 @@ export default function AdminUsersScreen() {
                             </View>
                         </View>
                         {/* Add user button */}
-                        <TouchableOpacity style={{
+                        <TouchableOpacity
+                            onPress={() => router.push('/tambah-pengguna' as any)}
+                            style={{
                             flexDirection: 'row', alignItems: 'center', gap: 6,
                             backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 14, paddingVertical: 8,
                             borderRadius: 12,
@@ -404,20 +460,20 @@ export default function AdminUsersScreen() {
                     {/* Stats chips */}
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                         <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: 10, alignItems: 'center' }}>
-                            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{USERS.length}</Text>
+                            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{stats?.total || users.length}</Text>
                             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Total</Text>
                         </View>
                         <View style={{ flex: 1, backgroundColor: 'rgba(74,222,128,0.18)', borderRadius: 12, padding: 10, alignItems: 'center' }}>
-                            <Text style={{ color: '#4ade80', fontWeight: '900', fontSize: 18 }}>{totalActive}</Text>
-                            <Text style={{ color: 'rgba(74,222,128,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Aktif</Text>
+                            <Text style={{ color: '#4ade80', fontWeight: '900', fontSize: 18 }}>{stats?.byRole?.user || 0}</Text>
+                            <Text style={{ color: 'rgba(74,222,128,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Masyarakat</Text>
                         </View>
                         <View style={{ flex: 1, backgroundColor: 'rgba(251,191,36,0.18)', borderRadius: 12, padding: 10, alignItems: 'center' }}>
-                            <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 18 }}>{totalPending}</Text>
-                            <Text style={{ color: 'rgba(251,191,36,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Menunggu</Text>
+                            <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 18 }}>{stats?.byRole?.pemerintah || 0}</Text>
+                            <Text style={{ color: 'rgba(251,191,36,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Pemerintah</Text>
                         </View>
                         <View style={{ flex: 1, backgroundColor: 'rgba(239,68,68,0.18)', borderRadius: 12, padding: 10, alignItems: 'center' }}>
-                            <Text style={{ color: '#f87171', fontWeight: '900', fontSize: 18 }}>{totalSuspended}</Text>
-                            <Text style={{ color: 'rgba(248,113,113,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Ditangguhkan</Text>
+                            <Text style={{ color: '#f87171', fontWeight: '900', fontSize: 18 }}>{stats?.byRole?.admin || 0}</Text>
+                            <Text style={{ color: 'rgba(248,113,113,0.8)', fontSize: 10, fontWeight: '600', marginTop: 1 }}>Admin</Text>
                         </View>
                     </View>
                 </View>
@@ -575,7 +631,7 @@ export default function AdminUsersScreen() {
                             <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.secondary }}>
                                 Menampilkan{' '}
                                 <Text style={{ color: SiagaColors.primary, fontWeight: '800' }}>{filteredUsers.length}</Text>
-                                {' '}dari {USERS.length} pengguna
+                                {' '}dari {stats?.total || users.length} pengguna
                             </Text>
                             {(filterRole !== 'Semua' || filterStatus !== 'Semua' || query !== '') && (
                                 <TouchableOpacity
@@ -606,7 +662,12 @@ export default function AdminUsersScreen() {
                         </View>
                     }
                     renderItem={({ item }) => (
-                        <UserCard user={item} onAction={(u) => { setSelectedUser(u); setSheetVisible(true); }} />
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() => router.push({ pathname: '/admin-user-detail' as any, params: toAdminUserDetailParams(item) })}
+                        >
+                            <UserCard user={item} onAction={(u) => { setSelectedUser(u); setSheetVisible(true); }} />
+                        </TouchableOpacity>
                     )}
                     ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
                 />
@@ -617,6 +678,8 @@ export default function AdminUsersScreen() {
                 user={selectedUser}
                 visible={sheetVisible}
                 onClose={() => { setSheetVisible(false); setSelectedUser(null); }}
+                onViewProfile={(u) => router.push({ pathname: '/admin-user-detail' as any, params: toAdminUserDetailParams(u) })}
+                onSuspendToggle={handleSuspendToggle}
             />
         </View>
     );

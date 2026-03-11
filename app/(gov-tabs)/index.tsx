@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import {
-    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl,
+    View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, RefreshControl, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -8,9 +8,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
     ShieldCheck, MagnifyingGlass, Bell, Waves, Mountains,
     RoadHorizon, Fire, Trash, CaretRight, Clock,
-    FilePlus, HourglassMedium, CheckCircle,
-    Timer, WarningDiamond, TrendUp,
-    ClipboardText,
+    ArrowRight, FilePlus, HourglassMedium, CheckCircle,
+    Timer, WarningDiamond, TrendUp, Megaphone, MapTrifold,
+    ChartLineUp, ChartDonut, ChartBar,
+    ClockCounterClockwise, ChatText, ArrowClockwise,
+    MapPin, ClipboardText,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
@@ -18,6 +20,16 @@ import { useToast } from '@/contexts/toast.context';
 import { getReports, getReportStats, type ReportData, type ReportStats } from '@/services/report.service';
 
 const { width } = Dimensions.get('window');
+
+// ───── Data ─────
+
+const QUICK_ACTIONS = [
+    { label: 'Broadcast', icon: Megaphone, color: SiagaColors.info, route: '/action-detail' },
+    { label: 'Peta', icon: MapTrifold, color: SiagaColors.success, route: '/(gov-tabs)/peta' },
+    { label: 'Statistik', icon: ChartLineUp, color: '#7c3aed', route: '/(gov-tabs)/laporan' },
+];
+
+const FILTER_CHIPS = ['Semua', 'Darurat', 'Baru', 'Proses', 'Selesai'];
 
 type SeverityLevel = 'Kritis' | 'Tinggi' | 'Sedang' | 'Rendah';
 
@@ -29,6 +41,7 @@ const SEVERITY_STYLES: Record<SeverityLevel, { textColor: string; bgColor: strin
     'Sedang': { textColor: '#92400e', bgColor: SiagaColors.warningSoft },
     'Rendah': { textColor: '#065f46', bgColor: SiagaColors.successSoft },
 };
+
 
 // ───── Component ─────
 export default function GovDashboardScreen() {
@@ -137,10 +150,8 @@ export default function GovDashboardScreen() {
                 <View className="px-5 pb-5 pt-4">
                     {/* Top row */}
                     <View className="flex-row items-center justify-between mb-5">
-                        <View className="flex-row items-center gap-3">
-                            <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
-                                <ShieldCheck size={22} color="#fff" weight="duotone" />
-                            </View>
+                        <View className="flex-row items-center gap-2.5">
+                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-base font-extrabold text-white tracking-tight">SIAGA</Text>
                                 <Text className="text-xs font-semibold text-white/45 uppercase tracking-[2px]">Gov Dashboard</Text>
@@ -320,6 +331,7 @@ export default function GovDashboardScreen() {
                         <CaretRight size={14} color={SiagaColors.info} weight="bold" />
                     </TouchableOpacity>
                 </View>
+
             </ScrollView>
         </View>
     );

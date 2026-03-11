@@ -2,7 +2,7 @@ import { Tabs, Redirect } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import {
-    SquaresFour, ClipboardText, MapTrifold, ChartPieSlice, UserCircle,
+    SquaresFour, ClipboardText, MapTrifold, UserCircle, ChartPieSlice,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
@@ -11,7 +11,7 @@ const GOV_TAB_ITEMS = [
     { name: 'index', label: 'Beranda', Icon: SquaresFour },
     { name: 'laporan', label: 'Laporan', Icon: ClipboardText },
     { name: 'peta', label: 'Peta', Icon: MapTrifold },
-    { name: 'budget', label: 'Analitik', Icon: ChartPieSlice },
+    { name: 'analytics', label: 'Analitik', Icon: ChartPieSlice },
     { name: 'profil-gov', label: 'Profil', Icon: UserCircle },
 ];
 

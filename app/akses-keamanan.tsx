@@ -8,7 +8,7 @@ import {
   ArrowLeft, ShieldCheck, Lock, Key, DeviceMobile, Eye,
   Fingerprint, CheckCircle, XCircle, Clock, MapPin,
   Warning, CaretRight, ShieldCheckered, LockKey,
-  SignIn, Globe, Cursor, UserCircle, Buildings,
+  SignIn, Globe, Cursor, UserCircle,
   CopySimple, ArrowSquareOut, Info,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
@@ -20,7 +20,6 @@ const ACCESS_PERMISSIONS = [
   { label: 'Lihat Laporan', desc: 'Melihat seluruh laporan masuk', granted: true, icon: Eye },
   { label: 'Tindak Laporan', desc: 'Memproses & menyelesaikan laporan', granted: true, icon: CheckCircle },
   { label: 'Upload Dokumen', desc: 'Mengunggah dokumen & foto bukti', granted: true, icon: ArrowSquareOut },
-  { label: 'Kelola Budget', desc: 'Melihat & mengatur alokasi anggaran', granted: true, icon: Buildings },
   { label: 'Broadcast Notif', desc: 'Mengirim pemberitahuan ke warga', granted: true, icon: Globe },
   { label: 'Admin Pengguna', desc: 'Mengelola akun pengguna lain', granted: false, icon: UserCircle },
   { label: 'Hapus Data', desc: 'Menghapus data dari sistem', granted: false, icon: XCircle },
@@ -284,7 +283,7 @@ export default function AksesKeamananScreen() {
             </View>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => Alert.alert('Level Akses', 'Level akses Anda ditentukan oleh administrator sistem berdasarkan jabatan dan tanggung jawab.\n\nSupervisor: Akses penuh ke laporan, budget, dan broadcast.\n\nUntuk perubahan level akses, hubungi admin.')}
+              onPress={() => Alert.alert('Level Akses', 'Level akses Anda ditentukan oleh administrator sistem berdasarkan jabatan dan tanggung jawab.\n\nSupervisor: Akses penuh ke laporan, dokumen, dan broadcast.\n\nUntuk perubahan level akses, hubungi admin.')}
             >
               <Info size={18} color={SiagaColors.info} weight="duotone" />
             </TouchableOpacity>

@@ -41,6 +41,7 @@ import {
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import Svg, { Rect, Circle, Path, Line, Text as SvgText } from 'react-native-svg';
+import { getAdminAnalytics, type AnalyticsData } from '@/services/admin.service';
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
@@ -167,7 +168,7 @@ const PEAK_HOURS = [
     1.00, 0.92, 0.74, 0.53, 0.31, 0.15,
 ];
 
-const RESOLUTION_STATS = [
+const RESOLUTION_STATS_DEFAULT = [
     { label: 'Disetujui', count: 248, pct: 61, color: SiagaColors.success },
     { label: 'Ditolak', count: 73, pct: 18, color: SiagaColors.danger },
     { label: 'Menunggu', count: 53, pct: 13, color: SiagaColors.warning },
@@ -332,19 +333,28 @@ export default function AdminAnalyticsScreen() {
     const insets = useSafeAreaInsets();
     const [period, setPeriod] = useState<Period>('7H');
     const [refreshing, setRefreshing] = useState(false);
+    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(16)).current;
+
+    const loadAnalytics = async () => {
+        try {
+            const res = await getAdminAnalytics();
+            if (res.success && res.data) setAnalytics(res.data);
+        } catch { /* no-op */ }
+    };
 
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 480, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 480, useNativeDriver: true }),
         ]).start();
+        loadAnalytics();
     }, []);
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await new Promise(r => setTimeout(r, 800));
+        await loadAnalytics();
         setRefreshing(false);
     };
 
@@ -352,12 +362,24 @@ export default function AdminAnalyticsScreen() {
     const userData = USER_GROWTH[period];
     const totalReports = reportData.reduce((s, d) => s + d.value, 0);
 
-    // Summary KPI values (static placeholders matching admin dashboard context)
+    // Dynamic resolution stats from API
+    const RESOLUTION_STATS = analytics ? (() => {
+        const rs = analytics.reportStats;
+        const total = rs.total || 1;
+        return [
+            { label: 'Selesai', count: rs.resolved, pct: Math.round((rs.resolved / total) * 100), color: SiagaColors.success },
+            { label: 'Diverifikasi', count: rs.verified, pct: Math.round((rs.verified / total) * 100), color: SiagaColors.info },
+            { label: 'Menunggu', count: rs.pending, pct: Math.round((rs.pending / total) * 100), color: SiagaColors.warning },
+            { label: 'Ditangani', count: rs.inProgress, pct: Math.round((rs.inProgress / total) * 100), color: '#7c3aed' },
+        ];
+    })() : RESOLUTION_STATS_DEFAULT;
+
+    // Summary KPI values — uses real API data when available
     const KPI = [
         {
             label: 'Total Laporan',
-            value: totalReports.toString(),
-            sub: PERIOD_LABELS[period],
+            value: analytics ? String(analytics.reportStats.total) : totalReports.toString(),
+            sub: analytics ? `${analytics.reportStats.pending} menunggu` : PERIOD_LABELS[period],
             icon: FileText,
             iconColor: SiagaColors.danger,
             bg: '#fef2f2',
@@ -365,9 +387,9 @@ export default function AdminAnalyticsScreen() {
             up: true,
         },
         {
-            label: 'Pengguna Aktif',
-            value: '1.573',
-            sub: 'Rata-rata harian',
+            label: 'Total Pengguna',
+            value: analytics ? String(analytics.userStats.total) : '1.573',
+            sub: analytics ? `${analytics.userStats.byRole.user} masyarakat` : 'Rata-rata harian',
             icon: Users,
             iconColor: '#3b82f6',
             bg: '#eff6ff',
@@ -376,8 +398,8 @@ export default function AdminAnalyticsScreen() {
         },
         {
             label: 'Aksi Komunitas',
-            value: '408',
-            sub: PERIOD_LABELS[period],
+            value: analytics ? String(analytics.actionStats.total) : '408',
+            sub: analytics ? `${analytics.actionStats.totalParticipants} peserta` : PERIOD_LABELS[period],
             icon: CheckCircle,
             iconColor: SiagaColors.success,
             bg: '#ecfdf5',
@@ -386,7 +408,7 @@ export default function AdminAnalyticsScreen() {
         },
         {
             label: 'Waktu Respons',
-            value: '4,2h',
+            value: analytics ? `${analytics.avgResponseHours}h` : '4,2h',
             sub: 'Rata-rata',
             icon: Clock,
             iconColor: '#d97706',
@@ -539,7 +561,7 @@ export default function AdminAnalyticsScreen() {
                         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
                     }}>
                         <Text style={{ fontSize: 12, color: SiagaColors.secondary }}>Total laporan dievaluasi</Text>
-                        <Text style={{ fontSize: 16, fontWeight: '900', color: SiagaColors.primary }}>408</Text>
+                        <Text style={{ fontSize: 16, fontWeight: '900', color: SiagaColors.primary }}>{analytics ? analytics.reportStats.total : 408}</Text>
                     </View>
                 </Card>
 
@@ -612,7 +634,7 @@ export default function AdminAnalyticsScreen() {
                             <Text style={{ fontSize: 10, color: '#7c3aed', fontWeight: '600', marginTop: 1 }}>Puncak Sesi Aktif</Text>
                         </View>
                         <View style={{ flex: 1, backgroundColor: '#ecfdf5', borderRadius: 12, padding: 10 }}>
-                            <Text style={{ fontSize: 18, fontWeight: '900', color: SiagaColors.success }}>5.046</Text>
+                            <Text style={{ fontSize: 18, fontWeight: '900', color: SiagaColors.success }}>{analytics ? analytics.userStats.total.toLocaleString('id-ID') : '5.046'}</Text>
                             <Text style={{ fontSize: 10, color: SiagaColors.success, fontWeight: '600', marginTop: 1 }}>Total Pengguna</Text>
                         </View>
                     </View>
