@@ -1,6 +1,6 @@
 # Entity Relationship Diagram
 
-This document describes the database schema used by SIAGA. The database is hosted on Supabase (PostgreSQL) and managed through 14 sequential SQL migration files.
+This document describes the database schema used by SIAGA. The database is hosted on Supabase (PostgreSQL) and managed through 14 sequential SQL migration files (migration 008 was removed with the Budget Watch deprecation).
 
 ---
 
@@ -65,6 +65,8 @@ erDiagram
         VARCHAR responded_by
         TIMESTAMPTZ estimated_completion
         TEXT_ARRAY photo_urls
+        TEXT resolution_notes "Gov resolution proof"
+        TEXT resolution_image_url "Gov resolution photo"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -196,36 +198,6 @@ erDiagram
         TIMESTAMPTZ created_at
     }
 
-    budget_projects {
-        VARCHAR id PK
-        VARCHAR title
-        VARCHAR org
-        VARCHAR kec
-        VARCHAR icon
-        VARCHAR icon_color
-        VARCHAR bg_color
-        VARCHAR status
-        BIGINT budget
-        INTEGER realisasi
-        INTEGER fisik
-        VARCHAR deadline
-        TEXT anomali_note
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    budget_dinas {
-        UUID id PK
-        VARCHAR name
-        VARCHAR short
-        VARCHAR budget
-        INTEGER serap
-        VARCHAR color
-        VARCHAR bg
-        VARCHAR status
-        TIMESTAMPTZ created_at
-    }
-
     auth_users ||--|| users_metadata : "has profile"
     auth_users ||--o{ reports : "creates"
     auth_users ||--o{ actions : "creates"
@@ -254,8 +226,8 @@ erDiagram
 
 | Table | Description | RLS |
 |---|---|---|
-| `users_metadata` | Extended user profiles linked to Supabase Auth via `auth_id`. Stores location, eco-points, gamification badges, and government-specific fields (NIP, jabatan, instansi). | Yes |
-| `reports` | Issue reports submitted by citizens. Contains GPS coordinates, category, urgency score, status workflow, and photo URLs. | Yes |
+| `users_metadata` | Extended user profiles linked to Supabase Auth via `auth_id`. Stores location, eco-points, gamification badges, and government-specific fields (NIP, jabatan, instansi). Supports three roles: `user`, `pemerintah`, `admin`. | Yes |
+| `reports` | Issue reports submitted by citizens. Contains GPS coordinates, category, urgency score, status workflow, photo URLs, and **resolution proof fields** (`resolution_notes`, `resolution_image_url`) for government verification. | Yes |
 | `actions` | Positive community actions. Tracks participants, points, verification status, and before/after photos. | Yes |
 | `comments` | Polymorphic comments on reports and actions via `target_id` + `target_type`. | Yes |
 
@@ -281,8 +253,6 @@ erDiagram
 | Table | Description |
 |---|---|
 | `info_articles` | Education and information articles with rich JSONB content, author metadata, statistics, and verification status. |
-| `budget_projects` | Government budget projects with budget allocation, realization percentage, physical progress, and anomaly tracking. |
-| `budget_dinas` | Budget absorption per government department/agency. |
 
 ### Functions
 
@@ -302,7 +272,7 @@ stateDiagram-v2
     [*] --> Menunggu : Report created
     Menunggu --> Diverifikasi : Community verification
     Diverifikasi --> Ditangani : Government responds
-    Ditangani --> Selesai : Issue resolved
+    Ditangani --> Selesai : Gov submits resolution proof
     Menunggu --> Ditangani : Direct government response
 ```
 
@@ -340,10 +310,11 @@ Performance-critical indexes are defined on:
 | 005 | `create_report_votes.sql` | Vote deduplication |
 | 006 | `create_feedbacks.sql` | User feedback |
 | 007 | `create_notifications.sql` | Notification inbox |
-| 008 | `create_budget.sql` | Budget tables with seed data |
+| ~~008~~ | ~~`create_budget.sql`~~ | ~~Removed — Budget Watch deprecated~~ |
 | 009 | `add_user_role.sql` | Role enum and column |
 | 010 | `verify_join_bookmark.sql` | Verification, participation, bookmarks |
 | 011 | `info_articles.sql` | Articles with seed data |
 | 012 | `create_device_tokens.sql` | Push token registry |
 | 013 | `increment_eco_points.sql` | Atomic increment RPC function |
 | 014 | `add_gov_profile_fields.sql` | Government-specific profile columns |
+| 015 | `add_report_resolution_proof.sql` | Resolution proof columns on reports |

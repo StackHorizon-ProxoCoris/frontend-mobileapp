@@ -23,8 +23,8 @@ Base URL: `http://localhost:3000/api` (development)
 - [Activities](#activities)
 - [File Upload](#file-upload)
 - [Feedback](#feedback)
-- [Budget](#budget)
 - [Bookmarks](#bookmarks)
+- [Admin](#admin)
 - [BMKG](#bmkg)
 
 ---
@@ -256,7 +256,20 @@ Lightweight report data optimized for map marker rendering.
 
 ### `GET /api/reports/:id`
 
-Get full report detail. Auth optional (provides `hasVoted`, `hasVerified` flags).
+Get full report detail including resolution proof fields. Auth optional (provides `hasVoted`, `hasVerified` flags).
+
+**Response includes:**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "title": "...",
+    "status": "Selesai",
+    "resolution_notes": "Jalan telah diperbaiki oleh tim PU.",
+    "resolution_image_url": "https://..."
+  }
+}
+```
 
 ---
 
@@ -308,13 +321,15 @@ Triggers: `+5 eco-points`, notification to reporter.
 
 ### `PATCH /api/reports/:id/status`
 
-Update report status. **Auth required. Gov role only.**
+Update report status. **Auth required. Gov/Admin role only.**
 
 | Field | Type | Required | Values |
 |---|---|---|---|
 | `status` | string | Yes | `Diverifikasi`, `Ditangani`, `Selesai` |
+| `resolution_notes` | string | No | Text notes for resolution proof (when setting `Selesai`) |
+| `resolution_image_url` | string | No | URL of resolution evidence photo |
 
-Triggers: notifications to reporter and supporters.
+Triggers: notifications to reporter and supporters. Supabase Realtime update.
 
 ---
 
@@ -573,20 +588,6 @@ Submit user feedback. **Auth required.**
 
 ---
 
-## Budget
-
-### `GET /api/budget/projects`
-
-Get government budget projects with allocation, realization, and anomaly data. **Auth required.**
-
----
-
-### `GET /api/budget/dinas`
-
-Get budget absorption per government department. **Auth required.**
-
----
-
 ## Bookmarks
 
 ### `POST /api/bookmarks`
@@ -611,6 +612,70 @@ Check if a specific item is bookmarked. **Auth required.**
 
 ---
 
+## Admin
+
+> [!IMPORTANT]
+> All admin endpoints require the `admin` role. Protected by `requireRoles(['admin'])` middleware.
+
+### `GET /api/admin/dashboard`
+
+System-wide dashboard summary including user counts, report statistics, and key metrics. **Admin only.**
+
+---
+
+### `GET /api/admin/activity-log`
+
+System-wide activity log with recent actions across all users. **Admin only.**
+
+---
+
+### `GET /api/admin/users`
+
+List all users with role, status, and profile data. **Admin only.**
+
+---
+
+### `POST /api/admin/users`
+
+Create a new user account with a specified role. **Admin only.**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `email` | string | Yes | Email address |
+| `password` | string | Yes | Initial password |
+| `fullName` | string | Yes | Display name |
+| `role` | string | Yes | `user`, `pemerintah`, or `admin` |
+
+---
+
+### `GET /api/admin/users/stats`
+
+User statistics per role (total users, gov users, admins). **Admin only.**
+
+---
+
+### `GET /api/admin/analytics`
+
+Aggregate analytics dashboard with system-wide metrics. **Admin only.**
+
+---
+
+### `PATCH /api/admin/users/:id/role`
+
+Change a user's role. **Admin only.**
+
+| Field | Type | Required | Values |
+|---|---|---|---|
+| `role` | string | Yes | `user`, `pemerintah`, `admin` |
+
+---
+
+### `PATCH /api/admin/users/:id/suspend`
+
+Suspend or reactivate a user account. **Admin only.**
+
+---
+
 ## BMKG
 
 ### `GET /api/bmkg/gempa-terkini`
@@ -629,8 +694,6 @@ Get the latest earthquake data from BMKG. No authentication required.
     "wilayah": "Pusat gempa berada di laut 45 km...",
     "lintang": "7.50 LS",
     "bujur": "110.45 BT",
-    "potensi": "Gempa ini tidak berpotensi tsunami",
-    "dirasakan": "III-IV MMI di Bandung",
     "shakemapUrl": "https://data.bmkg.go.id/DataMKG/TEWS/..."
   }
 }

@@ -24,7 +24,7 @@ sequenceDiagram
         API->>DB: Fetch users_metadata
         DB-->>API: User profile
         API-->>App: User data + role
-        App->>App: Route to (tabs) or (gov-tabs)
+        App->>App: Route to (tabs) or (gov-tabs) or (admin-tabs)
     else No token
         App->>App: Show login screen
         User->>App: Enter credentials
@@ -95,12 +95,12 @@ flowchart LR
 
     B -->|"Gov responds"| G["Status: Ditangani"]
     E -->|"Gov responds"| G
-    G -->|"Issue resolved"| H["Status: Selesai"]
+    G -->|"Gov submits proof"| H["Status: Selesai"]
 
     D -.->|"Each vote"| N1["Notification to reporter"]
     E -.->|"Verification"| N2["Notification to reporter"]
     G -.->|"Status change"| N3["Notification to reporter + voters"]
-    H -.->|"Resolved"| N4["Notification to all stakeholders"]
+    H -.->|"Resolved + proof"| N4["Notification to all stakeholders"]
 
     style H fill:#059669,color:#fff
     style B fill:#f59e0b,color:#fff
@@ -110,7 +110,44 @@ flowchart LR
 
 ---
 
-## 4. Push Notification Flow
+## 4. Gov Resolution Proof Flow
+
+```mermaid
+sequenceDiagram
+    participant Gov as Government Official
+    participant App as Mobile App
+    participant API as Backend
+    participant DB as PostgreSQL
+    participant Storage as Supabase Storage
+    participant RT as Supabase Realtime
+
+    Gov->>App: Open report detail
+    App->>API: GET /api/reports/:id
+    API-->>App: Report data
+
+    Gov->>App: Tap "Tandai Selesai"
+    App->>App: Open resolution proof modal
+    Gov->>App: Write resolution notes
+    Gov->>App: Attach resolution photo
+
+    Gov->>App: Submit resolution
+    App->>API: PATCH /api/reports/:id/status
+    Note over App,API: body: status, resolution_notes, resolution_image_url
+    API->>Storage: Upload resolution photo
+    API->>DB: UPDATE report status + proof
+    API->>DB: Trigger notifications
+
+    DB-->>RT: Row change event
+    RT-->>App: Realtime update
+    App->>App: UI refreshes instantly (no manual reload)
+
+    API-->>App: Success + updated report
+    App-->>Gov: Verified badge shown on report
+```
+
+---
+
+## 5. Push Notification Flow
 
 ```mermaid
 flowchart TB
@@ -154,7 +191,7 @@ flowchart TB
 
 ---
 
-## 5. AI Chat Flow
+## 6. AI Chat Flow
 
 ```mermaid
 sequenceDiagram
@@ -187,15 +224,15 @@ sequenceDiagram
 
 ---
 
-## 6. Government Dashboard Flow
+## 7. Government Dashboard Flow
 
 ```mermaid
 flowchart TB
     subgraph GovDashboard["Government Dashboard"]
-        GH["Dashboard Home"]
+        GH["Triage Cockpit"]
         GL["Laporan Management"]
         GP["Peta Monitoring"]
-        GB["Budget Watch"]
+        GA["Analytics"]
         GPR["Profil Kinerja"]
     end
 
@@ -203,17 +240,14 @@ flowchart TB
         A1["GET /api/reports/stats"]
         A2["GET /api/reports"]
         A3["PATCH /api/reports/:id/status"]
-        A4["GET /api/budget/projects"]
-        A5["GET /api/budget/dinas"]
     end
 
     GH -->|"Stats cards"| A1
-    GH -->|"Recent reports"| A2
+    GH -->|"Severity-sorted reports"| A2
     GL -->|"Filter + search"| A2
-    GL -->|"Update status"| A3
+    GL -->|"Update status + proof"| A3
     GP -->|"Map markers"| A2
-    GB -->|"Projects"| A4
-    GB -->|"Dinas"| A5
+    GA -->|"Analytics data"| A1
     GPR -->|"Performance"| A1
 
     A3 -->|"Status changed"| Notif["Notification to reporter<br/>+ nearby citizens"]
@@ -221,7 +255,40 @@ flowchart TB
 
 ---
 
-## 7. Eco-Points Flow
+## 8. Admin Dashboard Flow
+
+```mermaid
+flowchart TB
+    subgraph AdminDashboard["Super-Admin Dashboard"]
+        AD["Dashboard Home"]
+        AU["User Management"]
+        AM["Content Moderation"]
+        AA["Analytics"]
+        AS["System Settings"]
+    end
+
+    subgraph Backend["Backend API"]
+        B1["GET /api/admin/dashboard"]
+        B2["GET /api/admin/users"]
+        B3["POST /api/admin/users"]
+        B4["PATCH /api/admin/users/:id/role"]
+        B5["PATCH /api/admin/users/:id/suspend"]
+        B6["GET /api/admin/analytics"]
+        B7["GET /api/admin/activity-log"]
+    end
+
+    AD -->|"System stats"| B1
+    AD -->|"Activity log"| B7
+    AU -->|"List users"| B2
+    AU -->|"Create user"| B3
+    AU -->|"Change role"| B4
+    AU -->|"Suspend/activate"| B5
+    AA -->|"Aggregate data"| B6
+```
+
+---
+
+## 9. Eco-Points Flow
 
 ```mermaid
 flowchart LR
@@ -252,7 +319,7 @@ flowchart LR
 
 ---
 
-## 8. BMKG Earthquake Integration
+## 10. BMKG Earthquake Integration
 
 ```mermaid
 sequenceDiagram
@@ -269,6 +336,7 @@ sequenceDiagram
         API->>API: Extract gempa data fields
         API-->>App: { magnitude, wilayah, kedalaman, ... }
         App->>App: Show earthquake warning card
+        App->>App: Color-code by magnitude severity
         App->>App: Load shakemap image
     else Fetch failed
         API-->>App: { success: false }

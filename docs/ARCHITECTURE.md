@@ -11,8 +11,9 @@ graph TB
     subgraph Client["Mobile Client (React Native / Expo)"]
         FE_Tabs["Citizen Screens<br/>(tabs)"]
         FE_Gov["Government Screens<br/>(gov-tabs)"]
+        FE_Admin["Admin Screens<br/>(admin-tabs)"]
         FE_Auth["Auth Screens<br/>(auth)"]
-        FE_Services["Service Layer<br/>api.ts + domain services"]
+        FE_Services["Service Layer<br/>api.ts + supabase.ts + domain services"]
     end
 
     subgraph Backend["Backend Server (Express.js)"]
@@ -23,9 +24,10 @@ graph TB
     end
 
     subgraph Database["Supabase"]
-        PG["PostgreSQL<br/>14 tables + RPC functions"]
+        PG["PostgreSQL<br/>12 tables + RPC functions"]
         Auth_SB["Supabase Auth<br/>Email/Password · JWT"]
         Storage["Supabase Storage<br/>Photo uploads"]
+        Realtime["Supabase Realtime<br/>Live report updates"]
     end
 
     subgraph External["External Services"]
@@ -36,8 +38,10 @@ graph TB
 
     FE_Tabs --> FE_Services
     FE_Gov --> FE_Services
+    FE_Admin --> FE_Services
     FE_Auth --> FE_Services
     FE_Services -->|"HTTP REST"| MW
+    FE_Services -->|"WebSocket"| Realtime
 
     MW --> Routes
     Routes --> Controllers
@@ -60,9 +64,9 @@ graph TB
 
 | Layer | Responsibility |
 |---|---|
-| **Screens** (`app/`) | UI rendering, user interaction, navigation. Organized by role: `(tabs)` for citizens, `(gov-tabs)` for government, `(auth)` for authentication. |
+| **Screens** (`app/`) | UI rendering, user interaction, navigation. Organized by role: `(tabs)` for citizens, `(gov-tabs)` for government, `(admin-tabs)` for super-admins, `(auth)` for authentication. |
 | **Components** (`components/`) | Reusable UI elements: `MapPicker`, `MapView`, `SOSButton`, `Toast`, `SectionHeader`. |
-| **Services** (`services/`) | HTTP communication with backend via `api.ts`. Each domain has a dedicated service file (e.g., `report.service.ts`, `action.service.ts`). |
+| **Services** (`services/`) | HTTP communication with backend via `api.ts`. Supabase Realtime via `supabase.ts`. Each domain has a dedicated service file (e.g., `report.service.ts`, `admin.service.ts`). |
 | **Context** (`context/`) | Global state management: authentication state (`auth.tsx`), toast notifications (`toast.context.tsx`). |
 | **Hooks** (`hooks/`) | Custom React hooks: GPS location (`useCurrentLocation`), push notifications (`usePushNotifications`). |
 
@@ -75,22 +79,27 @@ The API client handles backend communication with the following features:
 - **Error handling**: Global network error callback system for toast notifications. Automatic token cleanup on 401 responses.
 - **File uploads**: Dedicated `apiUpload()` function with multipart/form-data support.
 
+### Supabase Client (`services/supabase.ts`)
+
+A direct Supabase client used for **Realtime subscriptions** — the report detail screen subscribes to row-level changes on the `reports` table, enabling instant UI updates when a government official resolves or updates a report without manual refresh.
+
 ### Backend Server
 
 | Layer | Responsibility |
 |---|---|
 | **Middleware** | Request processing pipeline: JWT authentication (`auth.middleware.ts`), role-based access control (`role.middleware.ts`), input validation (`validate.middleware.ts`), global error handling (`error.middleware.ts`). |
-| **Routes** | Endpoint definitions mapping HTTP methods to controller functions. 16 route modules covering all API domains. |
-| **Controllers** | Business logic implementation. Handle request parsing, database operations, response formatting, and event triggering (notifications, eco-points). |
+| **Routes** | Endpoint definitions mapping HTTP methods to controller functions. 16 route modules covering all API domains including admin. |
+| **Controllers** | Business logic implementation. Handle request parsing, database operations, response formatting, and event triggering (notifications, eco-points). Includes `admin.controller.ts` for super-admin operations. |
 | **Services** | External service integrations: Gemini AI (`ai.service.ts`), push notifications (`push.service.ts`), notification creation with radius-based targeting (`notification.service.ts`), eco-points atomic increment (`ecopoints.service.ts`). |
 
 ### Database (Supabase)
 
 | Component | Responsibility |
 |---|---|
-| **PostgreSQL** | Primary data store with 14 tables, indexes, and Row Level Security (RLS) policies. |
+| **PostgreSQL** | Primary data store with 12 tables, indexes, and Row Level Security (RLS) policies. |
 | **Supabase Auth** | User authentication (email/password), JWT token issuing, password reset flow. |
-| **Supabase Storage** | Photo upload storage for report evidence and positive action before/after images. |
+| **Supabase Storage** | Photo upload storage for report evidence, resolution proofs, and positive action before/after images. |
+| **Supabase Realtime** | WebSocket-based live subscriptions for the `reports` table, enabling instant UI updates on the mobile client. |
 | **RPC Functions** | `increment_eco_points()` — atomic PostgreSQL function for race-condition-free point updates. |
 
 ### External Services
@@ -134,7 +143,7 @@ graph LR
 |---|---|
 | **Transport** | CORS whitelist, Helmet security headers, cache-control on sensitive endpoints. |
 | **Authentication** | Supabase Auth issues JWT on login. Backend verifies JWT on every authenticated request. Tokens stored in device SecureStore. |
-| **Authorization** | Role-based middleware (`user`, `pemerintah`, `admin`). Role stored in `users_metadata.role`. |
+| **Authorization** | Role-based middleware (`user`, `pemerintah`, `admin`). Role stored in `users_metadata.role`. Admin endpoints protected by `requireRoles(['admin'])`. |
 | **Database** | Row Level Security (RLS) on all tables. Service role key used by backend for server-side operations. |
 | **Rate Limiting** | 200 requests per 15 minutes per IP in production, 1000 in development. |
 

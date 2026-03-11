@@ -26,9 +26,9 @@
 
 ## Overview
 
-SIAGA empowers citizens (Warga) to report environmental and social issues in their area, track resolution progress via an interactive map, and participate in positive community actions. Government officials (Pemerintah) access a dedicated dashboard to manage reports, monitor budget transparency, and track performance metrics.
+SIAGA empowers citizens (Warga) to report environmental and social issues in their area, track resolution progress via an interactive map, and participate in positive community actions. Government officials (Pemerintah) access a dedicated **Triage Cockpit** dashboard to manage reports in real-time, respond with verified resolution proofs, and monitor analytics. Super-admins manage users, roles, and system-wide moderation.
 
-The platform integrates AI-powered assistance (Google Gemini), real-time earthquake alerts from BMKG, push notifications with radius-based targeting, and a gamified eco-points system to incentivize sustained community participation.
+The platform integrates AI-powered assistance (Google Gemini), **Supabase Realtime** for live report updates, real-time earthquake alerts from BMKG, push notifications with radius-based targeting, and a gamified eco-points system to incentivize sustained community participation.
 
 ---
 
@@ -46,17 +46,29 @@ The platform integrates AI-powered assistance (Google Gemini), real-time earthqu
 | Positive Actions | Create and join community-driven environmental actions |
 | Eco-Points | Gamified point system rewarding reporting, voting, and participation |
 | SOS Emergency | Quick-dial access to national emergency services (112, 113, 110, etc.) |
-| BMKG Earthquake Alerts | Real-time earthquake data with shakemap visualization |
+| BMKG Earthquake Alerts | Real-time earthquake data with magnitude-based color coding |
+| Search | Full-text search for reports across all categories and districts |
 
 ### Government (Pemerintah)
 
 | Feature | Description |
 |---|---|
-| Dashboard | Live statistics, pending reports, and quick action overview |
-| Report Management | Filter, search, and update report statuses |
+| Triage Cockpit | Real-time severity-sorted report list with quick-action filters |
+| Report Management | Filter, search, and update report statuses with role-aware actions |
+| Resolution Proof | Submit resolution evidence with photos and notes (verified feedback) |
 | Map Monitoring | Interactive map with report markers and hotspot analysis per district |
-| Budget Transparency | APBD tracking, budget absorption rates, and anomaly detection |
+| Analytics Dashboard | Responsiveness score, category distribution, and activity timeline |
 | Performance Profile | Response rate, resolution stats, and activity history |
+| Supabase Realtime | Live subscription for instant report detail updates without refresh |
+
+### Super-Admin
+
+| Feature | Description |
+|---|---|
+| Admin Dashboard | System-wide statistics, user counts, and activity log |
+| User Management | List all users, create accounts, modify roles, suspend/activate |
+| Content Moderation | Review and moderate reported content |
+| System Settings | Global application configuration |
 
 ---
 
@@ -73,6 +85,8 @@ The platform integrates AI-powered assistance (Google Gemini), real-time earthqu
 | NativeWind | 4.2 | Tailwind CSS for React Native styling |
 | Phosphor Icons | 3.0 | Consistent iconography |
 | React Native Reanimated | 4.1 | Performant animations |
+| React Native SVG | 15.15 | Vector graphics for analytics charts |
+| Supabase JS | 2.98 | Realtime subscriptions and direct client access |
 | Bottom Sheet | 5.2 | Gesture-driven bottom sheet component |
 
 ### Backend ([separate repository](https://github.com/orgs/StackHorizon-ProxoCoris/repositories))
@@ -89,7 +103,7 @@ The platform integrates AI-powered assistance (Google Gemini), real-time earthqu
 
 | Service | Purpose |
 |---|---|
-| Supabase | Database (PostgreSQL), authentication, file storage |
+| Supabase | Database (PostgreSQL), authentication, file storage, **Realtime** |
 | Google Gemini | AI-powered chat for disaster/safety education |
 | BMKG API | Real-time earthquake data for Indonesia |
 | Expo Push | Native push notification delivery (Android/iOS) |
@@ -131,7 +145,12 @@ cd <frontend-repo-name>
 npm install
 ```
 
-3. Configure the API endpoint (optional for development):
+3. Configure Supabase Realtime (required for live updates):
+
+> [!IMPORTANT]
+> The app uses `@supabase/supabase-js` for Realtime subscriptions on the report detail screen. The Supabase URL and anonymous key are configured in `services/supabase.ts`. Ensure your Supabase project has Realtime enabled for the `reports` table.
+
+4. Configure the API endpoint (optional for development):
 
 > [!NOTE]
 > During development, the app automatically detects the backend IP from the Expo dev server. No manual configuration is required if the backend is running on port `3000` on the same machine.
@@ -146,6 +165,12 @@ For production builds, set the API URL in `app.json`:
     }
   }
 }
+```
+
+5. Clear Metro bundler cache (recommended after branch switching or major merges):
+
+```bash
+npx expo start -c
 ```
 
 ---
@@ -211,21 +236,41 @@ frontend-mobileapp/
 │   │   ├── aichat.tsx            #   AI Chat — Gemini-powered assistant
 │   │   └── profil.tsx            #   Profile — user stats, eco-points, settings
 │   ├── (gov-tabs)/               # Government tab screens
-│   │   ├── index.tsx             #   Dashboard — live stats and recent reports
-│   │   ├── laporan.tsx           #   Report management — filter, search, status update
+│   │   ├── index.tsx             #   Triage Cockpit — severity-sorted reports
+│   │   ├── laporan.tsx           #   Report management — filter, search, update
 │   │   ├── peta.tsx              #   Map monitoring — markers and hotspots
-│   │   ├── budget.tsx            #   Budget watch — APBD and absorption tracking
+│   │   ├── analytics.tsx         #   Analytics — responsiveness, categories, timeline
 │   │   └── profil-gov.tsx        #   Gov profile — performance and activity
-│   ├── (admin-tabs)/             # Admin tab screens (post-MVP)
+│   ├── (admin-tabs)/             # Super-admin tab screens
+│   │   ├── index.tsx             #   Admin dashboard — system-wide stats
+│   │   ├── users.tsx             #   User management — list, create, roles
+│   │   ├── moderation.tsx        #   Content moderation
+│   │   ├── analytics.tsx         #   Analytics dashboard
+│   │   ├── settings.tsx          #   System settings
+│   │   └── profil-admin.tsx      #   Admin profile
 │   ├── (auth)/                   # Authentication screens
 │   │   ├── login.tsx             #   Login with password reset modal
 │   │   └── register.tsx          #   Multi-step registration
-│   ├── report-detail.tsx         # Report detail — vote, verify, comment, map
+│   ├── report-detail.tsx         # Report detail — vote, verify, comment, Realtime
 │   ├── action-detail.tsx         # Action detail — join, leave, comment
+│   ├── cari.tsx                  # Full-text search across reports
 │   ├── info-detail.tsx           # Article detail view
 │   ├── notifikasi.tsx            # Notification inbox
-│   ├── edit-profil.tsx           # Edit profile form
+│   ├── edit-profil.tsx           # Edit citizen profile
+│   ├── edit-profil-gov.tsx       # Edit gov profile with NIP/jabatan fields
+│   ├── admin-user-detail.tsx     # Admin: detailed user view
+│   ├── tambah-pengguna.tsx       # Admin: create new user
+│   ├── moderasi-detail.tsx       # Admin: moderation detail
+│   ├── semua-aksi.tsx            # Browse all positive actions
+│   ├── semua-info.tsx            # Browse all info articles
+│   ├── riwayat-aktivitas.tsx     # Activity history timeline
 │   ├── pengaturan.tsx            # User settings
+│   ├── pengaturan-sistem.tsx     # Admin: system settings
+│   ├── ganti-password.tsx        # Change password
+│   ├── akses-keamanan.tsx        # Security access settings
+│   ├── bantuan.tsx               # Help center
+│   ├── tentang.tsx               # About page
+│   ├── feedback.tsx              # Submit feedback
 │   └── _layout.tsx               # Root layout — auth guard, push notifications
 ├── components/
 │   └── ui/                       # Reusable UI components
@@ -237,13 +282,14 @@ frontend-mobileapp/
 │       └── Toast.tsx              #   Toast notification system
 ├── services/                     # API service layer
 │   ├── api.ts                    #   HTTP client with auto-detection and auth
+│   ├── supabase.ts               #   Supabase client for Realtime subscriptions
 │   ├── report.service.ts         #   Report CRUD, voting, statistics
 │   ├── action.service.ts         #   Positive action CRUD, join/leave
 │   ├── comment.service.ts        #   Comment operations
 │   ├── notification.service.ts   #   Notification inbox management
 │   ├── bmkg.service.ts           #   BMKG earthquake data
 │   ├── area-status.service.ts    #   District-level area status
-│   ├── budget.service.ts         #   Budget and APBD data
+│   ├── admin.service.ts          #   Admin user management and analytics
 │   ├── info.service.ts           #   Info articles and education content
 │   └── activity.service.ts       #   User activity history
 ├── context/
