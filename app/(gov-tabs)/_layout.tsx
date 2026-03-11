@@ -11,7 +11,7 @@ const GOV_TAB_ITEMS = [
     { name: 'index', label: 'Beranda', Icon: SquaresFour },
     { name: 'laporan', label: 'Laporan', Icon: ClipboardText },
     { name: 'peta', label: 'Peta', Icon: MapTrifold },
-    { name: 'budget', label: 'Budget', Icon: ChartPieSlice },
+    { name: 'budget', label: 'Analitik', Icon: ChartPieSlice },
     { name: 'profil-gov', label: 'Profil', Icon: UserCircle },
 ];
 

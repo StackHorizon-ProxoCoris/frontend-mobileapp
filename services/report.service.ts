@@ -67,6 +67,8 @@ export interface ReportDetail extends Report {
   respondedBy: string | null;
   estimatedCompletion: string | null;
   verifiedCount: number;
+  resolutionNotes?: string | null;
+  resolutionImageUrl?: string | null;
 }
 
 // ── API Response Types ───────────────────────────────────────
@@ -92,6 +94,8 @@ export interface ReportData {
   commentsCount: number;
   respondedBy: string | null;
   estimatedCompletion: string | null;
+  resolutionNotes?: string | null;
+  resolutionImageUrl?: string | null;
   photoUrls: string[];
   createdAt: string;
   updatedAt: string;
@@ -117,6 +121,13 @@ export interface CreateReportPayload {
   lng: number;
   urgency?: number;
   photoUrls?: string[];
+}
+
+export interface UpdateReportStatusPayload {
+  respondedBy?: string;
+  estimatedCompletion?: string;
+  resolutionNotes?: string;
+  resolutionImageUrl?: string;
 }
 
 // ============================================================
@@ -200,9 +211,9 @@ export async function toggleReportVote(reportId: string): Promise<ApiResponse> {
 export async function updateReportStatus(
   reportId: string,
   status: BackendReportStatus,
-  respondedBy?: string,
+  payload?: UpdateReportStatusPayload,
 ): Promise<ApiResponse> {
-  return apiPatch(`/reports/${reportId}/status`, { status, respondedBy });
+  return apiPatch(`/reports/${reportId}/status`, { status, ...payload });
 }
 
 /** Verifikasi laporan */

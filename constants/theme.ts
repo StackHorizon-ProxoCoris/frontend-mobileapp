@@ -6,10 +6,15 @@ export const SiagaColors = {
   surface: '#deebf8',
   surfaceDim: '#c8daf0',
   danger: '#e74c3c',
+  dangerSoft: '#fef2f2',
   warning: '#f39c12',
+  warningSoft: '#fffbeb',
   success: '#27ae60',
+  successSoft: '#ecfdf5',
   info: '#3498db',
+  infoSoft: '#eff6ff',
   background: '#f8fafd',
+  border: '#e2e8f0',
   white: '#ffffff',
 };
 

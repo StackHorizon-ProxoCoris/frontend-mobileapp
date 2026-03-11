@@ -9,6 +9,7 @@ import {
     RoadHorizon, Tree, Drop, Heartbeat, Briefcase,
     TrendUp, TrendDown, Clock, Buildings, ArrowClockwise,
     WarningDiamond, SealCheck, HourglassMedium, Info,
+    ChatText, Megaphone,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import {
@@ -34,6 +35,49 @@ const STATUS_CONFIG: Record<ProjectStatus, { text: string; bg: string; icon: any
     Selesai: { text: SiagaColors.info, bg: '#eff6ff', icon: CheckCircle, label: 'Selesai' },
     Tunda: { text: SiagaColors.secondary, bg: '#f1f5f9', icon: HourglassMedium, label: 'Ditunda' },
 };
+
+const ACTIVITIES = [
+    {
+        text: 'Laporan #1042 ditandai',
+        highlight: 'Selesai',
+        highlightColor: SiagaColors.success,
+        sub: 'Jalan Rusak Jl. Braga · 15 menit lalu',
+        icon: CheckCircle,
+        iconColor: SiagaColors.success,
+        bgColor: '#ecfdf5',
+        showLine: true,
+    },
+    {
+        text: 'Respons dikirim ke Laporan',
+        highlight: '#1038',
+        highlightColor: SiagaColors.info,
+        sub: 'Banjir Kec. Dayeuhkolot · 1 jam lalu',
+        icon: ChatText,
+        iconColor: SiagaColors.info,
+        bgColor: '#eff6ff',
+        showLine: true,
+    },
+    {
+        text: 'Status diubah ke',
+        highlight: 'Diproses',
+        highlightColor: SiagaColors.warning,
+        sub: 'Sampah Gg. Melati · 2 jam lalu',
+        icon: ArrowClockwise,
+        iconColor: SiagaColors.warning,
+        bgColor: '#fffbeb',
+        showLine: true,
+    },
+    {
+        text: 'Broadcast ke',
+        highlight: 'Kec. Coblong',
+        highlightColor: '#7c3aed',
+        sub: 'Peringatan Cuaca · 3 jam lalu',
+        icon: Megaphone,
+        iconColor: '#7c3aed',
+        bgColor: '#f5f3ff',
+        showLine: false,
+    },
+];
 
 
 
@@ -351,7 +395,7 @@ export default function GovBudgetScreen() {
                             </View>
                             <View>
                                 <Text style={{ fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3 }}>Budget Watch</Text>
-                                <Text style={{ fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1.2 }}>
                                     APBD 2026 · Q1
                                 </Text>
                             </View>
@@ -379,7 +423,7 @@ export default function GovBudgetScreen() {
                             Periode: <Text style={{ color: '#fff', fontWeight: '700' }}>Jan — Mar 2026</Text>
                         </Text>
                         <View style={{ flex: 1 }} />
-                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Update: 25 Feb 2026</Text>
+                        <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Update: 25 Feb 2026</Text>
                     </View>
                 </View>
             </View>
@@ -520,7 +564,6 @@ export default function GovBudgetScreen() {
 
                     <View style={{ gap: 12 }}>
                         {dinasData.map((d, i) => {
-                            const stCfg = STATUS_CONFIG[d.status as ProjectStatus];
                             return (
                                 <View key={i}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -604,9 +647,69 @@ export default function GovBudgetScreen() {
                     </View>
                 </View>
 
+                <View style={{
+                    backgroundColor: '#fff',
+                    borderRadius: 20,
+                    padding: 16,
+                    borderWidth: 1,
+                    borderColor: '#edf2f9',
+                    elevation: 2,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 5,
+                }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: '#7c3aed' }} />
+                            <Text style={{ fontSize: 15, fontWeight: '800', color: SiagaColors.primary }}>Aktivitas Terkini</Text>
+                        </View>
+                        <View style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: '#f8f5ff' }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#7c3aed' }}>Audit Trail</Text>
+                        </View>
+                    </View>
+
+                    <View style={{ gap: 4 }}>
+                        {ACTIVITIES.map((activity, index) => {
+                            const ActivityIcon = activity.icon;
+                            return (
+                                <View key={`${activity.text}-${index}`} style={{ flexDirection: 'row', gap: 12 }}>
+                                    <View style={{ alignItems: 'center' }}>
+                                        <View style={{
+                                            width: 42,
+                                            height: 42,
+                                            borderRadius: 14,
+                                            backgroundColor: activity.bgColor,
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}>
+                                            <ActivityIcon size={20} color={activity.iconColor} weight="duotone" />
+                                        </View>
+                                        {activity.showLine && (
+                                            <View style={{ width: 1, flex: 1, backgroundColor: '#e2e8f0', marginVertical: 6 }} />
+                                        )}
+                                    </View>
+
+                                    <View style={{ flex: 1, paddingTop: 3, paddingBottom: 14 }}>
+                                        <Text style={{ fontSize: 13, color: SiagaColors.primary, lineHeight: 20 }}>
+                                            {activity.text}{' '}
+                                            <Text style={{ fontWeight: '800', color: activity.highlightColor }}>
+                                                {activity.highlight}
+                                            </Text>
+                                        </Text>
+                                        <Text style={{ fontSize: 12, color: SiagaColors.secondary, marginTop: 2 }}>
+                                            {activity.sub}
+                                        </Text>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                </View>
+
                 {/* ── FOOTER NOTE ──────────────────────────────────── */}
                 <View style={{ alignItems: 'center', paddingTop: 4 }}>
-                    <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>
+                    <Text style={{ fontSize: 12, color: SiagaColors.secondary }}>
                         Data diperbarui dari SIPD · 25 Feb 2026 · 18:00 WIB
                     </Text>
                 </View>

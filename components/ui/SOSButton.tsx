@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { TouchableOpacity, View, Text, Animated } from 'react-native';
 import { WarningDiamond } from 'phosphor-react-native';
+import { SiagaColors } from '@/constants/theme';
 
 interface SOSButtonProps {
     onPress: () => void;
@@ -35,7 +36,7 @@ export default function SOSButton({ onPress, bottom = 88 }: SOSButtonProps) {
                 style={{
                     position: 'absolute',
                     width: 60, height: 60, borderRadius: 30,
-                    borderWidth: 3, borderColor: '#e74c3c',
+                    borderWidth: 3, borderColor: SiagaColors.danger,
                     transform: [{ scale: pulseAnim }],
                     opacity: opacityAnim,
                 }}
@@ -44,8 +45,8 @@ export default function SOSButton({ onPress, bottom = 88 }: SOSButtonProps) {
             <TouchableOpacity
                 className="w-[60px] h-[60px] rounded-full items-center justify-center"
                 style={{
-                    backgroundColor: '#e74c3c',
-                    shadowColor: '#e74c3c',
+                    backgroundColor: SiagaColors.danger,
+                    shadowColor: SiagaColors.danger,
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.4,
                     shadowRadius: 8,
@@ -53,9 +54,10 @@ export default function SOSButton({ onPress, bottom = 88 }: SOSButtonProps) {
                 }}
                 onPress={onPress}
                 activeOpacity={0.8}
+                hitSlop={6}
             >
                 <WarningDiamond size={22} color="#fff" weight="fill" />
-                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900', marginTop: -1, letterSpacing: 1.5 }}>SOS</Text>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', marginTop: -1, letterSpacing: 1.2 }}>SOS</Text>
             </TouchableOpacity>
         </View>
     );
