@@ -1,10 +1,8 @@
 # SIAGA — Sistem Informasi dan Aksi untuk Gerakan Aman
 
-**SIAGA** is a civic technology mobile application that bridges the gap between citizens and local government to enable transparent, data-driven environmental and social issue reporting. Built for the Smart, Inclusive, and Sustainable Cities sub-theme of BCC 2026.
+**SIAGA** is a civic technology mobile application that bridges the gap between citizens and local government to enable transparent, data-driven environmental and social issue reporting. Built for ProxoCoris 2026.
 
-> **Competition Theme**: Bridging Gaps: Code for Earth, Intelligence for Justice, and Sustainability for Shaping Tomorrow
->
-> **Sub-theme**: Smart, Inclusive, and Sustainable Cities
+> **Competition**: ProxoCoris 2026
 
 ---
 
@@ -325,8 +323,8 @@ Detailed technical documentation is available in the [`docs/`](./docs/) director
 
 ## Team
 
-**Team StackHorizon** — Telkom University
+**Team StackHorizon** — Universitas Klabat
 
 ---
 
-*Built with purpose for BCC 2026 — Bridging Gaps: Code for Earth, Intelligence for Justice, and Sustainability for Shaping Tomorrow*
+*Built with purpose for ProxoCoris 2026*
