@@ -87,7 +87,7 @@ Platform ini mengintegrasikan bantuan bertenaga AI (Google Gemini), **Supabase R
 | Supabase JS | 2.98 | Langganan Realtime dan akses klien langsung |
 | Bottom Sheet | 5.2 | Komponen bottom sheet berbasis gestur |
 
-### Backend ([repositori terpisah](https://github.com/orgs/StackHorizon-ProxoCoris/repositories))
+### Backend ([repositori terpisah](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp))
 
 | Teknologi | Versi | Tujuan |
 |---|---|---|
@@ -103,7 +103,7 @@ Platform ini mengintegrasikan bantuan bertenaga AI (Google Gemini), **Supabase R
 
 | Repositori | Deskripsi |
 |---|---|
-| [Backend API](https://github.com/orgs/StackHorizon-ProxoCoris/repositories) | Server REST API Express.js |
+| [Backend API](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp) | Server REST API Express.js |
 | **Frontend (repo ini)** | Aplikasi mobile React Native |
 
 ---
@@ -115,21 +115,50 @@ Platform ini mengintegrasikan bantuan bertenaga AI (Google Gemini), **Supabase R
 - **Expo CLI**: `npm install -g expo-cli`
 - **EAS CLI** (untuk build): `npm install -g eas-cli`
 - **Android Studio** dengan Android SDK (untuk emulator) atau perangkat Android fisik dengan Expo Go
-- Instance [Backend API](https://github.com/orgs/StackHorizon-ProxoCoris/repositories) yang sedang berjalan
+- Instance [Backend API](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp) yang sedang berjalan
 
 ---
 
 ## Instalasi
 
-1. Clone repositori:
+Karena SIAGA bergantung pada aplikasi frontend dan API backend, **Anda harus mengatur dan menjalankan backend terlebih dahulu** sebelum frontend dapat berfungsi dengan baik.
 
+### Bagian 1: Persiapan Backend
+
+1. Clone repositori backend:
 ```bash
-git clone https://github.com/StackHorizon-ProxoCoris/<frontend-repo-name>.git
-cd <frontend-repo-name>
+git clone https://github.com/StackHorizon-ProxoCoris/backend-mobileapp.git
+cd backend-mobileapp
 ```
 
 2. Instal dependensi:
+```bash
+npm install
+```
 
+3. Konfigurasi environment variables (Supabase, Gemini, dll.):
+```bash
+cp .env.example .env
+```
+*(Edit `.env` dengan kredensial Anda sesuai petunjuk di README backend)*
+
+4. Jalankan migrasi database (001-015) pada Supabase SQL Editor Anda.
+
+5. Mulai server backend:
+```bash
+npm run dev
+```
+*(Untuk instruksi backend lebih detail, lihat [README Backend](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp))*
+
+### Bagian 2: Persiapan Frontend
+
+1. Buka terminal baru dan clone repositori frontend:
+```bash
+git clone https://github.com/StackHorizon-ProxoCoris/frontend-mobileapp.git
+cd frontend-mobileapp
+```
+
+2. Instal dependensi:
 ```bash
 npm install
 ```
