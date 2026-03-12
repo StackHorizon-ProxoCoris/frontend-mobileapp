@@ -53,16 +53,16 @@ export default function EditProfilGovScreen() {
 
   const identityFields: FormField[] = [
     { key: 'name', label: 'Nama Lengkap', icon: UserCircle, iconColor: SiagaColors.primary, value: form.name, placeholder: 'Masukkan nama lengkap', section: 'identity' },
-    { key: 'nip', label: 'NIP', icon: IdentificationBadge, iconColor: SiagaColors.primary, value: form.nip, placeholder: 'Nomor Induk Pegawai', editable: false, section: 'identity' },
+    { key: 'nip', label: 'NIP', icon: IdentificationBadge, iconColor: SiagaColors.primary, value: form.nip, placeholder: 'Nomor Induk Pegawai', section: 'identity' },
     { key: 'bio', label: 'Bio / Deskripsi', icon: PencilSimple, iconColor: '#7c3aed', value: form.bio, placeholder: 'Tulis deskripsi tugas singkat...', multiline: true, section: 'identity' },
   ];
 
   const positionFields: FormField[] = [
-    { key: 'jabatan', label: 'Jabatan', icon: Briefcase, iconColor: SiagaColors.info, value: form.jabatan, placeholder: 'Jabatan', editable: false, section: 'position' },
-    { key: 'instansi', label: 'Instansi', icon: Buildings, iconColor: '#7c3aed', value: form.instansi, placeholder: 'Instansi', editable: false, section: 'position' },
-    { key: 'unit', label: 'Unit Kerja', icon: Buildings, iconColor: SiagaColors.info, value: form.unit, placeholder: 'Unit Kerja', editable: false, section: 'position' },
-    { key: 'golongan', label: 'Golongan', icon: Medal, iconColor: '#f59e0b', value: form.golongan, placeholder: 'Golongan / Pangkat', editable: false, section: 'position' },
-    { key: 'tmt', label: 'TMT (Terhitung Mulai Tanggal)', icon: CalendarBlank, iconColor: SiagaColors.secondary, value: form.tmt, placeholder: 'TMT', editable: false, section: 'position' },
+    { key: 'jabatan', label: 'Jabatan', icon: Briefcase, iconColor: SiagaColors.info, value: form.jabatan, placeholder: 'Contoh: Kepala Bidang', section: 'position' },
+    { key: 'instansi', label: 'Instansi', icon: Buildings, iconColor: '#7c3aed', value: form.instansi, placeholder: 'Contoh: Dinas Lingkungan Hidup', section: 'position' },
+    { key: 'unit', label: 'Unit Kerja', icon: Buildings, iconColor: SiagaColors.info, value: form.unit, placeholder: 'Contoh: Bidang Pengelolaan Sampah', section: 'position' },
+    { key: 'golongan', label: 'Golongan', icon: Medal, iconColor: '#f59e0b', value: form.golongan, placeholder: 'Contoh: III/c', section: 'position' },
+    { key: 'tmt', label: 'TMT (Terhitung Mulai Tanggal)', icon: CalendarBlank, iconColor: SiagaColors.secondary, value: form.tmt, placeholder: 'Contoh: 01-03-2020', section: 'position' },
   ];
 
   const contactFields: FormField[] = [
@@ -283,8 +283,7 @@ export default function EditProfilGovScreen() {
               Informasi Penting
             </Text>
             <Text style={{ fontSize: 11, color: '#92400e', lineHeight: 17 }}>
-              Data kepegawaian (NIP, Jabatan, Golongan, dll) dikelola oleh admin sistem. 
-              Untuk perubahan data kepegawaian, silakan hubungi administrator melalui menu Pengaturan → Kirim Feedback.
+              Lengkapi data kepegawaian Anda (NIP, Jabatan, Instansi, dll) agar profil Anda terverifikasi dan dapat digunakan secara optimal di seluruh sistem SIAGA.
             </Text>
           </View>
 

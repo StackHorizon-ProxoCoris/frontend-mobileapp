@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft, Camera, UserCircle, Envelope, Phone, MapPin,
   CalendarBlank, GenderIntersex, House, PencilSimple, CheckCircle,
@@ -10,7 +11,7 @@ import {
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
-import { apiPatch } from '@/services/api';
+import { apiPatch, apiUpload } from '@/services/api';
 import * as Location from 'expo-location';
 
 interface FormField {
@@ -46,6 +47,60 @@ export default function EditProfilScreen() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleChangePhoto = () => {
+    Alert.alert('Ganti Foto Profil', 'Pilih sumber foto', [
+      { text: 'Kamera', onPress: () => pickImage(true) },
+      { text: 'Galeri', onPress: () => pickImage(false) },
+      { text: 'Batal', style: 'cancel' },
+    ]);
+  };
+
+  const pickImage = async (useCamera: boolean) => {
+    const permResult = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permResult.status !== 'granted') {
+      showToast({ type: 'error', title: 'Izin Ditolak', message: 'Aktifkan izin ' + (useCamera ? 'kamera' : 'galeri') + ' di pengaturan.' });
+      return;
+    }
+
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setIsUploading(true);
+    try {
+      const asset = result.assets[0];
+      const formData = new FormData();
+      formData.append('file', {
+        uri: asset.uri,
+        name: asset.fileName || 'avatar.jpg',
+        type: asset.mimeType || 'image/jpeg',
+      } as any);
+
+      const uploadRes = await apiUpload<{ url: string }>('/upload', formData);
+      if (!uploadRes.success || !uploadRes.data?.url) {
+        showToast({ type: 'error', title: 'Gagal Upload', message: uploadRes.message || 'Terjadi kesalahan upload.' });
+        return;
+      }
+
+      const patchRes = await apiPatch('/auth/profile', { avatarUrl: uploadRes.data.url });
+      if (!patchRes.success) {
+        showToast({ type: 'error', title: 'Gagal Simpan', message: patchRes.message || 'Gagal menyimpan foto profil.' });
+        return;
+      }
+
+      if (refreshUser) await refreshUser();
+      showToast({ type: 'success', title: 'Berhasil! ✅', message: 'Foto profil berhasil diperbarui.' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fields: FormField[] = [
     { key: 'name', label: 'Nama Lengkap', icon: UserCircle, iconColor: SiagaColors.primary, value: form.name, placeholder: 'Masukkan nama lengkap' },
@@ -157,22 +212,27 @@ export default function EditProfilScreen() {
         >
           {/* Avatar Section */}
           <View className="items-center pt-6 pb-4">
-            <View className="relative">
+            <TouchableOpacity className="relative" onPress={handleChangePhoto} activeOpacity={0.8} disabled={isUploading}>
               <View
-                className="w-24 h-24 rounded-full items-center justify-center"
+                className="w-24 h-24 rounded-full items-center justify-center overflow-hidden"
                 style={{ backgroundColor: SiagaColors.primary, elevation: 4, shadowColor: SiagaColors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }}
               >
-                <Text className="text-3xl font-bold text-white">{user?.initials || 'U'}</Text>
+                {isUploading ? (
+                  <ActivityIndicator color="#fff" size="large" />
+                ) : user?.avatarUrl ? (
+                  <Image source={{ uri: user.avatarUrl }} style={{ width: 96, height: 96 }} resizeMode="cover" />
+                ) : (
+                  <Text className="text-3xl font-bold text-white">{user?.initials || 'U'}</Text>
+                )}
               </View>
-              <TouchableOpacity
+              <View
                 className="absolute bottom-0 right-0 w-8 h-8 rounded-full items-center justify-center border-2 border-white"
                 style={{ backgroundColor: SiagaColors.info, elevation: 3 }}
-                activeOpacity={0.7}
               >
                 <Camera size={14} color="#fff" weight="bold" />
-              </TouchableOpacity>
-            </View>
-            <Text className="text-[13px] text-secondary mt-2">Tap ikon kamera untuk mengganti foto</Text>
+              </View>
+            </TouchableOpacity>
+            <Text className="text-[13px] text-secondary mt-2">Tap foto untuk mengganti</Text>
           </View>
 
           {/* Verification Banner */}

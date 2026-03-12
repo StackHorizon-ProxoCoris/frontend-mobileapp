@@ -429,7 +429,6 @@ export default function RegisterScreen() {
 
                         {/* Header */}
                         <View className="flex-row items-center gap-3 mb-3">
-                            <Image source={require('@/assets/images/logo.png')} style={{ width: 48, height: 48 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-[20px] font-bold text-white">Buat Akun</Text>
                                 <Text className="text-[10px] text-white/50">Bergabung untuk lindungi komunitas Anda</Text>

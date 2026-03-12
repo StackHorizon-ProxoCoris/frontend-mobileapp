@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { ScrollView, FlatList, View, Text, TouchableOpacity, RefreshControl, Modal } from 'react-native';
+import { ScrollView, FlatList, View, Text, TouchableOpacity, RefreshControl, Modal, Image } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -205,9 +205,18 @@ export default function HomeScreen() {
       <View className="px-5 pt-4 pb-4">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
-            <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-              <Text className="text-white font-bold text-base">{user?.initials || 'U'}</Text>
-            </View>
+            <TouchableOpacity
+              className="w-11 h-11 rounded-full overflow-hidden items-center justify-center"
+              style={{ backgroundColor: SiagaColors.primary }}
+              onPress={() => router.push('/(tabs)/profil')}
+              activeOpacity={0.8}
+            >
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: 44, height: 44 }} resizeMode="cover" />
+              ) : (
+                <Text className="text-white font-bold text-base">{user?.initials || 'U'}</Text>
+              )}
+            </TouchableOpacity>
             <View>
               <View className="flex-row items-center gap-1">
                 <Text className="text-[14px] text-secondary">{greeting.text} </Text>

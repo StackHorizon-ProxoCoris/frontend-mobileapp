@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
     MapPin, ShieldCheck,
     FileText, HandsClapping, Leaf, TrendUp,
@@ -18,6 +19,7 @@ import { getActions, type ActionData } from '@/services/action.service';
 import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import { useAuth } from '@/context/auth';
 import { useToast } from '@/contexts/toast.context';
+import { apiUpload, apiPatch } from '@/services/api';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
@@ -31,6 +33,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 
 export default function ProfilScreen() {
     const [sosVisible, setSosVisible] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user, logout, refreshUser } = useAuth();
@@ -38,6 +41,65 @@ export default function ProfilScreen() {
     const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
     const [rewardActions, setRewardActions] = useState<ActionData[]>([]);
     const [infoFeed, setInfoFeed] = useState<InfoFeedData[]>([]);
+
+    const handleChangePhoto = () => {
+        Alert.alert('Ganti Foto Profil', 'Pilih sumber foto', [
+            {
+                text: 'Kamera',
+                onPress: () => pickImage(ImagePicker.MediaTypeOptions.Images, true),
+            },
+            {
+                text: 'Galeri',
+                onPress: () => pickImage(ImagePicker.MediaTypeOptions.Images, false),
+            },
+            { text: 'Batal', style: 'cancel' },
+        ]);
+    };
+
+    const pickImage = async (mediaTypes: ImagePicker.MediaTypeOptions, useCamera: boolean) => {
+        const permResult = useCamera
+            ? await ImagePicker.requestCameraPermissionsAsync()
+            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (permResult.status !== 'granted') {
+            showToast({ type: 'error', title: 'Izin Ditolak', message: 'Aktifkan izin ' + (useCamera ? 'kamera' : 'galeri') + ' di pengaturan.' });
+            return;
+        }
+
+        const result = useCamera
+            ? await ImagePicker.launchCameraAsync({ mediaTypes, allowsEditing: true, aspect: [1, 1], quality: 0.7 })
+            : await ImagePicker.launchImageLibraryAsync({ mediaTypes, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+
+        if (result.canceled || !result.assets?.[0]?.uri) return;
+
+        setIsUploading(true);
+        try {
+            const asset = result.assets[0];
+            const formData = new FormData();
+            formData.append('file', {
+                uri: asset.uri,
+                name: asset.fileName || 'avatar.jpg',
+                type: asset.mimeType || 'image/jpeg',
+            } as any);
+
+            const uploadRes = await apiUpload<{ url: string }>('/upload', formData);
+            if (!uploadRes.success || !uploadRes.data?.url) {
+                showToast({ type: 'error', title: 'Gagal Upload', message: uploadRes.message || 'Terjadi kesalahan upload.' });
+                return;
+            }
+
+            const patchRes = await apiPatch('/auth/profile', { avatarUrl: uploadRes.data.url });
+            if (!patchRes.success) {
+                showToast({ type: 'error', title: 'Gagal Simpan', message: patchRes.message || 'Gagal menyimpan foto profil.' });
+                return;
+            }
+
+            if (refreshUser) await refreshUser();
+            showToast({ type: 'success', title: 'Berhasil! ✅', message: 'Foto profil berhasil diperbarui.' });
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     useEffect(() => {
         async function load() {
@@ -98,17 +160,24 @@ export default function ProfilScreen() {
                 <View className="mx-5 -mt-10 bg-white rounded-2xl border border-slate-100 p-5" style={{ elevation: 3, shadowColor: '#082a4c', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 }}>
                     <View className="flex-row items-start gap-4">
                         {/* Avatar */}
-                        <View className="relative">
+                        <TouchableOpacity className="relative" onPress={handleChangePhoto} activeOpacity={0.8} disabled={isUploading}>
                             <View
-                                className="w-[68px] h-[68px] rounded-2xl items-center justify-center"
+                                className="w-[68px] h-[68px] rounded-2xl items-center justify-center overflow-hidden"
                                 style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}
                             >
-                                <Text className="text-2xl font-bold text-white">{user?.initials || 'U'}</Text>
+                                {isUploading ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : user?.avatarUrl ? (
+                                    <Image source={{ uri: user.avatarUrl }} style={{ width: 68, height: 68 }} resizeMode="cover" />
+                                ) : (
+                                    <Text className="text-2xl font-bold text-white">{user?.initials || 'U'}</Text>
+                                )}
                             </View>
-                            <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white items-center justify-center">
-                                <CheckCircle size={12} color="#fff" weight="fill" />
+                            {/* Camera overlay button */}
+                            <View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
+                                <Camera size={11} color="#fff" weight="bold" />
                             </View>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Info */}
                         <View className="flex-1">
@@ -423,7 +492,6 @@ export default function ProfilScreen() {
                             { icon: PencilSimple, label: 'Edit Profil', color: SiagaColors.primary, onPress: () => router.push('/edit-profil') },
                             { icon: ChartBar, label: 'Riwayat Aktivitas', color: '#3b82f6', onPress: () => router.push('/riwayat-aktivitas') },
                             { icon: Gear, label: 'Pengaturan', color: '#475569', onPress: () => router.push('/pengaturan') },
-                            { icon: ShieldCheckered, label: 'Keamanan & Privasi', color: '#f59e0b', onPress: () => router.push('/pengaturan') },
                             { icon: Eye, label: 'Tentang SIAGA', color: SiagaColors.info, onPress: () => router.push('/tentang') },
                         ].map((item, i, arr) => (
                             <TouchableOpacity

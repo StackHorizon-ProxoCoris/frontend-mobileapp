@@ -24,6 +24,7 @@ export interface AuthUser {
   initials: string;
   phone: string;
   bio: string;
+  avatarUrl: string;
   district: string;
   city: string;
   province: string;
@@ -144,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         initials: d.initials || '',
         phone: d.phone || '',
         bio: d.bio || '',
+        avatarUrl: d.avatarUrl || d.avatar_url || '',
         district: d.district || d.location?.district || '',
         city: d.city || d.location?.city || 'Kota Bandung',
         province: d.province || d.location?.province || 'Jawa Barat',

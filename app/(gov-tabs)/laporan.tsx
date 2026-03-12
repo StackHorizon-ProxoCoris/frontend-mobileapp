@@ -13,7 +13,7 @@ import {
     HourglassMedium, WarningDiamond, FilePlus,
     TrendUp, MapPin, ChartBar, ArrowClockwise,
     SortAscending, XCircle, Megaphone,
-    Warning, CheckSquare,
+    Warning, CheckSquare, CaretDown,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import {
@@ -91,42 +91,77 @@ type StatItem = {
     icon: any;
     color: string;
     bg: string;
-    trend: string;
     filterKey: SummaryFilterKey;
 };
-function StatCard({ item, onPress }: { item: StatItem; onPress: () => void }) {
+
+/** Compact KPI pill card */
+function KpiPill({
+    item,
+    active,
+    onPress,
+}: {
+    item: StatItem;
+    active: boolean;
+    onPress: () => void;
+}) {
     const IconComp = item.icon;
     return (
         <TouchableOpacity
             onPress={onPress}
-            activeOpacity={0.82}
-            className="rounded-2xl p-3"
+            activeOpacity={0.8}
             style={{
-                width: (width - 44) / 2,
-                backgroundColor: '#fff',
+                flex: 1,
+                backgroundColor: active ? item.color : '#fff',
+                borderRadius: 16,
+                paddingVertical: 12,
+                paddingHorizontal: 8,
+                alignItems: 'center',
                 borderWidth: 1,
-                borderColor: '#edf2f9',
-                elevation: 1,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.04,
-                shadowRadius: 3,
+                borderColor: active ? item.color : '#edf2f9',
             }}
         >
-            <View className="w-9 h-9 rounded-xl items-center justify-center mb-2" style={{ backgroundColor: item.bg }}>
-                <IconComp size={20} color={item.color} weight="duotone" />
+            <View
+                style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    backgroundColor: active ? 'rgba(255,255,255,0.2)' : item.bg,
+                    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+                }}
+            >
+                <IconComp size={17} color={active ? '#fff' : item.color} weight="duotone" />
             </View>
-            <Text className="text-[20px] font-extrabold" style={{ color: SiagaColors.primary, lineHeight: 24 }}>
+            <Text
+                style={{
+                    fontSize: 18, fontWeight: '800', lineHeight: 22,
+                    color: active ? '#fff' : SiagaColors.primary,
+                }}
+            >
                 {item.value}
             </Text>
-            <Text className="text-[12px] font-medium mt-0.5" style={{ color: SiagaColors.secondary }}>
+            <Text
+                style={{
+                    fontSize: 10, fontWeight: '600', marginTop: 2,
+                    color: active ? 'rgba(255,255,255,0.8)' : SiagaColors.secondary,
+                }}
+                numberOfLines={1}
+            >
                 {item.label}
             </Text>
-            <View className="flex-row items-center gap-0.5 mt-1.5">
-                <TrendUp size={11} color={item.color} weight="fill" />
-                <Text className="text-[10px] font-bold" style={{ color: item.color }}>{item.trend}</Text>
-            </View>
         </TouchableOpacity>
+    );
+}
+
+/** Single category row */
+function CategoryRow({ label, count, pct, color }: { label: string; count: number; pct: number; color: string }) {
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+            <Text style={{ fontSize: 12, fontWeight: '600', color: SiagaColors.primary, flex: 1 }}>{label}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.secondary }}>{count}</Text>
+            <View style={{ width: 52, height: 5, borderRadius: 3, backgroundColor: '#f1f5f9', overflow: 'hidden' }}>
+                <View style={{ height: '100%', borderRadius: 3, backgroundColor: color, width: `${Math.min(pct, 100)}%` }} />
+            </View>
+            <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.secondary, width: 30, textAlign: 'right' }}>{pct}%</Text>
+        </View>
     );
 }
 
@@ -150,131 +185,98 @@ const ReportCard = React.memo(function ReportCard({
     const actionLabel = report.status === 'Baru'
         ? 'Proses'
         : report.status === 'Diproses'
-            ? 'Tandai Selesai'
+            ? 'Selesaikan'
             : 'Lihat';
 
     return (
         <TouchableOpacity
             onPress={onPress}
             activeOpacity={0.85}
-            className="rounded-2xl"
             style={{
                 backgroundColor: '#fff',
+                borderRadius: 16,
                 borderWidth: 1,
-                borderColor: isCritical ? 'rgba(231,76,60,0.18)' : '#edf2f9',
-                elevation: isCritical ? 3 : 1,
-                shadowColor: isCritical ? SiagaColors.danger : '#000',
-                shadowOffset: { width: 0, height: isCritical ? 2 : 1 },
-                shadowOpacity: isCritical ? 0.1 : 0.04,
-                shadowRadius: isCritical ? 6 : 3,
+                borderColor: isCritical ? 'rgba(231,76,60,0.15)' : '#edf2f9',
                 overflow: 'hidden',
             }}
         >
-            {/* Critical top accent bar */}
-            {isCritical && (
-                <View style={{ height: 3, backgroundColor: SiagaColors.danger }} />
-            )}
+            {isCritical && <View style={{ height: 3, backgroundColor: SiagaColors.danger }} />}
 
-            <View className="p-3.5">
-                {/* Row 1: icon + title + badge */}
-                <View className="flex-row items-start gap-3 mb-2.5">
+            <View style={{ padding: 14 }}>
+                {/* Top row: icon + title + severity */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
                     <View
-                        className="w-11 h-11 rounded-xl items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: report.bgColor }}
+                        style={{
+                            width: 40, height: 40, borderRadius: 12,
+                            backgroundColor: report.bgColor,
+                            alignItems: 'center', justifyContent: 'center',
+                        }}
                     >
-                        <IconComp size={24} color={report.iconColor} weight="duotone" />
+                        <IconComp size={22} color={report.iconColor} weight="duotone" />
                     </View>
-
-                    <View className="flex-1">
-                        <View className="flex-row items-center justify-between mb-0.5">
-                            <View className="flex-row items-center gap-1.5 flex-1 mr-2">
-                                <Text
-                                    className="text-[10px] font-bold uppercase tracking-wider"
-                                    style={{ color: SiagaColors.secondary }}
-                                >
-                                    {report.id}
-                                </Text>
-                                {isNew && (
-                                    <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: SiagaColors.danger }} />
-                                )}
-                            </View>
-                            {/* Severity badge */}
-                            <View className="px-3 py-1 rounded-md" style={{ backgroundColor: sev.bg }}>
-                                <Text className="text-[9px] font-bold" style={{ color: sev.text }}>
-                                    {report.severity}
-                                </Text>
-                            </View>
+                    <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: SiagaColors.secondary, letterSpacing: 0.5 }}>
+                                {report.id.slice(0, 8).toUpperCase()}
+                            </Text>
+                            {isNew && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: SiagaColors.danger }} />}
                         </View>
-
-                        <Text
-                            className="text-[15px] font-bold leading-tight"
-                            style={{ color: SiagaColors.primary }}
-                            numberOfLines={1}
-                        >
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: SiagaColors.primary }} numberOfLines={1}>
                             {report.title}
                         </Text>
+                    </View>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: sev.bg }}>
+                        <Text style={{ fontSize: 9, fontWeight: '700', color: sev.text }}>{report.severity}</Text>
                     </View>
                 </View>
 
                 {/* Description */}
-                <Text
-                    className="text-[13px] leading-relaxed mb-2.5"
-                    style={{ color: SiagaColors.secondary }}
-                    numberOfLines={2}
-                >
+                <Text style={{ fontSize: 12, color: SiagaColors.secondary, lineHeight: 18, marginBottom: 10 }} numberOfLines={2}>
                     {report.desc}
                 </Text>
 
-                {/* Row 3: meta info */}
-                <View className="flex-row items-center gap-3 mb-3">
-                    <View className="flex-row items-center gap-1.5 flex-1">
-                        <MapPin size={13} color={SiagaColors.secondary} weight="duotone" />
-                        <Text className="text-[12px]" style={{ color: SiagaColors.secondary }} numberOfLines={1}>
-                            {report.area}
-                        </Text>
+                {/* Meta row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+                        <MapPin size={12} color={SiagaColors.secondary} weight="duotone" />
+                        <Text style={{ fontSize: 11, color: SiagaColors.secondary }} numberOfLines={1}>{report.area}</Text>
                     </View>
-                    <View className="flex-row items-center gap-1">
-                        <ChartBar size={13} color={SiagaColors.secondary} weight="duotone" />
-                        <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>
-                            {report.cluster}
-                        </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Clock size={12} color={SiagaColors.secondary} />
+                        <Text style={{ fontSize: 11, color: SiagaColors.secondary }}>{report.time}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <TrendUp size={12} color={SiagaColors.secondary} weight="duotone" />
+                        <Text style={{ fontSize: 11, color: SiagaColors.secondary }}>{report.cluster}</Text>
                     </View>
                 </View>
 
                 {/* Divider */}
-                <View style={{ height: 1, backgroundColor: '#f1f5f9', marginBottom: 10 }} />
+                <View style={{ height: 1, backgroundColor: '#f4f7fb', marginBottom: 10 }} />
 
-                {/* Row 4: time + status + action */}
-                <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-1">
-                        <Clock size={13} color={SiagaColors.secondary} />
-                        <Text className="text-[12px]" style={{ color: SiagaColors.secondary }}>
-                            {report.time}
+                {/* Bottom row: status + action */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: st.bg }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: st.text }}>{report.status}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 4,
+                            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
+                            backgroundColor: isStatusAction
+                                ? (report.status === 'Baru' ? SiagaColors.info : SiagaColors.success)
+                                : SiagaColors.primary,
+                        }}
+                        activeOpacity={0.7}
+                        onPress={isStatusAction ? onStatusAction : onPress}
+                        disabled={isStatusUpdating}
+                    >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>
+                            {isStatusUpdating ? 'Memproses...' : actionLabel}
                         </Text>
-                    </View>
-
-                    <View className="flex-row items-center gap-2">
-                        {/* Status pill */}
-                        <View className="px-3 py-1.5 rounded-lg" style={{ backgroundColor: st.bg }}>
-                            <Text className="text-[10px] font-bold" style={{ color: st.text }}>
-                                {report.status}
-                            </Text>
-                        </View>
-
-                        {/* Action button */}
-                        <TouchableOpacity
-                            className="flex-row items-center gap-1 px-3 py-1.5 rounded-xl"
-                            style={{ backgroundColor: isCritical ? SiagaColors.info : SiagaColors.primary }}
-                            activeOpacity={0.7}
-                            onPress={isStatusAction ? onStatusAction : onPress}
-                            disabled={isStatusUpdating}
-                        >
-                            <Text className="text-[12px] font-bold text-white">
-                                {isStatusUpdating ? 'Memproses...' : actionLabel}
-                            </Text>
-                            <ArrowRight size={11} color="#fff" weight="bold" />
-                        </TouchableOpacity>
-                    </View>
+                        <ArrowRight size={11} color="#fff" weight="bold" />
+                    </TouchableOpacity>
                 </View>
             </View>
         </TouchableOpacity>
@@ -291,6 +293,7 @@ export default function GovLaporanScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showSort, setShowSort] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(true);
+    const [showCategories, setShowCategories] = useState(false);
     const [apiReports, setApiReports] = useState<ReportData[]>([]);
     const [stats, setStats] = useState<ReportStats | null>(null);
     const [refreshing, setRefreshing] = useState(false);
@@ -499,50 +502,16 @@ export default function GovLaporanScreen() {
         }
     }, [loadReports, openReportDetail, showToast]);
 
-    // Build SUMMARY_STATS dari server stats
-    const SUMMARY_STATS_LIVE = useMemo(() => {
+    // Build KPI items from server stats
+    const kpiItems = useMemo(() => {
         const pending = stats?.pending ?? 0;
         const inProgress = stats?.inProgress ?? 0;
         const resolved = stats?.resolved ?? 0;
-        const total = stats?.total ?? 0;
-        const pct = total > 0 ? `${Math.round(resolved / total * 100)}%` : '0%';
         return [
-            {
-                value: String(pending),
-                label: 'Butuh Tinjau',
-                icon: FilePlus,
-                color: SiagaColors.danger,
-                bg: '#fef2f2',
-                trend: pending > 0 ? `${pending} antrian aktif` : 'Tidak ada antrian',
-                filterKey: 'Baru' as const,
-            },
-            {
-                value: String(inProgress),
-                label: 'Sedang Ditindak',
-                icon: HourglassMedium,
-                color: '#d97706',
-                bg: '#fffbeb',
-                trend: inProgress > 0 ? 'Perlu pemantauan' : 'Belum ada proses aktif',
-                filterKey: 'Diproses' as const,
-            },
-            {
-                value: String(resolved),
-                label: 'Selesai',
-                icon: CheckCircle,
-                color: SiagaColors.success,
-                bg: '#ecfdf5',
-                trend: `${pct} tingkat penyelesaian`,
-                filterKey: 'Selesai' as const,
-            },
-            {
-                value: String(kritisCount),
-                label: 'Prioritas Kritis',
-                icon: WarningDiamond,
-                color: SiagaColors.info,
-                bg: '#eff6ff',
-                trend: kritisCount > 0 ? 'Respons segera' : 'Kondisi stabil',
-                filterKey: 'Darurat' as const,
-            },
+            { value: String(pending), label: 'Menunggu', icon: FilePlus, color: SiagaColors.danger, bg: '#fef2f2', filterKey: 'Baru' as SummaryFilterKey },
+            { value: String(inProgress), label: 'Diproses', icon: HourglassMedium, color: '#d97706', bg: '#fffbeb', filterKey: 'Diproses' as SummaryFilterKey },
+            { value: String(resolved), label: 'Selesai', icon: CheckCircle, color: SiagaColors.success, bg: '#ecfdf5', filterKey: 'Selesai' as SummaryFilterKey },
+            { value: String(kritisCount), label: 'Kritis', icon: WarningDiamond, color: SiagaColors.info, bg: '#eff6ff', filterKey: 'Darurat' as SummaryFilterKey },
         ];
     }, [kritisCount, stats]);
 
@@ -556,58 +525,26 @@ export default function GovLaporanScreen() {
         { key: 'Ditolak', count: REPORTS_LIVE.filter(r => r.status === 'Ditolak').length },
     ], [REPORTS_LIVE, kritisCount]);
 
-    // Hitung CATEGORY_DIST dari live data
-    const CATEGORY_DIST_LIVE = useMemo(() => {
+    const CATEGORY_DIST = useMemo(() => {
         const cats = [
-            { label: 'Banjir', color: '#3b82f6', bg: '#eff6ff' },
-            { label: 'Jalan Rusak', color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'Sampah', color: '#10b981', bg: '#ecfdf5' },
-            { label: 'Longsor', color: '#f97316', bg: '#fff7ed' },
-            { label: 'Kebakaran', color: '#ef4444', bg: '#fef2f2' },
+            { label: 'Banjir', color: '#3b82f6' },
+            { label: 'Jalan Rusak', color: '#f59e0b' },
+            { label: 'Sampah', color: '#10b981' },
+            { label: 'Longsor', color: '#f97316' },
+            { label: 'Kebakaran', color: '#ef4444' },
         ];
         return cats.map(c => {
             const count = REPORTS_LIVE.filter(r => r.category === c.label).length;
             return { ...c, count, pct: REPORTS_LIVE.length > 0 ? Math.round(count / REPORTS_LIVE.length * 100) : 0 };
-        });
+        }).sort((a, b) => b.count - a.count);
     }, [REPORTS_LIVE]);
 
-    const dominantCategory = useMemo(() => {
-        if (REPORTS_LIVE.length === 0) return null;
-
-        return CATEGORY_DIST_LIVE.reduce<(typeof CATEGORY_DIST_LIVE)[number] | null>(
-            (top, item) => {
-                if (!top || item.count > top.count) return item;
-                return top;
-            },
-            null,
-        );
-    }, [CATEGORY_DIST_LIVE, REPORTS_LIVE.length]);
-
-    const summarySnapshotItems = useMemo(
-        () => [
-            {
-                label: 'Total Masuk',
-                value: String(REPORTS_LIVE.length),
-                helper: REPORTS_LIVE.length > 0 ? 'laporan terpantau' : 'belum ada data',
-            },
-            {
-                label: 'Filter Aktif',
-                value: activeFilter,
-                helper: activeFilter === 'Semua' ? 'seluruh status' : 'fokus monitoring',
-            },
-            {
-                label: 'Urutan Data',
-                value: activeSort,
-                helper: 'mode tampilan',
-            },
-            {
-                label: 'Respons Kritis',
-                value: `${kritisCount}`,
-                helper: kritisCount > 0 ? 'butuh tindak cepat' : 'kondisi stabil',
-            },
-        ],
-        [REPORTS_LIVE.length, activeFilter, activeSort, kritisCount],
-    );
+    // Resolution rate
+    const resolutionPct = useMemo(() => {
+        const total = stats?.total ?? 0;
+        const resolved = stats?.resolved ?? 0;
+        return total > 0 ? Math.round(resolved / total * 100) : 0;
+    }, [stats]);
 
     const filteredReports = useMemo(() => {
         const filtered = REPORTS_LIVE.filter((r) => {
@@ -652,7 +589,7 @@ export default function GovLaporanScreen() {
         [filteredReports, visibleCount],
     );
 
-    const remainingReportsCount = Math.max(filteredReports.length - visibleReports.length, 0);
+    const remainingCount = Math.max(filteredReports.length - visibleReports.length, 0);
 
     const actionableReport = useMemo(
         () => filteredReports.find(r => r.status === 'Diproses') || REPORTS_LIVE.find(r => r.status === 'Diproses') || null,
@@ -673,376 +610,220 @@ export default function GovLaporanScreen() {
     }, [actionableReport, handleStatusAction, showToast]);
 
     const handleLoadMore = useCallback(() => {
-        if (remainingReportsCount > 0) {
+        if (remainingCount > 0) {
             setVisibleCount(prev => prev + 10);
             return;
         }
 
         onRefresh();
-    }, [onRefresh, remainingReportsCount]);
+    }, [onRefresh, remainingCount]);
 
     return (
-        <View className="flex-1" style={{ backgroundColor: '#f4f7fb' }}>
+        <View style={{ flex: 1, backgroundColor: '#f4f7fb' }}>
 
-            {/* ── HEADER ───────────────────────────────────────────────── */}
+            {/* ── HEADER ───────────────────────────────────────────── */}
             <View style={{ paddingTop: insets.top, backgroundColor: SiagaColors.primary }}>
-                {/* Decorative circles */}
-                <View style={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.04)' }} />
-                <View style={{ position: 'absolute', left: -30, bottom: -30, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.03)' }} />
-
-                <View className="px-5 pb-4 pt-3">
-                    {/* Top row */}
-                    <View className="flex-row items-center justify-between mb-4">
-                        <View className="flex-row items-center gap-2.5">
-                            <View
-                                className="w-9 h-9 rounded-xl items-center justify-center"
-                                style={{ backgroundColor: SiagaColors.info }}
-                            >
-                                <ClipboardText size={20} color="#fff" weight="duotone" />
+                <View style={{ paddingHorizontal: 20, paddingBottom: 16, paddingTop: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: SiagaColors.info, alignItems: 'center', justifyContent: 'center' }}>
+                                <ClipboardText size={19} color="#fff" weight="duotone" />
                             </View>
                             <View>
-                                <Text className="text-[17px] font-extrabold text-white tracking-tight">
+                                <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.3 }}>
                                     Manajemen Laporan
                                 </Text>
-                                <Text className="text-[10px] font-semibold text-white/40 uppercase tracking-[2px]">
-                                    Kota Bandung · {apiReports.length} Laporan
+                                <Text style={{ fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5 }}>
+                                    {apiReports.length} LAPORAN AKTIF
                                 </Text>
                             </View>
                         </View>
 
-                        <View className="flex-row items-center gap-2">
-                            {/* Analytics toggle */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <TouchableOpacity
                                 onPress={toggleAnalytics}
-                                className="w-9 h-9 rounded-xl items-center justify-center"
-                                style={{ backgroundColor: showAnalytics ? SiagaColors.info : 'rgba(255,255,255,0.1)' }}
+                                style={{
+                                    width: 36, height: 36, borderRadius: 11,
+                                    backgroundColor: showAnalytics ? SiagaColors.info : 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center', justifyContent: 'center',
+                                }}
                                 activeOpacity={0.7}
                             >
-                                <ChartBar size={19} color="#fff" weight="duotone" />
+                                <ChartBar size={18} color="#fff" weight="duotone" />
                             </TouchableOpacity>
-                            {/* Bell */}
                             <TouchableOpacity
                                 onPress={openNotifications}
-                                className="w-9 h-9 rounded-xl items-center justify-center"
-                                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                style={{
+                                    width: 36, height: 36, borderRadius: 11,
+                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                    alignItems: 'center', justifyContent: 'center',
+                                }}
                                 activeOpacity={0.7}
                             >
-                                <Bell size={19} color="rgba(255,255,255,0.75)" weight="duotone" />
-                                <View
-                                    className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                                    style={{ backgroundColor: SiagaColors.danger, borderWidth: 1.5, borderColor: SiagaColors.primary }}
-                                />
+                                <Bell size={18} color="rgba(255,255,255,0.75)" weight="duotone" />
+                                <View style={{
+                                    position: 'absolute', top: 6, right: 6,
+                                    width: 7, height: 7, borderRadius: 4,
+                                    backgroundColor: SiagaColors.danger,
+                                    borderWidth: 1.5, borderColor: SiagaColors.primary,
+                                }} />
                             </TouchableOpacity>
                         </View>
                     </View>
 
-                    {/* Alert bar — critical reports */}
-                    <TouchableOpacity
-                        onPress={handleCriticalAlertPress}
-                        className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-xl"
-                        style={{ backgroundColor: 'rgba(231,76,60,0.18)', borderWidth: 1, borderColor: 'rgba(231,76,60,0.3)' }}
-                        activeOpacity={0.8}
-                    >
-                        <WarningDiamond size={18} color={SiagaColors.danger} weight="fill" />
-                        <Text className="text-[13px] font-bold flex-1" style={{ color: '#fca5a5' }}>
-                            {kritisCount} Laporan <Text className="text-white">Kritis</Text> butuh respons segera
-                        </Text>
-                        <View className="px-1.5 py-0.5 rounded-md" style={{ backgroundColor: SiagaColors.danger }}>
-                            <Text className="text-[9px] font-bold text-white">DARURAT</Text>
-                        </View>
-                        <CaretRight size={15} color="rgba(255,255,255,0.5)" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* ── ANALYTICS PANEL (collapsible) ─────────────────────── */}
-            <Animated.View
-                style={{
-                    overflow: 'hidden',
-                    maxHeight: analyticsHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 640] }),
-                    opacity: analyticsHeight,
-                    backgroundColor: '#f7fbff',
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#e4edf8',
-                }}
-            >
-                <View className="px-4 pt-4 pb-4">
-                    <View
-                        className="rounded-[24px] p-4 mb-3"
-                        style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#e6eef9' }}
-                    >
-                        <View className="flex-row items-start justify-between gap-3 mb-3">
-                            <View className="flex-1">
-                                <View className="flex-row items-center gap-2 mb-1.5">
-                                    <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: SiagaColors.info }} />
-                                    <Text className="text-[15px] font-extrabold" style={{ color: SiagaColors.primary }}>
-                                        Ringkasan Laporan
-                                    </Text>
-                                </View>
-                                <Text className="text-[12px] leading-5" style={{ color: SiagaColors.secondary }}>
-                                    Ketuk kartu untuk memfilter antrian laporan yang paling perlu ditindak.
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={handleCriticalAlertPress}
-                                activeOpacity={0.8}
-                                className="px-3 py-1.5 rounded-full"
-                                style={{ backgroundColor: kritisCount > 0 ? '#fee2e2' : '#eff6ff' }}
-                            >
-                                <Text
-                                    className="text-[11px] font-bold"
-                                    style={{ color: kritisCount > 0 ? SiagaColors.danger : SiagaColors.info }}
-                                >
-                                    {kritisCount} kritis
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View
-                            className="rounded-[20px] px-3.5 py-3 mb-3"
-                            style={{ backgroundColor: '#f8fbff', borderWidth: 1, borderColor: '#e6eef9' }}
+                    {/* Critical alert strip */}
+                    {kritisCount > 0 && (
+                        <TouchableOpacity
+                            onPress={handleCriticalAlertPress}
+                            style={{
+                                flexDirection: 'row', alignItems: 'center', gap: 8,
+                                paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+                                backgroundColor: 'rgba(231,76,60,0.15)',
+                                borderWidth: 1, borderColor: 'rgba(231,76,60,0.25)',
+                            }}
+                            activeOpacity={0.8}
                         >
-                            <View className="flex-row items-center justify-between mb-2.5">
-                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
-                                    Snapshot Operasional
-                                </Text>
-                                <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: '#ffffff' }}>
-                                    <Text className="text-[10px] font-bold" style={{ color: SiagaColors.info }}>
-                                        Ringkas & aktif
-                                    </Text>
-                                </View>
-                            </View>
-                            <View className="flex-row flex-wrap justify-between">
-                                {summarySnapshotItems.map((item) => (
-                                    <View
-                                        key={item.label}
-                                        className="rounded-[18px] px-3 py-3 mb-2.5"
-                                        style={{
-                                            width: '48.5%',
-                                            backgroundColor: '#ffffff',
-                                            borderWidth: 1,
-                                            borderColor: '#edf2f9',
-                                        }}
-                                    >
-                                        <Text className="text-[11px] font-semibold mb-1" style={{ color: SiagaColors.secondary }}>
-                                            {item.label}
-                                        </Text>
-                                        <Text className="text-[17px] font-extrabold mb-0.5" style={{ color: SiagaColors.primary }}>
-                                            {item.value}
-                                        </Text>
-                                        <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
-                                            {item.helper}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-
-                        <View
-                            className="flex-row items-center justify-between mb-3 px-0.5 pb-3"
-                            style={{ borderBottomWidth: 1, borderBottomColor: '#edf2f9' }}
-                        >
-                            <View>
-                                <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>
-                                    Status Penanganan
-                                </Text>
-                                <Text className="text-[11px] mt-0.5" style={{ color: SiagaColors.secondary }}>
-                                    Tap kartu untuk filter cepat ke daftar laporan
-                                </Text>
-                            </View>
-                            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: '#eff6ff' }}>
-                                <Text className="text-[10px] font-bold" style={{ color: SiagaColors.info }}>
-                                    4 indikator
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View className="flex-row flex-wrap gap-3">
-                            {SUMMARY_STATS_LIVE.map((item) => (
-                                <StatCard
-                                    key={item.label}
-                                    item={item}
-                                    onPress={() => applyFilterAndSort(item.filterKey, item.filterKey === 'Darurat' ? 'Prioritas' : 'Terbaru')}
-                                />
-                            ))}
-                        </View>
-                    </View>
-
-                    <View
-                        className="rounded-[24px] p-4"
-                        style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#e6eef9' }}
-                    >
-                        <View className="flex-row items-start justify-between gap-3 mb-3">
-                            <View className="flex-1">
-                                <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
-                                    Distribusi Kategori
-                                </Text>
-                                <Text className="text-[11px] mt-0.5" style={{ color: SiagaColors.secondary }}>
-                                    Komposisi laporan terbaru per jenis kejadian
-                                </Text>
-                            </View>
-                            <View className="items-end">
-                                <View
-                                    className="px-3 py-1 rounded-full"
-                                    style={{ backgroundColor: dominantCategory?.bg ?? '#eff6ff' }}
-                                >
-                                    <Text
-                                        className="text-[11px] font-bold"
-                                        style={{ color: dominantCategory?.color ?? SiagaColors.info }}
-                                    >
-                                        {dominantCategory?.label ?? 'Belum ada'}
-                                    </Text>
-                                </View>
-                                <Text className="text-[10px] mt-1" style={{ color: SiagaColors.secondary }}>
-                                    {REPORTS_LIVE.length} total laporan
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View
-                            className="rounded-[18px] px-3.5 py-3 mb-3"
-                            style={{ backgroundColor: '#f8fbff', borderWidth: 1, borderColor: '#e6eef9' }}
-                        >
-                            <View className="flex-row items-center justify-between gap-3">
-                                <View className="flex-1">
-                                    <Text className="text-[12px] font-bold mb-0.5" style={{ color: SiagaColors.primary }}>
-                                        Kategori Dominan
-                                    </Text>
-                                    <Text className="text-[11px]" style={{ color: SiagaColors.secondary }}>
-                                        {dominantCategory
-                                            ? `${dominantCategory.count} laporan mendominasi antrian saat ini`
-                                            : 'Belum ada distribusi yang bisa ditampilkan'}
-                                    </Text>
-                                </View>
-                                <View className="items-end">
-                                    <Text
-                                        className="text-[18px] font-extrabold"
-                                        style={{ color: dominantCategory?.color ?? SiagaColors.info }}
-                                    >
-                                        {dominantCategory ? `${dominantCategory.pct}%` : '0%'}
-                                    </Text>
-                                    <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
-                                        dari total data
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        <View className="gap-2.5">
-                            {CATEGORY_DIST_LIVE.map((cat, i) => (
-                                <View
-                                    key={i}
-                                    className="rounded-[18px] px-3.5 py-3"
-                                    style={{ backgroundColor: '#fbfdff', borderWidth: 1, borderColor: '#edf2f9' }}
-                                >
-                                    <View className="flex-row items-center justify-between mb-2">
-                                        <View className="flex-row items-center gap-1.5">
-                                            <View
-                                                className="rounded-full"
-                                                style={{ width: 10, height: 10, backgroundColor: cat.color }}
-                                            />
-                                            <Text className="text-[12px] font-semibold" style={{ color: SiagaColors.primary }}>
-                                                {cat.label}
-                                            </Text>
-                                        </View>
-                                        <View className="items-end">
-                                            <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
-                                                {cat.count} laporan
-                                            </Text>
-                                            <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
-                                                {cat.pct}% dari total
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: cat.bg }}>
-                                        <View
-                                            className="h-full rounded-full"
-                                            style={{ backgroundColor: cat.color, width: `${cat.pct}%` }}
-                                        />
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-                </View>
-            </Animated.View>
-
-            {/* ── SEARCH BAR ────────────────────────────────────────── */}
-            <View
-                className="px-4 pt-3 pb-2"
-                style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}
-            >
-                <View
-                    className="flex-row items-center gap-2 px-3.5 rounded-xl"
-                    style={{
-                        backgroundColor: '#f4f7fb',
-                        borderWidth: 1,
-                        borderColor: '#edf2f9',
-                        height: 40,
-                    }}
-                >
-                    <MagnifyingGlass size={18} color={SiagaColors.secondary} weight="duotone" />
-                    <TextInput
-                        placeholder="Cari ID, judul, atau lokasi laporan..."
-                        placeholderTextColor={SiagaColors.secondary}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        style={{
-                            flex: 1,
-                            fontSize: 14,
-                            color: SiagaColors.primary,
-                            paddingVertical: 0,
-                        }}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
-                            <XCircle size={18} color={SiagaColors.secondary} weight="fill" />
+                            <WarningDiamond size={16} color={SiagaColors.danger} weight="fill" />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#fca5a5', flex: 1 }}>
+                                {kritisCount} laporan kritis butuh respons segera
+                            </Text>
+                            <CaretRight size={14} color="rgba(255,255,255,0.4)" />
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
 
-            {/* ── FILTER TABS + SORT ─────────────────────────────────── */}
-            <View
-                className="pt-2 pb-2"
-                style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}
+            {/* ── ANALYTICS PANEL (collapsible) ────────────────────── */}
+            <Animated.View
+                style={{
+                    overflow: 'hidden',
+                    maxHeight: analyticsHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 500] }),
+                    opacity: analyticsHeight,
+                }}
             >
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-                >
-                    {FILTER_TABS_LIVE.map((tab) => {
+                <View style={{ padding: 16, gap: 12 }}>
+                    {/* KPI row — 4 compact cards */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {kpiItems.map(item => (
+                            <KpiPill
+                                key={item.label}
+                                item={item}
+                                active={activeFilter === item.filterKey}
+                                onPress={() => applyFilterAndSort(item.filterKey, item.filterKey === 'Darurat' ? 'Prioritas' : 'Terbaru')}
+                            />
+                        ))}
+                    </View>
+
+                    {/* Resolution rate + category distribution */}
+                    <View style={{
+                        backgroundColor: '#fff', borderRadius: 16, padding: 14,
+                        borderWidth: 1, borderColor: '#edf2f9',
+                    }}>
+                        {/* Resolution rate */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                            <View>
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.primary }}>
+                                    Tingkat Penyelesaian
+                                </Text>
+                                <Text style={{ fontSize: 11, color: SiagaColors.secondary, marginTop: 2 }}>
+                                    {stats?.resolved ?? 0} dari {stats?.total ?? 0} laporan selesai
+                                </Text>
+                            </View>
+                            <Text style={{ fontSize: 22, fontWeight: '800', color: resolutionPct >= 70 ? SiagaColors.success : resolutionPct >= 40 ? '#d97706' : SiagaColors.danger }}>
+                                {resolutionPct}%
+                            </Text>
+                        </View>
+
+                        {/* Progress bar */}
+                        <View style={{ height: 6, borderRadius: 3, backgroundColor: '#f1f5f9', marginBottom: 14, overflow: 'hidden' }}>
+                            <View style={{
+                                height: '100%', borderRadius: 3,
+                                backgroundColor: resolutionPct >= 70 ? SiagaColors.success : resolutionPct >= 40 ? '#d97706' : SiagaColors.danger,
+                                width: `${Math.min(resolutionPct, 100)}%`,
+                            }} />
+                        </View>
+
+                        {/* Category distribution — collapsible */}
+                        <TouchableOpacity
+                            onPress={() => setShowCategories(!showCategories)}
+                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: SiagaColors.primary }}>
+                                Distribusi Kategori
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '600', color: SiagaColors.info }}>
+                                    {showCategories ? 'Tutup' : 'Lihat'}
+                                </Text>
+                                <CaretDown
+                                    size={12}
+                                    color={SiagaColors.info}
+                                    weight="bold"
+                                    style={{ transform: [{ rotate: showCategories ? '180deg' : '0deg' }] }}
+                                />
+                            </View>
+                        </TouchableOpacity>
+
+                        {showCategories && (
+                            <View style={{ gap: 8, marginTop: 10 }}>
+                                {CATEGORY_DIST.map(cat => (
+                                    <CategoryRow key={cat.label} label={cat.label} count={cat.count} pct={cat.pct} color={cat.color} />
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Animated.View>
+
+            {/* ── SEARCH + FILTERS ─────────────────────────────────── */}
+            <View style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, gap: 8 }}>
+                {/* Search bar */}
+                <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 8,
+                    paddingHorizontal: 12, height: 38, borderRadius: 12,
+                    backgroundColor: '#f4f7fb', borderWidth: 1, borderColor: '#edf2f9',
+                }}>
+                    <MagnifyingGlass size={16} color={SiagaColors.secondary} weight="duotone" />
+                    <TextInput
+                        placeholder="Cari ID, judul, atau lokasi..."
+                        placeholderTextColor={SiagaColors.secondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        style={{ flex: 1, fontSize: 13, color: SiagaColors.primary, paddingVertical: 0 }}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+                            <XCircle size={16} color={SiagaColors.secondary} weight="fill" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Filter tabs + sort */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    {FILTER_TABS_LIVE.map(tab => {
                         const isActive = activeFilter === tab.key;
                         return (
                             <TouchableOpacity
                                 key={tab.key}
                                 onPress={() => setActiveFilter(tab.key)}
-                                className="flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-xl"
                                 style={{
+                                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                                    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
                                     backgroundColor: isActive ? SiagaColors.primary : '#f4f7fb',
-                                    borderWidth: 1,
-                                    borderColor: isActive ? SiagaColors.primary : '#edf2f9',
+                                    borderWidth: 1, borderColor: isActive ? SiagaColors.primary : '#edf2f9',
                                 }}
                                 activeOpacity={0.7}
                             >
-                                <Text
-                                    className="text-[13px]"
-                                    style={{
-                                        fontWeight: isActive ? '700' : '600',
-                                        color: isActive ? '#fff' : SiagaColors.secondary,
-                                    }}
-                                >
+                                <Text style={{ fontSize: 12, fontWeight: isActive ? '700' : '600', color: isActive ? '#fff' : SiagaColors.secondary }}>
                                     {tab.key}
                                 </Text>
-                                <View
-                                    className="min-w-[16px] h-4 rounded-full items-center justify-center px-1"
-                                    style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#edf2f9' }}
-                                >
-                                    <Text
-                                        className="text-[10px] font-bold"
-                                        style={{ color: isActive ? '#fff' : SiagaColors.secondary }}
-                                    >
+                                <View style={{
+                                    minWidth: 16, height: 16, borderRadius: 8,
+                                    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+                                    backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#edf2f9',
+                                }}>
+                                    <Text style={{ fontSize: 10, fontWeight: '700', color: isActive ? '#fff' : SiagaColors.secondary }}>
                                         {tab.count}
                                     </Text>
                                 </View>
@@ -1050,25 +831,20 @@ export default function GovLaporanScreen() {
                         );
                     })}
 
-                    {/* Divider */}
-                    <View style={{ width: 1, height: 28, backgroundColor: '#edf2f9', alignSelf: 'center', marginHorizontal: 4 }} />
+                    <View style={{ width: 1, height: 24, backgroundColor: '#edf2f9', alignSelf: 'center', marginHorizontal: 2 }} />
 
-                    {/* Sort button */}
                     <TouchableOpacity
                         onPress={() => setShowSort(!showSort)}
-                        className="flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-xl"
                         style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 5,
+                            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
                             backgroundColor: showSort ? '#eff6ff' : '#f4f7fb',
-                            borderWidth: 1,
-                            borderColor: showSort ? SiagaColors.info : '#edf2f9',
+                            borderWidth: 1, borderColor: showSort ? SiagaColors.info : '#edf2f9',
                         }}
                         activeOpacity={0.7}
                     >
-                        <SortAscending size={16} color={showSort ? SiagaColors.info : SiagaColors.secondary} weight="duotone" />
-                        <Text
-                            className="text-[13px] font-semibold"
-                            style={{ color: showSort ? SiagaColors.info : SiagaColors.secondary }}
-                        >
+                        <SortAscending size={14} color={showSort ? SiagaColors.info : SiagaColors.secondary} weight="duotone" />
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: showSort ? SiagaColors.info : SiagaColors.secondary }}>
                             {activeSort}
                         </Text>
                     </TouchableOpacity>
@@ -1076,53 +852,39 @@ export default function GovLaporanScreen() {
 
                 {/* Sort dropdown */}
                 {showSort && (
-                    <View
-                        className="mx-4 mt-2 rounded-xl overflow-hidden"
-                        style={{
-                            backgroundColor: '#fff',
-                            borderWidth: 1,
-                            borderColor: '#edf2f9',
-                            elevation: 4,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.08,
-                            shadowRadius: 8,
-                        }}
-                    >
-                        <View className="flex-row">
-                            {SORT_OPTIONS.map((opt, i) => {
-                                const isActive = activeSort === opt;
-                                return (
-                                    <TouchableOpacity
-                                        key={opt}
-                                        onPress={() => { setActiveSort(opt); setShowSort(false); }}
-                                        className="flex-1 py-2.5 items-center"
-                                        style={{
-                                            backgroundColor: isActive ? '#eff6ff' : '#fff',
-                                            borderRightWidth: i < SORT_OPTIONS.length - 1 ? 1 : 0,
-                                            borderRightColor: '#f1f5f9',
-                                        }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text
-                                            className="text-[12px] font-bold"
-                                            style={{ color: isActive ? SiagaColors.info : SiagaColors.secondary }}
-                                        >
-                                            {opt}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                    <View style={{
+                        flexDirection: 'row', borderRadius: 12, overflow: 'hidden',
+                        borderWidth: 1, borderColor: '#edf2f9', backgroundColor: '#fff',
+                    }}>
+                        {SORT_OPTIONS.map((opt, i) => {
+                            const isActive = activeSort === opt;
+                            return (
+                                <TouchableOpacity
+                                    key={opt}
+                                    onPress={() => { setActiveSort(opt); setShowSort(false); }}
+                                    style={{
+                                        flex: 1, paddingVertical: 8, alignItems: 'center',
+                                        backgroundColor: isActive ? '#eff6ff' : '#fff',
+                                        borderRightWidth: i < SORT_OPTIONS.length - 1 ? 1 : 0,
+                                        borderRightColor: '#f1f5f9',
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? SiagaColors.info : SiagaColors.secondary }}>
+                                        {opt}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 )}
             </View>
 
-            {/* ── REPORT LIST ───────────────────────────────────────── */}
+            {/* ── REPORT LIST ──────────────────────────────────────── */}
             <FlatList
-                className="flex-1"
+                style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 10 }}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -1132,56 +894,52 @@ export default function GovLaporanScreen() {
                     />
                 }
                 data={visibleReports}
-                keyExtractor={(item) => item.id}
+                keyExtractor={item => item.id}
                 initialNumToRender={5}
                 maxToRenderPerBatch={8}
                 windowSize={7}
                 ListHeaderComponent={
-                    <Animated.View
-                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                        className="gap-3"
-                    >
-                        <View className="flex-row items-center justify-between">
-                            <View className="flex-row items-center gap-1.5">
-                                <View className="w-1 h-4 rounded-full" style={{ backgroundColor: SiagaColors.info }} />
-                                <Text className="text-[14px] font-bold" style={{ color: SiagaColors.primary }}>
+                    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], gap: 8, marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: SiagaColors.info }} />
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: SiagaColors.primary }}>
                                     {filteredReports.length} Laporan
                                     {activeFilter !== 'Semua' && (
                                         <Text style={{ color: SiagaColors.secondary }}> · {activeFilter}</Text>
                                     )}
                                 </Text>
                             </View>
-
-                            <View className="px-3 py-1 rounded-full" style={{ backgroundColor: '#eff6ff' }}>
-                                <Text className="text-[11px] font-bold" style={{ color: SiagaColors.info }}>
-                                    {visibleReports.length}/{filteredReports.length} ditampilkan
-                                </Text>
-                            </View>
+                            <Text style={{ fontSize: 10, fontWeight: '600', color: SiagaColors.info }}>
+                                {visibleReports.length}/{filteredReports.length}
+                            </Text>
                         </View>
 
-                        {/* Quick action buttons */}
-                        <View className="flex-row items-center gap-2">
+                        {/* Quick actions */}
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
                             <TouchableOpacity
                                 onPress={openNotifications}
-                                className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
-                                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+                                    backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9',
+                                }}
                                 activeOpacity={0.7}
                             >
-                                <Megaphone size={14} color={SiagaColors.info} weight="duotone" />
-                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>
-                                    Broadcast
-                                </Text>
+                                <Megaphone size={13} color={SiagaColors.info} weight="duotone" />
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.info }}>Broadcast</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={handleBulkComplete}
-                                className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg"
-                                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9' }}
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+                                    backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9',
+                                }}
                                 activeOpacity={0.7}
                             >
-                                <CheckSquare size={14} color={SiagaColors.success} weight="duotone" />
-                                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.success }}>
-                                    Selesaikan Aktif
-                                </Text>
+                                <CheckSquare size={13} color={SiagaColors.success} weight="duotone" />
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: SiagaColors.success }}>Selesaikan Aktif</Text>
                             </TouchableOpacity>
                         </View>
                     </Animated.View>
@@ -1195,58 +953,46 @@ export default function GovLaporanScreen() {
                     />
                 )}
                 ListEmptyComponent={
-                    <View className="flex-1 items-center justify-center py-16">
-                        <View
-                            className="w-16 h-16 rounded-2xl items-center justify-center mb-3"
-                            style={{ backgroundColor: '#f4f7fb' }}
-                        >
-                            <ClipboardText size={32} color={SiagaColors.secondary} weight="duotone" />
+                    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+                        <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: '#f4f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                            <ClipboardText size={28} color={SiagaColors.secondary} weight="duotone" />
                         </View>
-                        <Text className="text-[15px] font-bold mb-1" style={{ color: SiagaColors.primary }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: SiagaColors.primary, marginBottom: 4 }}>
                             Tidak ditemukan
                         </Text>
-                        <Text className="text-[13px] text-center" style={{ color: SiagaColors.secondary, maxWidth: 220 }}>
-                            Tidak ada laporan yang cocok dengan filter atau pencarian kamu.
+                        <Text style={{ fontSize: 12, color: SiagaColors.secondary, textAlign: 'center', maxWidth: 200 }}>
+                            Tidak ada laporan yang cocok dengan filter saat ini.
                         </Text>
                         <TouchableOpacity
                             onPress={() => { setActiveFilter('Semua'); setSearchQuery(''); }}
-                            className="mt-4 px-5 py-2.5 rounded-xl"
-                            style={{ backgroundColor: SiagaColors.primary }}
+                            style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: SiagaColors.primary }}
                             activeOpacity={0.8}
                         >
-                            <Text className="text-[13px] font-bold text-white">Reset Filter</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>Reset Filter</Text>
                         </TouchableOpacity>
                     </View>
                 }
                 ListFooterComponent={
                     filteredReports.length > 0 ? (
-                        <>
+                        <View style={{ gap: 4 }}>
                             <TouchableOpacity
                                 onPress={handleLoadMore}
-                                className="py-3 rounded-2xl flex-row items-center justify-center gap-1.5"
                                 style={{
-                                    backgroundColor: '#fff',
-                                    borderWidth: 1,
-                                    borderColor: '#edf2f9',
-                                    elevation: 1,
-                                    shadowColor: '#000',
-                                    shadowOffset: { width: 0, height: 1 },
-                                    shadowOpacity: 0.04,
-                                    shadowRadius: 3,
+                                    paddingVertical: 10, borderRadius: 14,
+                                    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                    backgroundColor: '#fff', borderWidth: 1, borderColor: '#edf2f9',
                                 }}
                                 activeOpacity={0.7}
                             >
-                                <ArrowClockwise size={15} color={SiagaColors.info} weight="duotone" />
-                                <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
-                                    {remainingReportsCount > 0 ? `Muat ${Math.min(10, remainingReportsCount)} Laporan Lagi` : 'Segarkan Data'}
+                                <ArrowClockwise size={14} color={SiagaColors.info} weight="duotone" />
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: SiagaColors.info }}>
+                                    {remainingCount > 0 ? `Muat ${Math.min(10, remainingCount)} Lagi` : 'Segarkan Data'}
                                 </Text>
                             </TouchableOpacity>
-                            <View className="items-center pt-1">
-                                <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>
-                                    Data diperbarui otomatis setiap 30 detik
-                                </Text>
-                            </View>
-                        </>
+                            <Text style={{ fontSize: 10, color: SiagaColors.secondary, textAlign: 'center' }}>
+                                Data diperbarui otomatis setiap kunjungan halaman
+                            </Text>
+                        </View>
                     ) : null
                 }
             />
