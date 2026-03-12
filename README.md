@@ -1,5 +1,7 @@
 # SIAGA — Sistem Informasi dan Aksi untuk Gerakan Aman
 
+[English](README.md) | [Bahasa Indonesia](README.id.md)
+
 **SIAGA** is a civic technology mobile application that bridges the gap between citizens and local government to enable transparent, data-driven environmental and social issue reporting. Built for ProxoCoris 2026.
 
 > **Competition**: ProxoCoris 2026
@@ -87,7 +89,7 @@ The platform integrates AI-powered assistance (Google Gemini), **Supabase Realti
 | Supabase JS | 2.98 | Realtime subscriptions and direct client access |
 | Bottom Sheet | 5.2 | Gesture-driven bottom sheet component |
 
-### Backend ([separate repository](https://github.com/orgs/StackHorizon-ProxoCoris/repositories))
+### Backend ([separate repository](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp))
 
 | Technology | Version | Purpose |
 |---|---|---|
@@ -112,7 +114,7 @@ The platform integrates AI-powered assistance (Google Gemini), **Supabase Realti
 
 | Repository | Description |
 |---|---|
-| [Backend API](https://github.com/orgs/StackHorizon-ProxoCoris/repositories) | Express.js REST API server |
+| [Backend API](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp) | Express.js REST API server |
 | **Frontend (this repo)** | React Native mobile application |
 
 ---
@@ -124,21 +126,50 @@ The platform integrates AI-powered assistance (Google Gemini), **Supabase Realti
 - **Expo CLI**: `npm install -g expo-cli`
 - **EAS CLI** (for builds): `npm install -g eas-cli`
 - **Android Studio** with Android SDK (for emulator) or a physical Android device with Expo Go
-- A running instance of the [Backend API](https://github.com/orgs/StackHorizon-ProxoCoris/repositories)
+- A running instance of the [Backend API](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp)
 
 ---
 
 ## Installation
 
-1. Clone the repository:
+Because SIAGA relies on both a frontend application and a backend API, **you must set up and run the backend first** before the frontend can function properly.
 
+### Part 1: Backend Setup
+
+1. Clone the backend repository:
 ```bash
-git clone https://github.com/StackHorizon-ProxoCoris/<frontend-repo-name>.git
-cd <frontend-repo-name>
+git clone https://github.com/StackHorizon-ProxoCoris/backend-mobileapp.git
+cd backend-mobileapp
 ```
 
 2. Install dependencies:
+```bash
+npm install
+```
 
+3. Configure environment variables (Supabase, Gemini, etc.):
+```bash
+cp .env.example .env
+```
+*(Edit `.env` with your credentials as described in the backend README)*
+
+4. Run database migrations (001-015) in your Supabase SQL Editor.
+
+5. Start the backend server:
+```bash
+npm run dev
+```
+*(For detailed backend instructions, see the [Backend README](https://github.com/StackHorizon-ProxoCoris/backend-mobileapp))*
+
+### Part 2: Frontend Setup
+
+1. Open a new terminal and clone the frontend repository:
+```bash
+git clone https://github.com/StackHorizon-ProxoCoris/frontend-mobileapp.git
+cd frontend-mobileapp
+```
+
+2. Install dependencies:
 ```bash
 npm install
 ```
@@ -309,15 +340,18 @@ frontend-mobileapp/
 ---
 
 ## Technical Documentation
+### Technical Documentation
 
-Detailed technical documentation is available in the [`docs/`](./docs/) directory:
+The primary documentation is written in English. You can also find the full set of documentation translated into **Bahasa Indonesia** in the [docs/id/](./docs/id/) directory.
 
-| Document | Description |
-|---|---|
-| [Architecture](./docs/ARCHITECTURE.md) | System architecture diagram and layer descriptions |
-| [ERD](./docs/ERD.md) | Entity Relationship Diagram and data model |
-| [System Flow](./docs/SYSTEM_FLOW.md) | Core user journey and process flow diagrams |
-| [API Documentation](./docs/API_DOCUMENTATION.md) | Complete REST API endpoint reference |
+| Document | English Version (Primary) | Indonesian Version |
+|---|---|---|
+| Architecture | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | [ARCHITECTURE.md](./docs/id/ARCHITECTURE.md) |
+| ERD | [ERD.md](./docs/ERD.md) | [ERD.md](./docs/id/ERD.md) |
+| Data Structures | [DATA_STRUCTURES.md](./docs/DATA_STRUCTURES.md) | [DATA_STRUCTURES.md](./docs/id/DATA_STRUCTURES.md) |
+| System Flow | [SYSTEM_FLOW.md](./docs/SYSTEM_FLOW.md) | [SYSTEM_FLOW.md](./docs/id/SYSTEM_FLOW.md) |
+| API Documentation | [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) | [API_DOCUMENTATION.md](./docs/id/API_DOCUMENTATION.md) |
+
 
 ---
 
