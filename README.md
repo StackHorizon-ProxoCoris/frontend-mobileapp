@@ -316,6 +316,7 @@ Detailed technical documentation is available in the [`docs/`](./docs/) director
 |---|---|
 | [Architecture](./docs/ARCHITECTURE.md) | System architecture diagram and layer descriptions |
 | [ERD](./docs/ERD.md) | Entity Relationship Diagram and data model |
+| [Data Structures](./docs/DATA_STRUCTURES.md) | Detailed entity definitions, columns, constraints, and indexing |
 | [System Flow](./docs/SYSTEM_FLOW.md) | Core user journey and process flow diagrams |
 | [API Documentation](./docs/API_DOCUMENTATION.md) | Complete REST API endpoint reference |
 
