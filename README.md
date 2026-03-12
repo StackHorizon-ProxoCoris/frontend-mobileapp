@@ -309,16 +309,18 @@ frontend-mobileapp/
 ---
 
 ## Technical Documentation
+### Technical Documentation
 
-Detailed technical documentation is available in the [`docs/`](./docs/) directory:
+The primary documentation is written in English. You can also find the full set of documentation translated into **Bahasa Indonesia** in the [docs/id/](./docs/id/) directory.
 
-| Document | Description |
-|---|---|
-| [Architecture](./docs/ARCHITECTURE.md) | System architecture diagram and layer descriptions |
-| [ERD](./docs/ERD.md) | Entity Relationship Diagram and data model |
-| [Data Structures](./docs/DATA_STRUCTURES.md) | Detailed entity definitions, columns, constraints, and indexing |
-| [System Flow](./docs/SYSTEM_FLOW.md) | Core user journey and process flow diagrams |
-| [API Documentation](./docs/API_DOCUMENTATION.md) | Complete REST API endpoint reference |
+| Document | English Version (Primary) | Indonesian Version |
+|---|---|---|
+| Architecture | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | [ARCHITECTURE.md](./docs/id/ARCHITECTURE.md) |
+| ERD | [ERD.md](./docs/ERD.md) | [ERD.md](./docs/id/ERD.md) |
+| Data Structures | [DATA_STRUCTURES.md](./docs/DATA_STRUCTURES.md) | [DATA_STRUCTURES.md](./docs/id/DATA_STRUCTURES.md) |
+| System Flow | [SYSTEM_FLOW.md](./docs/SYSTEM_FLOW.md) | [SYSTEM_FLOW.md](./docs/id/SYSTEM_FLOW.md) |
+| API Documentation | [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) | [API_DOCUMENTATION.md](./docs/id/API_DOCUMENTATION.md) |
+
 
 ---
 

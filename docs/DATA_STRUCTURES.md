@@ -1,28 +1,28 @@
-# Struktur Data Utama & Entitas
+# Core Data Structures & Entities
 
-Dokumen ini menjelaskan struktur data utama dan entitas yang digunakan dalam sistem **SIAGA**. Seluruh data disimpan di **Supabase (PostgreSQL)** dan dikelola melalui 14 file migrasi SQL sekuensial.
+This document describes the core data structures and entities used in **SIAGA**. All data is stored in **Supabase (PostgreSQL)** and managed through 14 sequential SQL migration files.
 
 ---
 
-## Ringkasan Entitas
+## Entity Overview
 
 ```mermaid
 graph TB
-    subgraph Core["Entitas Inti"]
-        UM["users_metadata<br/>Profil Pengguna"]
-        R["reports<br/>Laporan Masalah"]
-        A["actions<br/>Aksi Positif"]
-        C["comments<br/>Komentar"]
+    subgraph Core["Core Entities"]
+        UM["users_metadata<br/>User Profiles"]
+        R["reports<br/>Issue Reports"]
+        A["actions<br/>Positive Actions"]
+        C["comments<br/>Comments"]
     end
 
-    subgraph Relations["Entitas Relasi"]
+    subgraph Relations["Relationship Entities"]
         RV["report_votes"]
         RVF["report_verifications"]
         AP["action_participants"]
         BM["bookmarks"]
     end
 
-    subgraph System["Entitas Sistem"]
+    subgraph System["System Entities"]
         N["notifications"]
         DT["device_tokens"]
         F["feedbacks"]
@@ -37,306 +37,306 @@ graph TB
 
 ---
 
-## 1. `users_metadata` — Profil Pengguna
+## 1. `users_metadata` — User Profiles
 
-Menyimpan data profil pengguna yang terhubung dengan **Supabase Auth** melalui `auth_id`. Mendukung tiga peran: **warga**, **pemerintah**, dan **admin**.
+Stores extended user profile data linked to **Supabase Auth** via `auth_id`. Supports three roles: **citizen** (`user`), **government** (`pemerintah`), and **admin**.
 
-| Kolom | Tipe | Constraint | Deskripsi |
+| Column | Type | Constraint | Description |
 |---|---|---|---|
-| `id` | UUID | PK | ID unik profil |
-| `auth_id` | UUID | FK, UNIQUE → `auth.users` | Link ke akun Supabase Auth |
-| `full_name` | VARCHAR(100) | NOT NULL | Nama lengkap pengguna |
-| `initials` | VARCHAR(4) | NOT NULL | Inisial nama (auto-generated) |
-| `email` | VARCHAR(255) | NOT NULL | Alamat email |
-| `phone` | VARCHAR(20) | — | Nomor telepon |
-| `bio` | TEXT | — | Biografi singkat |
-| `district` | VARCHAR(100) | — | Kecamatan |
-| `city` | VARCHAR(100) | — | Kota |
-| `province` | VARCHAR(100) | — | Provinsi |
-| `lat` | DOUBLE PRECISION | — | Latitude lokasi |
-| `lng` | DOUBLE PRECISION | — | Longitude lokasi |
-| `eco_points` | INTEGER | DEFAULT 0 | Poin gamifikasi |
-| `current_badge` | VARCHAR(50) | DEFAULT 'Warga Baru' | Badge aktif |
-| `total_reports` | INTEGER | DEFAULT 0 | Total laporan dibuat |
-| `total_actions` | INTEGER | DEFAULT 0 | Total aksi diikuti |
-| `rank` | INTEGER | DEFAULT 0 | Peringkat leaderboard |
+| `id` | UUID | PK | Unique profile ID |
+| `auth_id` | UUID | FK, UNIQUE → `auth.users` | Link to Supabase Auth account |
+| `full_name` | VARCHAR(100) | NOT NULL | Full display name |
+| `initials` | VARCHAR(4) | NOT NULL | Auto-generated initials |
+| `email` | VARCHAR(255) | NOT NULL | Email address |
+| `phone` | VARCHAR(20) | — | Phone number |
+| `bio` | TEXT | — | Short biography |
+| `district` | VARCHAR(100) | — | District (kecamatan) |
+| `city` | VARCHAR(100) | — | City |
+| `province` | VARCHAR(100) | — | Province |
+| `lat` | DOUBLE PRECISION | — | Location latitude |
+| `lng` | DOUBLE PRECISION | — | Location longitude |
+| `eco_points` | INTEGER | DEFAULT 0 | Gamification points |
+| `current_badge` | VARCHAR(50) | DEFAULT 'Warga Baru' | Active badge |
+| `total_reports` | INTEGER | DEFAULT 0 | Total reports created |
+| `total_actions` | INTEGER | DEFAULT 0 | Total actions joined |
+| `rank` | INTEGER | DEFAULT 0 | Leaderboard rank |
 | `role` | ENUM | NOT NULL | `user` \| `pemerintah` \| `admin` |
-| `nip` | TEXT | — | NIP pegawai (Gov only) |
-| `jabatan` | TEXT | — | Jabatan (Gov only) |
-| `instansi` | TEXT | — | Instansi (Gov only) |
-| `unit_kerja` | TEXT | — | Unit kerja (Gov only) |
-| `golongan` | TEXT | — | Golongan (Gov only) |
-| `tmt` | TEXT | — | Terhitung Mulai Tanggal (Gov only) |
-| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Waktu registrasi |
-| `updated_at` | TIMESTAMPTZ | AUTO | Auto-update via trigger |
+| `nip` | TEXT | — | Government employee ID (Gov only) |
+| `jabatan` | TEXT | — | Position title (Gov only) |
+| `instansi` | TEXT | — | Agency name (Gov only) |
+| `unit_kerja` | TEXT | — | Work unit (Gov only) |
+| `golongan` | TEXT | — | Civil service grade (Gov only) |
+| `tmt` | TEXT | — | Effective date of appointment (Gov only) |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Registration time |
+| `updated_at` | TIMESTAMPTZ | AUTO | Auto-updated via trigger |
 
 **Indexes:** `auth_id`
-**RLS:** User hanya bisa baca/ubah profil sendiri. Service role akses penuh.
+**RLS:** Users can only read/update their own profile. Service role has full access.
 
 ---
 
-## 2. `reports` — Laporan Masalah
+## 2. `reports` — Issue Reports
 
-Entitas utama untuk laporan permasalahan lingkungan dan sosial yang dibuat oleh warga. Menyimpan koordinat GPS, foto bukti, skor urgensi, dan **bukti resolusi** dari pemerintah.
+Primary entity for environmental and social issue reports submitted by citizens. Stores GPS coordinates, photo evidence, urgency score, and **resolution proof** submitted by government officials.
 
-| Kolom | Tipe | Constraint | Deskripsi |
+| Column | Type | Constraint | Description |
 |---|---|---|---|
-| `id` | UUID | PK | ID unik laporan |
-| `user_id` | UUID | FK → `auth.users` | Pelapor |
-| `category` | VARCHAR(50) | NOT NULL | Kategori: Bencana Alam, Infrastruktur, Lingkungan, dll |
-| `type` | VARCHAR(30) | NOT NULL | Tipe ikon: Waves, RoadHorizon, Trash, Mountains, Fire |
-| `title` | VARCHAR(200) | NOT NULL | Judul laporan |
-| `description` | TEXT | NOT NULL | Deskripsi detail masalah |
-| `address` | VARCHAR(300) | NOT NULL | Alamat lokasi |
-| `district` | VARCHAR(100) | — | Kecamatan |
-| `city` | VARCHAR(100) | DEFAULT 'Kota Bandung' | Kota |
-| `lat` | DOUBLE PRECISION | NOT NULL | Latitude GPS |
-| `lng` | DOUBLE PRECISION | NOT NULL | Longitude GPS |
+| `id` | UUID | PK | Unique report ID |
+| `user_id` | UUID | FK → `auth.users` | Reporter |
+| `category` | VARCHAR(50) | NOT NULL | Category: Natural Disaster, Infrastructure, Environment, etc. |
+| `type` | VARCHAR(30) | NOT NULL | Icon type: Waves, RoadHorizon, Trash, Mountains, Fire |
+| `title` | VARCHAR(200) | NOT NULL | Report title |
+| `description` | TEXT | NOT NULL | Detailed problem description |
+| `address` | VARCHAR(300) | NOT NULL | Location address |
+| `district` | VARCHAR(100) | — | District |
+| `city` | VARCHAR(100) | DEFAULT 'Kota Bandung' | City |
+| `lat` | DOUBLE PRECISION | NOT NULL | GPS latitude |
+| `lng` | DOUBLE PRECISION | NOT NULL | GPS longitude |
 | `status` | VARCHAR(20) | CHECK | `Menunggu` → `Diverifikasi` → `Ditangani` → `Selesai` |
-| `urgency` | INTEGER | DEFAULT 0 | Skor urgensi (naik setiap vote) |
-| `votes_count` | INTEGER | DEFAULT 0 | Jumlah dukungan warga |
-| `verified_count` | INTEGER | DEFAULT 0 | Jumlah verifikasi warga |
-| `photos_count` | INTEGER | DEFAULT 0 | Jumlah foto bukti |
-| `comments_count` | INTEGER | DEFAULT 0 | Jumlah komentar |
-| `responded_by` | VARCHAR(200) | — | Nama penanggung jawab penanganan |
-| `estimated_completion` | TIMESTAMPTZ | — | Estimasi waktu penyelesaian |
-| `photo_urls` | TEXT[] | DEFAULT '{}' | Array URL foto dari Supabase Storage |
-| `resolution_notes` | TEXT | — | Catatan bukti resolusi (Gov only) |
-| `resolution_image_url` | TEXT | — | URL foto bukti resolusi (Gov only) |
-| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Waktu pelaporan |
-| `updated_at` | TIMESTAMPTZ | AUTO | Auto-update via trigger |
+| `urgency` | INTEGER | DEFAULT 0 | Urgency score (increases with each vote) |
+| `votes_count` | INTEGER | DEFAULT 0 | Community support count |
+| `verified_count` | INTEGER | DEFAULT 0 | Community verification count |
+| `photos_count` | INTEGER | DEFAULT 0 | Photo evidence count |
+| `comments_count` | INTEGER | DEFAULT 0 | Comment count |
+| `responded_by` | VARCHAR(200) | — | Name of assigned responder |
+| `estimated_completion` | TIMESTAMPTZ | — | Estimated resolution time |
+| `photo_urls` | TEXT[] | DEFAULT '{}' | Photo URL array from Supabase Storage |
+| `resolution_notes` | TEXT | — | Resolution proof notes (Gov only) |
+| `resolution_image_url` | TEXT | — | Resolution evidence photo URL (Gov only) |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Report creation time |
+| `updated_at` | TIMESTAMPTZ | AUTO | Auto-updated via trigger |
 
 **Indexes:** `user_id`, `status`, `category`, `created_at DESC`, `(lat, lng)` geospatial
-**RLS:** Publik untuk SELECT. User hanya bisa INSERT/UPDATE/DELETE miliknya sendiri.
+**RLS:** Public for SELECT. Users can only INSERT/UPDATE/DELETE their own reports.
 
-### Alur Status Laporan
+### Report Status Workflow
 
 ```
 Menunggu ──→ Diverifikasi ──→ Ditangani ──→ Selesai
    │                              ↑             ↑
-   └──────────────────────────────┘         (+ bukti resolusi)
+   └──────────────────────────────┘         (+ resolution proof)
 ```
 
 ---
 
-## 3. `actions` — Aksi Positif
+## 3. `actions` — Positive Actions
 
-Kegiatan komunitas yang dapat diikuti oleh warga, seperti penghijauan, bersih-bersih, dan perbaikan infrastruktur.
+Community-driven activities such as tree planting, clean-ups, and infrastructure repairs that citizens can organize and join.
 
-| Kolom | Tipe | Constraint | Deskripsi |
+| Column | Type | Constraint | Description |
 |---|---|---|---|
-| `id` | UUID | PK | ID unik aksi |
-| `user_id` | UUID | FK → `auth.users` | Penyelenggara |
-| `category` | VARCHAR(50) | NOT NULL | Kategori: Lingkungan, Penghijauan, Infrastruktur |
-| `type` | VARCHAR(30) | NOT NULL | Tipe ikon: Plant, Tree, RoadHorizon |
-| `title` | VARCHAR(200) | NOT NULL | Judul kegiatan |
-| `description` | TEXT | NOT NULL | Deskripsi kegiatan |
-| `address` | VARCHAR(300) | NOT NULL | Lokasi kegiatan |
-| `district` | VARCHAR(100) | — | Kecamatan |
-| `city` | VARCHAR(100) | DEFAULT 'Kota Bandung' | Kota |
+| `id` | UUID | PK | Unique action ID |
+| `user_id` | UUID | FK → `auth.users` | Organizer |
+| `category` | VARCHAR(50) | NOT NULL | Category: Environment, Greening, Infrastructure |
+| `type` | VARCHAR(30) | NOT NULL | Icon type: Plant, Tree, RoadHorizon |
+| `title` | VARCHAR(200) | NOT NULL | Activity title |
+| `description` | TEXT | NOT NULL | Activity description |
+| `address` | VARCHAR(300) | NOT NULL | Activity location |
+| `district` | VARCHAR(100) | — | District |
+| `city` | VARCHAR(100) | DEFAULT 'Kota Bandung' | City |
 | `lat` | DOUBLE PRECISION | — | Latitude |
 | `lng` | DOUBLE PRECISION | — | Longitude |
 | `status` | VARCHAR(20) | CHECK | `Terjadwal` → `Berlangsung` → `Selesai` |
-| `date` | VARCHAR(50) | — | Tanggal pelaksanaan |
-| `duration` | VARCHAR(100) | — | Durasi kegiatan |
-| `points` | INTEGER | DEFAULT 0 | Eco-points yang didapat peserta |
-| `max_participants` | INTEGER | DEFAULT 0 | Kuota maksimal peserta |
-| `total_participants` | INTEGER | DEFAULT 0 | Jumlah peserta aktif |
-| `verified` | BOOLEAN | DEFAULT false | Status verifikasi kegiatan |
-| `verified_by` | VARCHAR(200) | — | Pihak yang memverifikasi |
-| `comments_count` | INTEGER | DEFAULT 0 | Jumlah komentar |
-| `photo_urls` | TEXT[] | DEFAULT '{}' | Foto before/after kegiatan |
-| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Waktu pembuatan |
-| `updated_at` | TIMESTAMPTZ | AUTO | Auto-update via trigger |
+| `date` | VARCHAR(50) | — | Activity date |
+| `duration` | VARCHAR(100) | — | Activity duration |
+| `points` | INTEGER | DEFAULT 0 | Eco-points awarded to participants |
+| `max_participants` | INTEGER | DEFAULT 0 | Maximum participant capacity |
+| `total_participants` | INTEGER | DEFAULT 0 | Current participant count |
+| `verified` | BOOLEAN | DEFAULT false | Verification status |
+| `verified_by` | VARCHAR(200) | — | Verified by |
+| `comments_count` | INTEGER | DEFAULT 0 | Comment count |
+| `photo_urls` | TEXT[] | DEFAULT '{}' | Before/after photos |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Creation time |
+| `updated_at` | TIMESTAMPTZ | AUTO | Auto-updated via trigger |
 
 **Indexes:** `user_id`, `status`, `category`, `created_at DESC`
 
 ---
 
-## 4. `comments` — Komentar
+## 4. `comments` — Comments
 
-Sistem komentar **polimorfik** yang mendukung komentar pada laporan dan aksi positif menggunakan `target_type` + `target_id`.
+**Polymorphic** comment system supporting comments on both reports and positive actions through `target_type` + `target_id`.
 
-| Kolom | Tipe | Constraint | Deskripsi |
+| Column | Type | Constraint | Description |
 |---|---|---|---|
-| `id` | UUID | PK | ID unik komentar |
-| `user_id` | UUID | FK → `auth.users` | Penulis komentar |
-| `target_id` | UUID | NOT NULL | ID laporan atau aksi (polimorfik) |
+| `id` | UUID | PK | Unique comment ID |
+| `user_id` | UUID | FK → `auth.users` | Comment author |
+| `target_id` | UUID | NOT NULL | Report or action ID (polymorphic) |
 | `target_type` | VARCHAR | NOT NULL | `report` \| `action` |
-| `text` | TEXT | NOT NULL | Isi komentar |
-| `likes` | INTEGER | DEFAULT 0 | Jumlah like |
-| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Waktu komentar |
+| `text` | TEXT | NOT NULL | Comment content |
+| `likes` | INTEGER | DEFAULT 0 | Like count |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Comment time |
 
-**Pola Polimorfik:** Satu tabel melayani dua entitas — menghindari duplikasi tabel komentar.
+**Polymorphic Pattern:** A single table serves two entities — avoiding duplicate comment tables.
 
 ---
 
-## 5. Tabel Relasi (Many-to-Many)
+## 5. Relationship Tables (Many-to-Many)
 
-### `report_votes` — Dukungan Laporan
+### `report_votes` — Report Support
 
-| Kolom | Tipe | Constraint |
+| Column | Type | Constraint |
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | FK → `auth.users` |
 | `report_id` | UUID | FK → `reports` |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() |
 
-**Constraint:** `UNIQUE(user_id, report_id)` — Satu user hanya bisa vote satu kali per laporan.
+**Constraint:** `UNIQUE(user_id, report_id)` — One vote per user per report.
 
-### `report_verifications` — Verifikasi Laporan
+### `report_verifications` — Report Verification
 
-| Kolom | Tipe | Constraint |
+| Column | Type | Constraint |
 |---|---|---|
 | `id` | UUID | PK |
 | `report_id` | UUID | FK → `reports` |
 | `user_id` | UUID | NOT NULL |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() |
 
-**Constraint:** `UNIQUE(report_id, user_id)` — Satu user hanya bisa verifikasi satu kali per laporan.
+**Constraint:** `UNIQUE(report_id, user_id)` — One verification per user per report.
 
-### `action_participants` — Peserta Aksi
+### `action_participants` — Action Participation
 
-| Kolom | Tipe | Constraint |
+| Column | Type | Constraint |
 |---|---|---|
 | `id` | UUID | PK |
 | `action_id` | UUID | FK → `actions` |
 | `user_id` | UUID | NOT NULL |
 | `joined_at` | TIMESTAMPTZ | DEFAULT NOW() |
 
-**Constraint:** `UNIQUE(action_id, user_id)` — Satu user hanya bisa bergabung satu kali per aksi.
+**Constraint:** `UNIQUE(action_id, user_id)` — One join per user per action.
 
-### `bookmarks` — Bookmark
+### `bookmarks` — Bookmarks
 
-| Kolom | Tipe | Constraint |
+| Column | Type | Constraint |
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | NOT NULL |
 | `ref_type` | VARCHAR | `report` \| `action` \| `info` |
-| `ref_id` | UUID | ID target (polimorfik) |
+| `ref_id` | UUID | Target ID (polymorphic) |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() |
 
-**Constraint:** `UNIQUE(user_id, ref_type, ref_id)` — Bookmark unik per user per item.
+**Constraint:** `UNIQUE(user_id, ref_type, ref_id)` — One bookmark per user per item.
 
 ---
 
-## 6. Tabel Sistem
+## 6. System Tables
 
-### `notifications` — Notifikasi In-App
+### `notifications` — In-App Notifications
 
-| Kolom | Tipe | Deskripsi |
+| Column | Type | Description |
 |---|---|---|
 | `id` | UUID | PK |
-| `user_id` | UUID | Penerima notifikasi |
-| `type` | VARCHAR | Tipe: `new_report`, `status_changed`, `vote`, `comment` |
-| `title` | VARCHAR | Judul notifikasi |
-| `message` | TEXT | Isi pesan |
-| `ref_type` | VARCHAR | Referensi tipe: `report`, `action` |
-| `ref_id` | VARCHAR | ID referensi untuk deep linking |
-| `is_read` | BOOLEAN | Status baca (default: false) |
-| `created_at` | TIMESTAMPTZ | Waktu notifikasi |
+| `user_id` | UUID | Notification recipient |
+| `type` | VARCHAR | Type: `new_report`, `status_changed`, `vote`, `comment` |
+| `title` | VARCHAR | Notification title |
+| `message` | TEXT | Message body |
+| `ref_type` | VARCHAR | Reference type: `report`, `action` |
+| `ref_id` | VARCHAR | Reference ID for deep linking |
+| `is_read` | BOOLEAN | Read status (default: false) |
+| `created_at` | TIMESTAMPTZ | Notification time |
 
-**Index:** Partial index pada `(user_id, is_read) WHERE is_read = FALSE` untuk query unread count yang cepat.
+**Index:** Partial index on `(user_id, is_read) WHERE is_read = FALSE` for fast unread count queries.
 
-### `device_tokens` — Token Push Notification
+### `device_tokens` — Push Notification Tokens
 
-| Kolom | Tipe | Deskripsi |
+| Column | Type | Description |
 |---|---|---|
 | `id` | UUID | PK |
-| `user_id` | UUID | Pemilik device |
+| `user_id` | UUID | Device owner |
 | `token` | TEXT | Expo Push Token (UNIQUE) |
 | `platform` | VARCHAR | `android` \| `ios` |
-| `active` | BOOLEAN | Status aktif token |
-| `created_at` | TIMESTAMPTZ | Waktu registrasi |
-| `updated_at` | TIMESTAMPTZ | Update terakhir |
+| `active` | BOOLEAN | Token active status |
+| `created_at` | TIMESTAMPTZ | Registration time |
+| `updated_at` | TIMESTAMPTZ | Last update |
 
-### `feedbacks` — Feedback Pengguna
+### `feedbacks` — User Feedback
 
-| Kolom | Tipe | Deskripsi |
+| Column | Type | Description |
 |---|---|---|
 | `id` | UUID | PK |
-| `user_id` | UUID | Pengirim feedback |
+| `user_id` | UUID | Feedback author |
 | `type` | VARCHAR | `saran` \| `bug` \| `pujian` \| `lainnya` |
-| `rating` | INTEGER | Rating 1–5 bintang |
-| `title` | VARCHAR | Judul feedback |
-| `message` | TEXT | Isi feedback |
-| `created_at` | TIMESTAMPTZ | Waktu submit |
+| `rating` | INTEGER | 1–5 star rating |
+| `title` | VARCHAR | Feedback title |
+| `message` | TEXT | Feedback message |
+| `created_at` | TIMESTAMPTZ | Submission time |
 
 ---
 
-## 7. `info_articles` — Artikel Edukasi
+## 7. `info_articles` — Educational Articles
 
-Konten edukasi tentang kebencanaan dan keselamatan, dengan format JSONB yang fleksibel.
+Educational content about disaster preparedness and safety, stored with a flexible JSONB format.
 
-| Kolom | Tipe | Deskripsi |
+| Column | Type | Description |
 |---|---|---|
 | `id` | UUID | PK |
-| `type` | VARCHAR | Tipe artikel |
-| `title` | VARCHAR | Judul |
-| `subtitle` | TEXT | Subjudul |
-| `category` | VARCHAR | Kategori: Bencana, Kesehatan, Lingkungan |
-| `source` | VARCHAR | Sumber informasi |
-| `content` | JSONB | Konten artikel (format fleksibel) |
-| `photo_urls` | JSONB | Foto-foto artikel |
-| `tags` | JSONB | Tag pencarian |
-| `tips` | JSONB | Tips keselamatan |
-| `related_links` | JSONB | Link terkait |
-| `author_name` | VARCHAR | Nama penulis |
-| `author_role` | VARCHAR | Role penulis |
-| `author_organization` | VARCHAR | Organisasi penulis |
-| `stats_views` | INTEGER | Jumlah dibaca |
-| `stats_shares` | INTEGER | Jumlah dibagikan |
-| `stats_bookmarks` | INTEGER | Jumlah di-bookmark |
-| `verified` | BOOLEAN | Status verifikasi |
-| `read_time` | VARCHAR | Estimasi waktu baca |
-| `published_at` | TIMESTAMPTZ | Waktu publikasi |
+| `type` | VARCHAR | Article type |
+| `title` | VARCHAR | Title |
+| `subtitle` | TEXT | Subtitle |
+| `category` | VARCHAR | Category: Disaster, Health, Environment |
+| `source` | VARCHAR | Information source |
+| `content` | JSONB | Article content (flexible format) |
+| `photo_urls` | JSONB | Article photos |
+| `tags` | JSONB | Search tags |
+| `tips` | JSONB | Safety tips |
+| `related_links` | JSONB | Related links |
+| `author_name` | VARCHAR | Author name |
+| `author_role` | VARCHAR | Author role |
+| `author_organization` | VARCHAR | Author organization |
+| `stats_views` | INTEGER | View count |
+| `stats_shares` | INTEGER | Share count |
+| `stats_bookmarks` | INTEGER | Bookmark count |
+| `verified` | BOOLEAN | Verification status |
+| `read_time` | VARCHAR | Estimated read time |
+| `published_at` | TIMESTAMPTZ | Publication date |
 
 ---
 
-## 8. Fungsi PostgreSQL
+## 8. PostgreSQL Functions
 
 ### `increment_eco_points(p_user_id UUID, p_amount INTEGER)`
 
-Fungsi RPC atomik untuk menambah eco-points tanpa race condition. Dipanggil menggunakan `supabase.rpc()`.
+Atomic RPC function for incrementing eco-points without race conditions. Called via `supabase.rpc()`.
 
 ```sql
--- Penggunaan via Supabase RPC
+-- Usage via Supabase RPC
 SELECT increment_eco_points('user-uuid-here', 10);
 ```
 
-**Kapan dipanggil:**
-| Aksi | Poin |
+**Trigger points:**
+| Action | Points |
 |---|---|
-| Membuat laporan baru | +10 |
-| Membuat aksi positif | +50 |
-| Verifikasi laporan | +5 |
-| Vote/dukungan laporan | +2 |
-| Menambah komentar | +2 |
+| Create a new report | +10 |
+| Create a positive action | +50 |
+| Verify a report | +5 |
+| Vote/support a report | +2 |
+| Add a comment | +2 |
 
 ### `update_updated_at_column()`
 
-Trigger function yang otomatis memperbarui kolom `updated_at` saat ada perubahan pada baris data. Terpasang di tabel: `users_metadata`, `reports`, `actions`.
+Trigger function that automatically updates the `updated_at` column on row modification. Attached to: `users_metadata`, `reports`, `actions`.
 
 ---
 
-## 9. Keamanan Data (Row Level Security)
+## 9. Data Security (Row Level Security)
 
-Semua tabel dilindungi oleh **Row Level Security (RLS)** dengan kebijakan berikut:
+All tables are protected by **Row Level Security (RLS)** with the following policies:
 
-| Tabel | SELECT | INSERT | UPDATE | DELETE |
+| Table | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
 | `users_metadata` | Owner only | — | Owner only | — |
-| `reports` | Publik ✅ | Owner only | Owner only | Owner only |
-| `actions` | Publik ✅ | Owner only | Owner only | Owner only |
-| `comments` | Publik ✅ | Owner only | Owner only | Owner only |
-| `report_votes` | Publik ✅ | Owner only | — | Owner only |
+| `reports` | Public | Owner only | Owner only | Owner only |
+| `actions` | Public | Owner only | Owner only | Owner only |
+| `comments` | Public | Owner only | Owner only | Owner only |
+| `report_votes` | Public | Owner only | — | Owner only |
 
 > [!NOTE]
-> Backend menggunakan **Service Role Key** untuk operasi server-side yang memerlukan akses lintas-user (contoh: notifikasi, update status oleh pemerintah, operasi admin).
+> The backend uses a **Service Role Key** for server-side operations that require cross-user access (e.g., notifications, government status updates, admin operations).
 
 ---
 
-## 10. Strategi Indexing
+## 10. Indexing Strategy
 
 ```mermaid
 graph LR
@@ -344,18 +344,18 @@ graph LR
         I1["Lookup<br/>auth_id, user_id, report_id"]
         I2["Sorting<br/>created_at DESC"]
         I3["Filtering<br/>status, category, role"]
-        I4["Geospatial<br/>(lat, lng) pada reports"]
+        I4["Geospatial<br/>(lat, lng) on reports"]
         I5["Notification<br/>Partial index WHERE is_read = FALSE"]
     end
 ```
 
-| Jenis Index | Kolom | Tabel | Tujuan |
+| Index Type | Columns | Table | Purpose |
 |---|---|---|---|
-| B-tree | `auth_id` | `users_metadata` | Lookup profil cepat |
+| B-tree | `auth_id` | `users_metadata` | Fast profile lookup |
 | B-tree | `user_id` | `reports`, `actions` | Filter by owner |
-| B-tree | `status` | `reports`, `actions` | Filter laporan aktif |
-| B-tree | `category` | `reports`, `actions` | Filter per kategori |
-| B-tree | `created_at DESC` | Semua tabel utama | Sorting chronological |
-| Composite | `(lat, lng)` | `reports` | Query nearby (Haversine) |
+| B-tree | `status` | `reports`, `actions` | Filter active reports |
+| B-tree | `category` | `reports`, `actions` | Filter by category |
+| B-tree | `created_at DESC` | All major tables | Chronological sorting |
+| Composite | `(lat, lng)` | `reports` | Nearby queries (Haversine) |
 | Partial | `(user_id, is_read)` | `notifications` | Fast unread count |
-| Unique | `(user_id, report_id)` | `report_votes` | Deduplikasi vote |
+| Unique | `(user_id, report_id)` | `report_votes` | Vote deduplication |
