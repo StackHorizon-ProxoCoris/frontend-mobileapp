@@ -1,5 +1,7 @@
 # SIAGA — Sistem Informasi dan Aksi untuk Gerakan Aman
 
+[English](README.md) | [Bahasa Indonesia](README.id.md)
+
 **SIAGA** is a civic technology mobile application that bridges the gap between citizens and local government to enable transparent, data-driven environmental and social issue reporting. Built for ProxoCoris 2026.
 
 > **Competition**: ProxoCoris 2026
