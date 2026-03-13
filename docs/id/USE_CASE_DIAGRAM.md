@@ -20,19 +20,19 @@ Dokumen ini memberikan sudut pandang berbasis aktor terhadap kapabilitas SIAGA s
 
 ## 2. Diagram Use Case Gambaran Umum
 
-![Diagram Use Case Gambaran Umum](./usecase_diagram/system%20overview.png)
+![Diagram Use Case Gambaran Umum](../usecase_diagram/system%20overview.png)
 
 ---
 
 ## 3. Diagram Use Case Warga
 
-![Diagram Use Case Warga](./usecase_diagram/citizen%20experience.png)
+![Diagram Use Case Warga](../usecase_diagram/citizen%20experience.png)
 
 ---
 
 ## 4. Diagram Use Case Pemerintah dan Admin
 
-![Diagram Use Case Pemerintah dan Admin](./usecase_diagram/Goverment%20and%20admin.png)
+![Diagram Use Case Pemerintah dan Admin](../usecase_diagram/Goverment%20and%20admin.png)
 
 ---
 
