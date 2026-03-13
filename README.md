@@ -340,7 +340,6 @@ frontend-mobileapp/
 ---
 
 ## Technical Documentation
-### Technical Documentation
 
 The primary documentation is written in English. You can also find the full set of documentation translated into **Bahasa Indonesia** in the [docs/id/](./docs/id/) directory.
 
@@ -350,6 +349,7 @@ The primary documentation is written in English. You can also find the full set 
 | ERD | [ERD.md](./docs/ERD.md) | [ERD.md](./docs/id/ERD.md) |
 | Data Structures | [DATA_STRUCTURES.md](./docs/DATA_STRUCTURES.md) | [DATA_STRUCTURES.md](./docs/id/DATA_STRUCTURES.md) |
 | System Flow | [SYSTEM_FLOW.md](./docs/SYSTEM_FLOW.md) | [SYSTEM_FLOW.md](./docs/id/SYSTEM_FLOW.md) |
+| Use Case Diagram | [USE_CASE_DIAGRAM.md](./docs/USE_CASE_DIAGRAM.md) | [USE_CASE_DIAGRAM.md](./docs/id/USE_CASE_DIAGRAM.md) |
 | API Documentation | [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) | [API_DOCUMENTATION.md](./docs/id/API_DOCUMENTATION.md) |
 
 

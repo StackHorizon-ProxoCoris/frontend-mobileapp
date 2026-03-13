@@ -338,6 +338,7 @@ Dokumentasi utama ditulis dalam Bahasa Inggris. Anda juga dapat menemukan set do
 | ERD | [ERD.md](./docs/ERD.md) | [ERD.md](./docs/id/ERD.md) |
 | Struktur Data | [DATA_STRUCTURES.md](./docs/DATA_STRUCTURES.md) | [DATA_STRUCTURES.md](./docs/id/DATA_STRUCTURES.md) |
 | Alur Sistem | [SYSTEM_FLOW.md](./docs/SYSTEM_FLOW.md) | [SYSTEM_FLOW.md](./docs/id/SYSTEM_FLOW.md) |
+| Diagram Use Case | [USE_CASE_DIAGRAM.md](./docs/USE_CASE_DIAGRAM.md) | [USE_CASE_DIAGRAM.md](./docs/id/USE_CASE_DIAGRAM.md) |
 | Dokumentasi API | [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) | [API_DOCUMENTATION.md](./docs/id/API_DOCUMENTATION.md) |
 
 ---
