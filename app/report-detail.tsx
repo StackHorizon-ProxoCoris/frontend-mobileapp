@@ -1,25 +1,48 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, Image,
-  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, KeyboardAvoidingView, Platform,
+  ScrollView, View, Text, TouchableOpacity, Modal, ActivityIndicator,
+  Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, TextInput, RefreshControl,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft, ShareNetwork, Bookmark, MapPin, Clock, Users, Camera,
-  ThumbsUp, ChatCircle, ShieldCheck, Waves, RoadHorizon, Trash,
-  CheckCircle, DotsThree, Heart, Warning, Flag,
-  CalendarBlank, Buildings, UserCircle, Medal, CaretRight, PaperPlaneTilt,
+  ThumbsUp, ChatCircle, ShieldCheck,
+  CheckCircle, DotsThree, Heart, Warning, Flag, ImageSquare, X,
+  CalendarBlank, Buildings, Medal, PaperPlaneTilt,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyReportDetails, dummyUser, type ReportDetail } from '@/data/dummy';
+import { type ReportDetail, type BackendReportStatus } from '@/services/report.service';
+import { useAuth } from '@/context/auth';
+import { getReportById, toggleReportVote, verifyReport, toggleBookmark, resolveReportByUser, updateReportStatus } from '@/services/report.service';
+import { apiUpload } from '@/services/api';
+import { supabaseRealtime } from '@/services/supabase';
+import { getComments, addComment } from '@/services/comment.service';
+import { useToast } from '@/contexts/toast.context';
 import EmbeddedMap from '@/components/ui/MapView';
+import * as ImagePicker from 'expo-image-picker';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
 
+const STATUS_COLOR_MAP: Record<ReportDetail['status'], { color: string; bg: string }> = {
+  Menunggu: { color: SiagaColors.warning, bg: SiagaColors.warningSoft },
+  Diverifikasi: { color: SiagaColors.info, bg: SiagaColors.infoSoft },
+  Ditangani: { color: '#7c3aed', bg: '#f5f3ff' },
+  Selesai: { color: SiagaColors.success, bg: SiagaColors.successSoft },
+};
+
+const GOV_STATUS_ACTION_TARGET: Partial<Record<ReportDetail['status'], BackendReportStatus>> = {
+  Menunggu: 'Ditangani',
+  Diverifikasi: 'Ditangani',
+  Ditangani: 'Selesai',
+};
+
 export default function ReportDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
+  const reportId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activePhoto, setActivePhoto] = useState(0);
@@ -27,39 +50,237 @@ export default function ReportDetailScreen() {
   const [votes, setVotes] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [localComments, setLocalComments] = useState<{ id: string; user: string; initials: string; text: string; time: string; likes: number }[]>([]);
-  const scrollRef = useRef<ScrollView>(null);
+  const [localComments, setLocalComments] = useState<{ id: string; userId: string; user: string; initials: string; text: string; time: string; createdAt: string; likes: number }[]>([]);
+  const [report, setReport] = useState<ReportDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [reporterId, setReporterId] = useState<string | null>(null);
+  const [resolveModalVisible, setResolveModalVisible] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [isGovStatusUpdating, setIsGovStatusUpdating] = useState(false);
+  const [govResolveModalVisible, setGovResolveModalVisible] = useState(false);
+  const [govResolutionNotes, setGovResolutionNotes] = useState('');
+  const [govResolutionPhoto, setGovResolutionPhoto] = useState<{ uri: string; uploadedUrl?: string } | null>(null);
+  const [isUploadingGovProof, setIsUploadingGovProof] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<number | null>(null);
+  const { user, role } = useAuth();
+  const { showToast } = useToast();
 
-  const report = dummyReportDetails[id ?? ''];
-
-  // Initialize votes from report data
-  React.useEffect(() => {
-    if (report) {
-      setVotes(report.votes);
-      setSupported(report.supported);
+  // Fetch report + comments dari API
+  const loadAll = useCallback(async () => {
+    if (!reportId) {
+      setReport(null);
+      setLoadError('ID laporan tidak valid.');
+      setIsLoading(false);
+      return;
     }
-  }, [report]);
+
+    const result = await getReportById(reportId);
+    if (result.success && result.data) {
+      const r = result.data;
+      const urgencyColor = r.urgency >= 80 ? '#dc2626' : r.urgency >= 50 ? '#f59e0b' : '#15803d';
+      const badge: 'Kritis' | 'Sedang' | 'Rendah' = r.urgency >= 80 ? 'Kritis' : r.urgency >= 50 ? 'Sedang' : 'Rendah';
+      const sc = STATUS_COLOR_MAP[r.status] || STATUS_COLOR_MAP.Menunggu;
+      const mapped: ReportDetail = {
+        id: r.id,
+        type: r.category === 'Banjir' ? 'Waves' : r.category === 'Jalan Rusak' ? 'RoadHorizon' : 'Trash',
+        gradient: '#3b82f6',
+        badge,
+        badgeBg: badge === 'Kritis' ? '#fee2e2' : badge === 'Sedang' ? '#fef9c3' : '#ecfdf5',
+        badgeColor: urgencyColor,
+        title: r.title,
+        desc: r.description || '',
+        distance: '-',
+        votes: r.votesCount,
+        photos: r.photosCount || r.photoUrls?.length || 0,
+        time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        urgency: r.urgency,
+        urgencyColor,
+        supported: r.hasVoted || false,
+        reporter: {
+          name: r.reporter?.fullName || 'Anonim',
+          initials: r.reporter?.initials || '??',
+          badge: r.reporter?.currentBadge || 'Warga',
+          reportsCount: r.reporter?.totalReports || 0,
+        },
+        location: {
+          address: r.address,
+          district: r.district,
+          city: r.city,
+          lat: r.lat,
+          lng: r.lng,
+        },
+        description: r.description || '',
+        category: r.category,
+        status: r.status,
+        statusColor: sc.color,
+        statusBg: sc.bg,
+        createdAt: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        updatedAt: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        photoUrls: r.photoUrls || [],
+        comments: [],
+        timeline: [
+          { id: 't1', title: 'Laporan Diterima', desc: 'Laporan masuk ke sistem', time: new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
+          ...(r.status !== 'Menunggu' ? [{ id: 't2', title: 'Diverifikasi', desc: 'Laporan telah diverifikasi', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+          ...(r.status === 'Ditangani' || r.status === 'Selesai' ? [{ id: 't3', title: 'Sedang Ditangani', desc: r.respondedBy ? `Ditangani oleh ${r.respondedBy}` : 'Sedang dalam penanganan', time: '-', status: (r.status === 'Ditangani' ? 'active' : 'done') as 'active' | 'done' }] : []),
+          ...(r.status === 'Selesai' ? [{ id: 't4', title: 'Selesai', desc: 'Masalah telah diselesaikan', time: new Date(r.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const }] : []),
+          ...(r.status === 'Menunggu' ? [{ id: 't2p', title: 'Menunggu Verifikasi', desc: 'Laporan sedang diperiksa', time: '-', status: 'active' as const }] : []),
+        ],
+        respondedBy: r.respondedBy,
+        estimatedCompletion: r.estimatedCompletion,
+        verifiedCount: r.verifiedCount || 0,
+        resolutionNotes: r.resolutionNotes || null,
+        resolutionImageUrl: r.resolutionImageUrl || null,
+      };
+      setReport(mapped);
+      setVotes(mapped.votes);
+      setSupported(mapped.supported);
+      setVerifiedCount(mapped.verifiedCount);
+      setReporterId(r.userId || null);
+    } else {
+      setReport(null);
+      setLoadError(result.message || 'Laporan tidak ditemukan.');
+    }
+    setIsLoading(false);
+
+    // Load comments
+    const commentsResult = await getComments('report', reportId);
+    if (commentsResult.success && commentsResult.data) {
+      const mapped = commentsResult.data.map(c => ({
+        id: c.id,
+        userId: c.userId || '',
+        user: c.user?.fullName || 'User',
+        initials: c.user?.initials || '??',
+        text: c.text,
+        time: new Date(c.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        createdAt: c.createdAt,
+        likes: c.likes || 0,
+      }));
+      setLocalComments(mapped);
+    }
+  }, [reportId]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setLoadError(null);
+    loadAll();
+  }, [loadAll]);
+
+  useEffect(() => {
+    const realtimeClient = supabaseRealtime;
+    if (!reportId || !realtimeClient) return;
+
+    const channel = realtimeClient
+      .channel(`report-detail-${reportId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'reports',
+          filter: `id=eq.${reportId}`,
+        },
+        () => {
+          void loadAll();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void realtimeClient.removeChannel(channel);
+    };
+  }, [reportId, loadAll]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadAll();
+    setRefreshing(false);
+  }, [loadAll]);
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
+        <Text className="text-[16px] text-secondary">Memuat laporan...</Text>
+      </View>
+    );
+  }
 
   if (!report) {
     return (
       <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-sm text-secondary">Laporan tidak ditemukan</Text>
+        <Text className="text-[16px] text-secondary">{loadError || 'Laporan tidak ditemukan'}</Text>
         <TouchableOpacity className="mt-4 px-4 py-2 rounded-lg" style={{ backgroundColor: SiagaColors.primary }} onPress={() => router.back()}>
-          <Text className="text-white text-xs font-semibold">Kembali</Text>
+          <Text className="text-white text-[14px] font-semibold">Kembali</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const reportIcon = report.type === 'Waves'
-    ? <Waves size={28} color="#fff" weight="duotone" />
-    : report.type === 'RoadHorizon'
-      ? <RoadHorizon size={28} color="#fff" weight="duotone" />
-      : <Trash size={28} color="#fff" weight="duotone" />;
+  const handleSupport = async () => {
+    const result = await toggleReportVote(report.id);
+    if (result.success) {
+      const serverVoted = result.data?.voted;
+      const serverCount = result.data?.votesCount;
+      const newUrgency = result.data?.urgency ?? report.urgency;
 
-  const handleSupport = () => {
-    setSupported(!supported);
-    setVotes(prev => supported ? prev - 1 : prev + 1);
+      const newUrgencyColor = newUrgency >= 80 ? '#dc2626' : newUrgency >= 50 ? '#f59e0b' : '#15803d';
+      const newBadge: 'Kritis' | 'Sedang' | 'Rendah' = newUrgency >= 80 ? 'Kritis' : newUrgency >= 50 ? 'Sedang' : 'Rendah';
+      const newBadgeBg = newUrgency >= 80 ? '#fee2e2' : newUrgency >= 50 ? '#fef9c3' : '#ecfdf5';
+
+      setSupported(serverVoted ?? !supported);
+      setVotes(serverCount ?? (supported ? votes - 1 : votes + 1));
+
+      setReport(prev => prev ? {
+        ...prev,
+        urgency: newUrgency,
+        urgencyColor: newUrgencyColor,
+        badge: newBadge,
+        badgeBg: newBadgeBg,
+        badgeColor: newUrgencyColor,
+      } : null);
+
+      showToast({ type: 'success', title: serverVoted ? 'Laporan didukung!' : 'Dukungan dibatalkan', message: serverVoted ? 'Terima kasih atas dukungan Anda.' : 'Dukungan Anda telah dibatalkan.' });
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat memproses dukungan. Coba lagi.' });
+    }
+  };
+
+  const handleVerify = async () => {
+    const result = await verifyReport(report.id);
+    if (result.success) {
+      const newCount = (result.data?.verifiedCount ?? verifiedCount + 1);
+      setVerifiedCount(newCount);
+
+      // Recalculate urgency locally: +5 per verify
+      const currentUrgency = report.urgency || 0;
+      const newUrgency = Math.min(150, currentUrgency + 5);
+      const newUrgencyColor = newUrgency >= 80 ? '#dc2626' : newUrgency >= 50 ? '#f59e0b' : '#15803d';
+      const newBadge: 'Kritis' | 'Sedang' | 'Rendah' = newUrgency >= 80 ? 'Kritis' : newUrgency >= 50 ? 'Sedang' : 'Rendah';
+      const newBadgeBg = newUrgency >= 80 ? '#fee2e2' : newUrgency >= 50 ? '#fef9c3' : '#ecfdf5';
+
+      setReport(prev => prev ? {
+        ...prev,
+        urgency: newUrgency,
+        urgencyColor: newUrgencyColor,
+        badge: newBadge,
+        badgeBg: newBadgeBg,
+        badgeColor: newUrgencyColor,
+      } : null);
+
+      showToast({ type: 'success', title: 'Terverifikasi!', message: 'Laporan berhasil diverifikasi. Terima kasih!' });
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat memverifikasi laporan.' });
+    }
+  };
+
+  const handleBookmark = async () => {
+    const result = await toggleBookmark('report', report.id);
+    if (result.success) {
+      setBookmarked(!bookmarked);
+      showToast({ type: 'success', title: bookmarked ? 'Bookmark dihapus' : 'Tersimpan!', message: bookmarked ? 'Laporan dihapus dari bookmark.' : 'Laporan disimpan ke bookmark.', duration: 2000 });
+    }
   };
 
   const handleShare = async () => {
@@ -69,14 +290,192 @@ export default function ReportDetailScreen() {
     });
   };
 
+  const isOwner = !!user?.id && !!reporterId && String(user.id) === String(reporterId);
+  const isGovRole = role === 'pemerintah' || role === 'admin';
+  const canResolve = isOwner && report.status !== 'Selesai';
+  const govActionTarget = GOV_STATUS_ACTION_TARGET[report.status];
+  const govActionLabel = report.status === 'Ditangani' ? 'Tandai Selesai' : 'Proses';
+  const GovActionIcon = report.status === 'Ditangani' ? CheckCircle : Buildings;
+  const govResponderLabel = user?.instansi || user?.unitKerja || user?.fullName || (role === 'admin' ? 'Admin' : 'Pemerintah');
+  const shouldShowOfficialResponse = report.status === 'Selesai' || !!report.resolutionNotes || !!report.resolutionImageUrl;
+  const officialResponseText = report.resolutionNotes?.trim() || 'Laporan ini telah ditindaklanjuti dan diselesaikan oleh pihak berwenang.';
+  const officialResponderName = report.respondedBy || 'Pemerintah / Admin';
+
+  const handleResolve = () => {
+    setResolveModalVisible(true);
+  };
+
+  const pickGovResolutionPhoto = async (source: 'camera' | 'library') => {
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      showToast({
+        type: 'warning',
+        title: 'Izin Diperlukan',
+        message: source === 'camera' ? 'Izinkan akses kamera untuk mengambil foto bukti.' : 'Izinkan akses galeri untuk memilih foto bukti.',
+      });
+      return;
+    }
+
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.8 });
+
+    if (!result.canceled && result.assets.length > 0) {
+      setGovResolutionPhoto({ uri: result.assets[0].uri });
+    }
+  };
+
+  const uploadGovResolutionPhoto = async (): Promise<string | undefined> => {
+    if (!govResolutionPhoto) return undefined;
+    if (govResolutionPhoto.uploadedUrl) return govResolutionPhoto.uploadedUrl;
+
+    const formData = new FormData();
+    const filename = govResolutionPhoto.uri.split('/').pop() || 'resolution-proof.jpg';
+    formData.append('file', { uri: govResolutionPhoto.uri, name: filename, type: 'image/jpeg' } as any);
+
+    const result = await apiUpload<{ url: string }>('/upload', formData);
+    if (result.success && result.data?.url) {
+      setGovResolutionPhoto(prev => prev ? { ...prev, uploadedUrl: result.data?.url } : prev);
+      return result.data.url;
+    }
+
+    throw new Error(result.message || 'Gagal upload foto bukti.');
+  };
+
+  const handleGovStatusAction = async () => {
+    if (!govActionTarget) return;
+
+    if (govActionTarget === 'Selesai') {
+      setGovResolveModalVisible(true);
+      return;
+    }
+
+    setIsGovStatusUpdating(true);
+    try {
+      const result = await updateReportStatus(report.id, govActionTarget, {
+        respondedBy: govResponderLabel,
+      });
+      if (result.success) {
+        showToast({
+          type: 'success',
+          title: 'Status Diperbarui',
+          message: `Laporan berhasil diubah ke "${govActionTarget}".`,
+        });
+        await loadAll();
+        return;
+      }
+
+      if (result.statusCode === 403) {
+        return;
+      }
+
+      showToast({
+        type: 'error',
+        title: 'Gagal Memperbarui',
+        message: result.message || 'Tidak dapat memperbarui status laporan.',
+      });
+    } catch {
+      showToast({
+        type: 'error',
+        title: 'Gagal Memperbarui',
+        message: 'Terjadi gangguan jaringan saat memperbarui status laporan.',
+      });
+    } finally {
+      setIsGovStatusUpdating(false);
+    }
+  };
+
+  const submitGovResolution = async () => {
+    const defaultResolutionMessage = 'Laporan ini telah ditindaklanjuti dan diselesaikan oleh pihak berwenang.';
+
+    setIsGovStatusUpdating(true);
+    try {
+      let resolutionImageUrl: string | undefined;
+      if (govResolutionPhoto) {
+        setIsUploadingGovProof(true);
+        resolutionImageUrl = await uploadGovResolutionPhoto();
+        setIsUploadingGovProof(false);
+      }
+
+      const result = await updateReportStatus(report.id, 'Selesai', {
+        respondedBy: govResponderLabel,
+        resolutionNotes: govResolutionNotes.trim() || defaultResolutionMessage,
+        resolutionImageUrl,
+      });
+
+      if (result.success) {
+        setGovResolveModalVisible(false);
+        setGovResolutionNotes('');
+        setGovResolutionPhoto(null);
+        showToast({
+          type: 'success',
+          title: 'Laporan Diselesaikan',
+          message: 'Bukti penyelesaian berhasil dikirim dan status laporan diperbarui.',
+        });
+        await loadAll();
+        return;
+      }
+
+      if (result.statusCode === 403) {
+        return;
+      }
+
+      showToast({
+        type: 'error',
+        title: 'Gagal Menyelesaikan',
+        message: result.message || 'Tidak dapat mengirim bukti penyelesaian.',
+      });
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'Gagal Menyelesaikan',
+        message: error instanceof Error ? error.message : 'Terjadi gangguan saat mengirim bukti penyelesaian.',
+      });
+    } finally {
+      setIsUploadingGovProof(false);
+      setIsGovStatusUpdating(false);
+    }
+  };
+
+  const confirmResolve = async () => {
+    setIsResolving(true);
+    const result = await resolveReportByUser(report.id);
+    setIsResolving(false);
+    setResolveModalVisible(false);
+    if (result.success) {
+      setReport(prev => prev ? {
+        ...prev,
+        status: 'Selesai',
+        statusColor: '#059669',
+        statusBg: '#ecfdf5',
+        urgency: 0,
+        urgencyColor: '#15803d',
+        badge: 'Rendah' as const,
+        badgeBg: '#ecfdf5',
+        badgeColor: '#15803d',
+        respondedBy: 'Diselesaikan oleh pelapor',
+        timeline: [
+          ...prev.timeline.filter(t => t.status === 'done'),
+          { id: 't_resolved', title: 'Selesai', desc: 'Ditandai selesai oleh pelapor', time: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), status: 'done' as const },
+        ],
+      } : null);
+      showToast({ type: 'success', title: 'Laporan Ditutup ✅', message: 'Masalah telah ditandai selesai. Terima kasih!' });
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Tidak dapat menutup laporan.' });
+    }
+  };
+
   const onPhotoScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / PHOTO_WIDTH);
     setActivePhoto(index);
   };
 
   const getTimelineIcon = (status: string) => {
-    if (status === 'done') return <CheckCircle size={18} color={SiagaColors.success} weight="fill" />;
-    if (status === 'active') return <DotsThree size={18} color={SiagaColors.info} weight="bold" />;
+    if (status === 'done') return <CheckCircle size={20} color={SiagaColors.success} weight="fill" />;
+    if (status === 'active') return <DotsThree size={20} color={SiagaColors.info} weight="bold" />;
     return (
       <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#cbd5e1', backgroundColor: '#f1f5f9' }} />
     );
@@ -94,28 +493,28 @@ export default function ReportDetailScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
+          <ArrowLeft size={20} color={SiagaColors.primary} weight="bold" />
         </TouchableOpacity>
-        <Text className="text-sm font-bold text-primary">Detail Laporan</Text>
+        <Text className="text-[16px] font-bold text-primary">Detail Laporan</Text>
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
-            onPress={() => setBookmarked(!bookmarked)}
+            onPress={handleBookmark}
             activeOpacity={0.7}
           >
-            <Bookmark size={18} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
+            <Bookmark size={20} color={bookmarked ? SiagaColors.warning : SiagaColors.secondary} weight={bookmarked ? 'fill' : 'regular'} />
           </TouchableOpacity>
           <TouchableOpacity
             className="w-9 h-9 rounded-full bg-slate-50 items-center justify-center"
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <ShareNetwork size={18} color={SiagaColors.primary} />
+            <ShareNetwork size={20} color={SiagaColors.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[SiagaColors.primary]} tintColor={SiagaColors.primary} />}>
         {/* Photo Carousel */}
         <View className="px-5 pt-4">
           <View className="rounded-2xl overflow-hidden" style={{ elevation: 2 }}>
@@ -128,13 +527,16 @@ export default function ReportDetailScreen() {
               keyExtractor={(_, i) => `photo-${i}`}
               snapToInterval={PHOTO_WIDTH}
               decelerationRate="fast"
-              renderItem={({ item }) => (
-                <Image
-                  source={{ uri: item }}
-                  style={{ width: PHOTO_WIDTH, height: 200 }}
-                  className="bg-slate-200"
-                  resizeMode="cover"
-                />
+              renderItem={({ item, index }) => (
+                <TouchableOpacity activeOpacity={0.9} onPress={() => setFullscreenPhoto(index)}>
+                  <Image
+                    source={{ uri: item }}
+                    style={{ width: PHOTO_WIDTH, height: 200, backgroundColor: '#e2e8f0' }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                </TouchableOpacity>
               )}
             />
             {/* Photo Indicator */}
@@ -152,8 +554,8 @@ export default function ReportDetailScreen() {
             </View>
             {/* Photo Count */}
             <View className="absolute top-3 right-3 flex-row items-center gap-1 bg-black/50 rounded-lg px-2 py-1">
-              <Camera size={12} color="#fff" weight="bold" />
-              <Text className="text-[10px] font-bold text-white">{activePhoto + 1}/{report.photoUrls.length}</Text>
+              <Camera size={14} color="#fff" weight="bold" />
+              <Text className="text-[12px] font-bold text-white">{activePhoto + 1}/{report.photoUrls.length}</Text>
             </View>
           </View>
         </View>
@@ -163,28 +565,28 @@ export default function ReportDetailScreen() {
           <View className="flex-row items-center gap-2 mb-2">
             <View className="px-2 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: report.badgeBg }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: report.badgeColor }} />
-              <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: report.badgeColor }}>{report.badge}</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: report.badgeColor }}>{report.badge}</Text>
             </View>
             <View className="px-2 py-1 rounded-md flex-row items-center gap-1" style={{ backgroundColor: report.statusBg }}>
-              <Text className="text-[9px] font-bold uppercase tracking-wider" style={{ color: report.statusColor }}>{report.status}</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: report.statusColor }}>{report.status}</Text>
             </View>
             <View className="px-2 py-1 rounded-md bg-slate-100 flex-row items-center gap-1">
-              <Text className="text-[9px] font-semibold text-secondary">{report.category}</Text>
+              <Text className="text-[10px] font-semibold text-secondary">{report.category}</Text>
             </View>
           </View>
           <Text className="text-lg font-bold text-primary leading-tight">{report.title}</Text>
           <View className="flex-row items-center gap-3 mt-2">
             <View className="flex-row items-center gap-1">
-              <Clock size={12} color={SiagaColors.secondary} />
-              <Text className="text-[10px] text-secondary">{report.time}</Text>
+              <Clock size={14} color={SiagaColors.secondary} />
+              <Text className="text-[12px] text-secondary">{report.time}</Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <MapPin size={12} color={SiagaColors.secondary} weight="duotone" />
-              <Text className="text-[10px] text-secondary">{report.distance}</Text>
+              <MapPin size={14} color={SiagaColors.secondary} weight="duotone" />
+              <Text className="text-[12px] text-secondary">{report.distance}</Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <ShieldCheck size={12} color={SiagaColors.success} weight="duotone" />
-              <Text className="text-[10px] text-success font-semibold">{report.verifiedCount} verifikasi</Text>
+              <ShieldCheck size={14} color={SiagaColors.success} weight="duotone" />
+              <Text className="text-[12px] text-success font-semibold">{report.verifiedCount} verifikasi</Text>
             </View>
           </View>
         </View>
@@ -193,39 +595,88 @@ export default function ReportDetailScreen() {
         <View className="px-5 pt-4">
           <View className="flex-row gap-2">
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <Users size={20} color={SiagaColors.primary} weight="duotone" />
+              <Users size={22} color={SiagaColors.primary} weight="duotone" />
               <Text className="text-lg font-bold text-primary mt-1">{votes}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Dukungan</Text>
+              <Text className="text-[10px] text-secondary font-medium">Dukungan</Text>
             </View>
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <ChatCircle size={20} color={SiagaColors.info} weight="duotone" />
+              <ChatCircle size={22} color={SiagaColors.info} weight="duotone" />
               <Text className="text-lg font-bold text-primary mt-1">{report.comments.length}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Komentar</Text>
+              <Text className="text-[10px] text-secondary font-medium">Komentar</Text>
             </View>
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <Camera size={20} color={SiagaColors.warning} weight="duotone" />
+              <Camera size={22} color={SiagaColors.warning} weight="duotone" />
               <Text className="text-lg font-bold text-primary mt-1">{report.photos}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Foto</Text>
+              <Text className="text-[10px] text-secondary font-medium">Foto</Text>
             </View>
             <View className="flex-1 bg-white border border-slate-100 rounded-xl p-3 items-center" style={{ elevation: 1 }}>
-              <Warning size={20} color={report.urgencyColor} weight="duotone" />
+              <Warning size={22} color={report.urgencyColor} weight="duotone" />
               <Text className="text-lg font-bold" style={{ color: report.urgencyColor, marginTop: 4 }}>{report.urgency}</Text>
-              <Text className="text-[9px] text-secondary font-medium">Urgensi</Text>
+              <Text className="text-[10px] text-secondary font-medium">Urgensi</Text>
             </View>
           </View>
         </View>
 
         {/* Description */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Deskripsi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Deskripsi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
-            <Text className="text-[12px] text-primary/80 leading-5">{report.description}</Text>
+            <Text className="text-[14px] text-primary/80 leading-5">{report.description}</Text>
           </View>
         </View>
 
+        {/* Official Government Response */}
+        {shouldShowOfficialResponse && (
+          <View className="px-5 pt-5">
+            <View className="rounded-2xl border border-blue-200 bg-blue-50 p-4" style={{ elevation: 1 }}>
+              <View className="mb-3 flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-[15px] font-bold text-primary">Tanggapan Resmi Pemerintah</Text>
+                    <View className="flex-row items-center gap-1 rounded-full bg-white px-2 py-1">
+                      <CheckCircle size={14} color={SiagaColors.info} weight="fill" />
+                      <Text className="text-xs font-bold text-info">Verified</Text>
+                    </View>
+                  </View>
+                  <Text className="mt-1 text-xs text-secondary">
+                    Pembaruan resmi dari instansi yang menangani laporan ini.
+                  </Text>
+                </View>
+              </View>
+
+              <View className="mb-3 flex-row items-center gap-3 rounded-2xl bg-white px-4 py-3">
+                <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: SiagaColors.infoSoft }}>
+                  <Buildings size={20} color={SiagaColors.info} weight="duotone" />
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <Text className="text-[13px] font-bold text-primary">{officialResponderName}</Text>
+                    <CheckCircle size={14} color={SiagaColors.info} weight="fill" />
+                  </View>
+                  <Text className="mt-0.5 text-xs text-secondary">Instansi / petugas terverifikasi</Text>
+                </View>
+              </View>
+
+              <Text className="text-[14px] leading-6 text-primary/80">{officialResponseText}</Text>
+
+              {report.resolutionImageUrl && (
+                <View className="mt-4 overflow-hidden rounded-xl border border-blue-100 bg-white">
+                  <Image
+                    source={{ uri: report.resolutionImageUrl }}
+                    style={{ width: '100%', height: 192, backgroundColor: '#dbeafe' }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Location */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Lokasi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Lokasi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             {/* Embedded Map */}
             <View className="rounded-xl overflow-hidden mb-3">
@@ -248,10 +699,10 @@ export default function ReportDetailScreen() {
             </View>
             <View className="gap-2">
               <View className="flex-row items-start gap-2.5">
-                <MapPin size={14} color={SiagaColors.primary} weight="duotone" />
+                <MapPin size={16} color={SiagaColors.primary} weight="duotone" />
                 <View className="flex-1">
-                  <Text className="text-[11px] font-semibold text-primary">{report.location.address}</Text>
-                  <Text className="text-[10px] text-secondary mt-0.5">{report.location.district}, {report.location.city}</Text>
+                  <Text className="text-[13px] font-semibold text-primary">{report.location.address}</Text>
+                  <Text className="text-[12px] text-secondary mt-0.5">{report.location.district}, {report.location.city}</Text>
                 </View>
               </View>
             </View>
@@ -260,24 +711,24 @@ export default function ReportDetailScreen() {
 
         {/* Reporter */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Pelapor</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Pelapor</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4 flex-row items-center gap-3" style={{ elevation: 1 }}>
             <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-              <Text className="text-white font-bold text-sm">{report.reporter.initials}</Text>
+              <Text className="text-white font-bold text-[16px]">{report.reporter.initials}</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-[12px] font-bold text-primary">{report.reporter.name}</Text>
+              <Text className="text-[14px] font-bold text-primary">{report.reporter.name}</Text>
               <View className="flex-row items-center gap-2 mt-1">
                 <View className="flex-row items-center gap-1 bg-amber-50 rounded px-1.5 py-0.5">
-                  <Medal size={10} color="#f59e0b" weight="duotone" />
-                  <Text className="text-[9px] font-semibold" style={{ color: '#a16207' }}>{report.reporter.badge}</Text>
+                  <Medal size={12} color="#f59e0b" weight="duotone" />
+                  <Text className="text-[10px] font-semibold" style={{ color: '#a16207' }}>{report.reporter.badge}</Text>
                 </View>
-                <Text className="text-[9px] text-secondary">{report.reporter.reportsCount} laporan</Text>
+                <Text className="text-[10px] text-secondary">{report.reporter.reportsCount} laporan</Text>
               </View>
             </View>
             <View className="items-end">
-              <Text className="text-[9px] text-secondary">{report.createdAt.split(', ')[1]}</Text>
-              <Text className="text-[8px] text-secondary mt-0.5">{report.createdAt.split(', ')[0]}</Text>
+              <Text className="text-[10px] text-secondary">{report.createdAt.split(', ')[1]}</Text>
+              <Text className="text-[9px] text-secondary mt-0.5">{report.createdAt.split(', ')[0]}</Text>
             </View>
           </View>
         </View>
@@ -285,23 +736,23 @@ export default function ReportDetailScreen() {
         {/* Response Info */}
         {report.respondedBy && (
           <View className="px-5 pt-5">
-            <Text className="text-[13px] font-bold text-primary mb-2">Penanganan</Text>
+            <Text className="text-[15px] font-bold text-primary mb-2">Penanganan</Text>
             <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
               <View className="flex-row items-center gap-3 mb-3">
                 <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                  <Buildings size={20} color={SiagaColors.primary} weight="duotone" />
+                  <Buildings size={22} color={SiagaColors.primary} weight="duotone" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[11px] font-bold text-primary">{report.respondedBy}</Text>
-                  <Text className="text-[9px] text-secondary mt-0.5">Instansi Penanggung Jawab</Text>
+                  <Text className="text-[13px] font-bold text-primary">{report.respondedBy}</Text>
+                  <Text className="text-[10px] text-secondary mt-0.5">Instansi Penanggung Jawab</Text>
                 </View>
               </View>
               {report.estimatedCompletion && (
                 <View className="flex-row items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
-                  <CalendarBlank size={14} color={SiagaColors.info} weight="duotone" />
+                  <CalendarBlank size={16} color={SiagaColors.info} weight="duotone" />
                   <View>
-                    <Text className="text-[9px] text-secondary">Estimasi Selesai</Text>
-                    <Text className="text-[11px] font-semibold text-primary">{report.estimatedCompletion}</Text>
+                    <Text className="text-[10px] text-secondary">Estimasi Selesai</Text>
+                    <Text className="text-[13px] font-semibold text-primary">{report.estimatedCompletion}</Text>
                   </View>
                 </View>
               )}
@@ -311,7 +762,7 @@ export default function ReportDetailScreen() {
 
         {/* Timeline */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Timeline Progress</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Timeline Progress</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             {report.timeline.map((item, i) => (
               <View key={item.id} className="flex-row gap-3">
@@ -333,15 +784,15 @@ export default function ReportDetailScreen() {
                 <View className="flex-1 pb-4">
                   <View className="flex-row items-center justify-between">
                     <Text
-                      className="text-[11px] font-bold"
+                      className="text-[13px] font-bold"
                       style={{ color: item.status === 'pending' ? SiagaColors.secondary : SiagaColors.primary }}
                     >
                       {item.title}
                     </Text>
-                    <Text className="text-[9px] text-secondary">{item.time}</Text>
+                    <Text className="text-[10px] text-secondary">{item.time}</Text>
                   </View>
                   <Text
-                    className="text-[10px] mt-0.5"
+                    className="text-[12px] mt-0.5"
                     style={{ color: item.status === 'pending' ? SiagaColors.secondary : 'rgba(8,42,76,0.6)' }}
                   >
                     {item.desc}
@@ -354,16 +805,16 @@ export default function ReportDetailScreen() {
 
         {/* Urgency Meter */}
         <View className="px-5 pt-5">
-          <Text className="text-[13px] font-bold text-primary mb-2">Tingkat Urgensi</Text>
+          <Text className="text-[15px] font-bold text-primary mb-2">Tingkat Urgensi</Text>
           <View className="bg-white border border-slate-100 rounded-xl p-4" style={{ elevation: 1 }}>
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center gap-1.5">
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: report.urgencyColor }} />
-                <Text className="text-[11px] font-bold" style={{ color: report.urgencyColor }}>
+                <Text className="text-[13px] font-bold" style={{ color: report.urgencyColor }}>
                   {report.urgency} poin
                 </Text>
               </View>
-              <Text className="text-[10px] font-semibold" style={{ color: report.urgencyColor }}>
+              <Text className="text-[12px] font-semibold" style={{ color: report.urgencyColor }}>
                 {report.badge === 'Kritis' ? 'Sangat Tinggi' : report.badge === 'Sedang' ? 'Sedang' : 'Rendah'}
               </Text>
             </View>
@@ -374,10 +825,10 @@ export default function ReportDetailScreen() {
               />
             </View>
             <View className="flex-row justify-between mt-1.5">
-              <Text className="text-[8px] text-secondary">0</Text>
-              <Text className="text-[8px] text-secondary">50</Text>
-              <Text className="text-[8px] text-secondary">100</Text>
-              <Text className="text-[8px] text-secondary">150</Text>
+              <Text className="text-[9px] text-secondary">0</Text>
+              <Text className="text-[9px] text-secondary">50</Text>
+              <Text className="text-[9px] text-secondary">100</Text>
+              <Text className="text-[9px] text-secondary">150</Text>
             </View>
           </View>
         </View>
@@ -385,60 +836,52 @@ export default function ReportDetailScreen() {
         {/* Comments */}
         <View className="px-5 pt-5">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-[13px] font-bold text-primary">Komentar ({report.comments.length + localComments.length})</Text>
+            <Text className="text-[15px] font-bold text-primary">Komentar ({localComments.length})</Text>
           </View>
           <View className="gap-2.5">
-            {localComments.map((comment) => (
-              <View key={comment.id} className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
-                <View className="flex-row items-start gap-2.5">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                    <Text className="text-[10px] font-bold text-white">{comment.initials}</Text>
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-1.5">
-                        <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
-                        <View className="bg-blue-100 rounded px-1.5 py-0.5">
-                          <Text className="text-[8px] font-bold text-info">Anda</Text>
+            {localComments.map((comment) => {
+              const isOwn = !!user?.id && !!comment.userId && String(comment.userId) === String(user.id);
+              return (
+                <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
+                  <View className="flex-row items-start gap-2.5">
+                    <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
+                      <Text className="text-[12px] font-bold text-primary">{comment.initials}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-1.5">
+                          <Text className="text-[13px] font-bold text-primary">{comment.user}</Text>
+                          {isOwn && (
+                            <View className="bg-blue-100 rounded px-1.5 py-0.5">
+                              <Text className="text-[9px] font-bold text-info">Anda</Text>
+                            </View>
+                          )}
                         </View>
+                        <Text className="text-[10px] text-secondary">{comment.time}</Text>
                       </View>
-                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
-                    </View>
-                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-            {report.comments.map((comment) => (
-              <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
-                <View className="flex-row items-start gap-2.5">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>
-                    <Text className="text-[10px] font-bold text-primary">{comment.initials}</Text>
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-[11px] font-bold text-primary">{comment.user}</Text>
-                      <Text className="text-[9px] text-secondary">{comment.time}</Text>
-                    </View>
-                    <Text className="text-[11px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
-                    <View className="flex-row items-center gap-1 mt-2">
-                      <Heart size={12} color={SiagaColors.secondary} weight="regular" />
-                      <Text className="text-[9px] text-secondary">{comment.likes}</Text>
+                      <Text className="text-[13px] text-primary/70 mt-1 leading-4">{comment.text}</Text>
+                      {comment.likes > 0 && (
+                        <View className="flex-row items-center gap-1 mt-2">
+                          <Heart size={14} color={SiagaColors.secondary} weight="regular" />
+                          <Text className="text-[10px] text-secondary">{comment.likes}</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
+
           </View>
           {/* Comment Input */}
           <View className="mt-3 bg-white border border-slate-100 rounded-xl p-3" style={{ elevation: 1 }}>
             <View className="flex-row items-start gap-2.5">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary }}>
-                <Text className="text-[10px] font-bold text-white">{dummyUser.initials}</Text>
+                <Text className="text-[12px] font-bold text-white">{user?.initials || 'U'}</Text>
               </View>
               <View className="flex-1">
                 <TextInput
-                  className="text-[11px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-[13px] text-primary bg-slate-50 rounded-lg px-3 py-2.5 min-h-[40px]"
                   placeholder="Tulis komentar..."
                   placeholderTextColor={SiagaColors.secondary}
                   value={commentText}
@@ -448,28 +891,51 @@ export default function ReportDetailScreen() {
                   style={{ textAlignVertical: 'top' }}
                 />
                 <View className="flex-row items-center justify-between mt-2">
-                  <Text className="text-[9px] text-secondary">{commentText.length}/500</Text>
+                  <Text className="text-[10px] text-secondary">{commentText.length}/500</Text>
                   <TouchableOpacity
                     className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2"
                     style={{ backgroundColor: commentText.trim() ? SiagaColors.primary : '#e2e8f0' }}
                     disabled={!commentText.trim()}
                     activeOpacity={0.7}
-                    onPress={() => {
+                    onPress={async () => {
                       if (!commentText.trim()) return;
-                      const newComment = {
-                        id: `c_new_${Date.now()}`,
-                        user: dummyUser.name,
-                        initials: dummyUser.initials,
-                        text: commentText.trim(),
-                        time: 'Baru saja',
-                        likes: 0,
-                      };
-                      setLocalComments(prev => [newComment, ...prev]);
-                      setCommentText('');
+                      const result = await addComment(report.id, 'report', commentText.trim());
+                      if (result.success && result.data) {
+                        const now = new Date().toISOString();
+                        const newComment = {
+                          id: result.data.id,
+                          userId: user?.id || '',
+                          user: user?.fullName || 'User',
+                          initials: user?.initials || 'U',
+                          text: commentText.trim(),
+                          time: 'Baru saja',
+                          createdAt: now,
+                          likes: 0,
+                        };
+                        setLocalComments(prev => [newComment, ...prev]);
+                        setCommentText('');
+                        showToast({ type: 'success', title: 'Komentar terkirim', message: 'Komentar Anda berhasil ditambahkan.' });
+                      } else {
+                        // Fallback: tetap simpan lokal
+                        const now = new Date().toISOString();
+                        const newComment = {
+                          id: `c_new_${Date.now()}`,
+                          userId: user?.id || '',
+                          user: user?.fullName || 'User',
+                          initials: user?.initials || 'U',
+                          text: commentText.trim(),
+                          time: 'Baru saja',
+                          createdAt: now,
+                          likes: 0,
+                        };
+                        setLocalComments(prev => [newComment, ...prev]);
+                        setCommentText('');
+                        showToast({ type: 'warning', title: 'Tersimpan lokal', message: 'Komentar disimpan, akan disinkron nanti.' });
+                      }
                     }}
                   >
-                    <PaperPlaneTilt size={12} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
-                    <Text className="text-[10px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
+                    <PaperPlaneTilt size={14} color={commentText.trim() ? '#fff' : '#94a3b8'} weight="fill" />
+                    <Text className="text-[12px] font-semibold" style={{ color: commentText.trim() ? '#fff' : '#94a3b8' }}>Kirim</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -480,29 +946,357 @@ export default function ReportDetailScreen() {
 
       {/* Bottom Action Bar */}
       <View
-        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5 flex-row items-center gap-3"
+        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5"
         style={{ paddingBottom: insets.bottom + 8, paddingTop: 12, elevation: 8 }}
       >
-        <TouchableOpacity
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
-          style={{ backgroundColor: supported ? '#dcfce7' : SiagaColors.primary }}
-          onPress={handleSupport}
-          activeOpacity={0.8}
-        >
-          <ThumbsUp size={16} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
-          <Text className="text-[12px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
-            {supported ? 'Didukung' : 'Dukung'} ({votes})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
-          style={{ borderColor: SiagaColors.info, backgroundColor: '#eff6ff' }}
-          activeOpacity={0.8}
-        >
-          <Flag size={16} color={SiagaColors.info} weight="duotone" />
-          <Text className="text-[12px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
-        </TouchableOpacity>
+        {isGovRole ? (
+          report.status === 'Selesai' ? (
+            <View className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+              <CheckCircle size={18} color="#94a3b8" weight="fill" />
+              <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Laporan Telah Selesai</Text>
+            </View>
+          ) : govActionTarget ? (
+            <TouchableOpacity
+              className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3.5"
+              style={{ backgroundColor: report.status === 'Ditangani' ? SiagaColors.success : SiagaColors.primary, opacity: isGovStatusUpdating ? 0.7 : 1 }}
+              onPress={handleGovStatusAction}
+              activeOpacity={0.8}
+              disabled={isGovStatusUpdating}
+            >
+              {isGovStatusUpdating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <GovActionIcon size={18} color="#fff" weight="duotone" />
+              )}
+              <Text className="text-[14px] font-bold text-white">
+                {isGovStatusUpdating ? 'Memproses...' : govActionLabel}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+              <Buildings size={18} color="#94a3b8" weight="duotone" />
+              <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Status Tidak Dapat Diproses</Text>
+            </View>
+          )
+        ) : (
+          <>
+            {/* Tombol Selesai — hanya tampil untuk pelapor sendiri */}
+            {canResolve && (
+              <TouchableOpacity
+                className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl py-3 mb-2 border"
+                style={{ backgroundColor: SiagaColors.successSoft, borderColor: '#a7f3d0' }}
+                onPress={handleResolve}
+                activeOpacity={0.8}
+              >
+                <CheckCircle size={18} color={SiagaColors.success} weight="fill" />
+                <Text className="text-[14px] font-bold" style={{ color: SiagaColors.success }}>Tandai Masalah Selesai</Text>
+              </TouchableOpacity>
+            )}
+            {report.status === 'Selesai' ? (
+              <View className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl py-3.5" style={{ backgroundColor: '#f1f5f9' }}>
+                <CheckCircle size={18} color="#94a3b8" weight="fill" />
+                <Text className="text-[14px] font-semibold" style={{ color: '#94a3b8' }}>Laporan Telah Selesai</Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center gap-3">
+                <TouchableOpacity
+                  className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
+                  style={{ backgroundColor: supported ? '#dcfce7' : SiagaColors.primary }}
+                  onPress={handleSupport}
+                  activeOpacity={0.8}
+                >
+                  <ThumbsUp size={18} color={supported ? '#15803d' : '#fff'} weight={supported ? 'fill' : 'bold'} />
+                  <Text className="text-[14px] font-bold" style={{ color: supported ? '#15803d' : '#fff' }}>
+                    {supported ? 'Didukung' : 'Dukung'} ({votes})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 border"
+                  style={{ borderColor: SiagaColors.info, backgroundColor: SiagaColors.infoSoft }}
+                  activeOpacity={0.8}
+                  onPress={handleVerify}
+                >
+                  <Flag size={18} color={SiagaColors.info} weight="duotone" />
+                  <Text className="text-[14px] font-bold" style={{ color: SiagaColors.info }}>Verifikasi</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
       </View>
+
+      {/* Resolve Confirmation Modal */}
+      <Modal
+        visible={resolveModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isResolving && setResolveModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', elevation: 10 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <CheckCircle size={32} color="#059669" weight="fill" />
+            </View>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: '#082a4c', textAlign: 'center', marginBottom: 8 }}>Tandai Masalah Selesai</Text>
+            <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              Apakah masalah ini sudah benar-benar teratasi di lokasi?{'\n\n'}Tindakan ini tidak dapat dibatalkan.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
+                onPress={() => setResolveModalVisible(false)}
+                disabled={isResolving}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#64748b' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#059669', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, opacity: isResolving ? 0.7 : 1 }}
+                onPress={confirmResolve}
+                disabled={isResolving}
+                activeOpacity={0.8}
+              >
+                {isResolving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <CheckCircle size={16} color="#fff" weight="fill" />
+                )}
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>{isResolving ? 'Memproses...' : 'Ya, Selesai'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={govResolveModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !isGovStatusUpdating && setGovResolveModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+        >
+          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              maxHeight: SCREEN_HEIGHT * 0.88,
+              overflow: 'hidden',
+            }}
+          >
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: insets.bottom + 16,
+              }}
+            >
+              <View className="mb-4 flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="text-[18px] font-bold text-primary">Selesaikan Laporan</Text>
+                  <Text className="mt-1 text-xs leading-5 text-secondary">
+                    Lampirkan bukti tindakan dan catatan resmi agar warga menerima umpan balik yang jelas.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="h-11 w-11 items-center justify-center rounded-full bg-slate-100"
+                  onPress={() => setGovResolveModalVisible(false)}
+                  activeOpacity={0.7}
+                  disabled={isGovStatusUpdating}
+                >
+                  <X size={18} color={SiagaColors.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <Text className="text-xs font-bold uppercase tracking-wide text-secondary">Foto Bukti</Text>
+                <Text className="mt-1 text-xs leading-5 text-secondary">Opsional, unggah satu foto hasil penanganan di lapangan.</Text>
+
+                {govResolutionPhoto ? (
+                  <View className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <Image
+                      source={{ uri: govResolutionPhoto.uri }}
+                      style={{ width: '100%', height: 180, backgroundColor: '#e2e8f0' }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
+                    <View className="flex-row items-center justify-between px-4 py-3">
+                      <Text className="text-xs font-semibold text-primary">Foto bukti siap dikirim</Text>
+                      <TouchableOpacity
+                        className="min-h-[44px] flex-row items-center justify-center rounded-xl px-3"
+                        style={{ backgroundColor: SiagaColors.dangerSoft }}
+                        onPress={() => setGovResolutionPhoto(null)}
+                        activeOpacity={0.7}
+                        disabled={isGovStatusUpdating}
+                      >
+                        <Text className="text-xs font-bold" style={{ color: SiagaColors.danger }}>Hapus</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View className="mt-4 flex-row gap-3">
+                    <TouchableOpacity
+                      className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                      onPress={() => pickGovResolutionPhoto('camera')}
+                      activeOpacity={0.8}
+                      disabled={isGovStatusUpdating}
+                    >
+                      <Camera size={18} color={SiagaColors.info} weight="duotone" />
+                      <Text className="text-xs font-bold text-info">Ambil Foto</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="min-h-[44px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                      onPress={() => pickGovResolutionPhoto('library')}
+                      activeOpacity={0.8}
+                      disabled={isGovStatusUpdating}
+                    >
+                      <ImageSquare size={18} color={SiagaColors.primary} weight="duotone" />
+                      <Text className="text-xs font-bold text-primary">Upload Foto</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              <View className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <Text className="text-xs font-bold uppercase tracking-wide text-secondary">Catatan Penyelesaian</Text>
+                <Text className="mt-1 text-xs leading-5 text-secondary">
+                  Opsional. Jika dikosongkan, sistem akan mengirim pesan penyelesaian standar yang sopan.
+                </Text>
+                <TextInput
+                  className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-[14px] text-primary"
+                  placeholder="Tuliskan tindakan yang telah dilakukan di lapangan..."
+                  placeholderTextColor={SiagaColors.secondary}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={400}
+                  value={govResolutionNotes}
+                  onChangeText={setGovResolutionNotes}
+                  style={{ minHeight: 112, textAlignVertical: 'top' }}
+                />
+                <View className="mt-2 flex-row justify-end">
+                  <Text className="text-xs text-secondary">{govResolutionNotes.length}/400</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                className="mt-5 min-h-[56px] flex-row items-center justify-center gap-2 rounded-2xl px-4 py-4"
+                style={{ backgroundColor: SiagaColors.success, opacity: isGovStatusUpdating ? 0.7 : 1 }}
+                onPress={submitGovResolution}
+                activeOpacity={0.8}
+                disabled={isGovStatusUpdating}
+              >
+                {isGovStatusUpdating ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <CheckCircle size={18} color="#fff" weight="fill" />
+                )}
+                <Text className="text-[14px] font-bold text-white">
+                  {isUploadingGovProof ? 'Mengupload bukti...' : isGovStatusUpdating ? 'Memproses...' : 'Kirim & Selesaikan'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Fullscreen Photo Viewer */}
+      <Modal
+        visible={fullscreenPhoto !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setFullscreenPhoto(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setFullscreenPhoto(null)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.95)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setFullscreenPhoto(null)}
+            style={{
+              position: 'absolute',
+              top: insets.top + 12,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>✕</Text>
+          </TouchableOpacity>
+
+          {/* Photo */}
+          <FlatList
+            data={report?.photoUrls || []}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={fullscreenPhoto ?? 0}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+            keyExtractor={(_, i) => `fullscreen-${i}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+                <Image
+                  source={{ uri: item }}
+                  style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.7 }}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
+              </TouchableOpacity>
+            )}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              setFullscreenPhoto(index);
+            }}
+          />
+
+          {/* Photo counter */}
+          <View style={{
+            position: 'absolute',
+            bottom: insets.bottom + 24,
+            alignSelf: 'center',
+            flexDirection: 'row',
+            gap: 6,
+          }}>
+            {(report?.photoUrls || []).map((_, i) => (
+              <View
+                key={i}
+                style={{
+                  width: i === fullscreenPhoto ? 24 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: i === fullscreenPhoto ? '#fff' : 'rgba(255,255,255,0.35)',
+                }}
+              />
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

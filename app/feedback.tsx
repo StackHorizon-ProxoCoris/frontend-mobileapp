@@ -8,6 +8,8 @@ import {
   CheckCircle, ChatCircleDots,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { apiPost } from '@/services/api';
+import { useToast } from '@/contexts/toast.context';
 
 const FEEDBACK_TYPES = [
   { key: 'saran', icon: Lightbulb, label: 'Saran', color: '#f59e0b', bg: '#fef3c7' },
@@ -27,6 +29,7 @@ const RATING_EMOJIS = [
 export default function FeedbackScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
   const [feedbackType, setFeedbackType] = useState('saran');
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState('');
@@ -36,13 +39,22 @@ export default function FeedbackScreen() {
 
   const canSend = title.trim().length > 0 && message.trim().length > 10 && rating > 0;
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!canSend) return;
     setIsSending(true);
-    setTimeout(() => {
-      setIsSending(false);
+    const result = await apiPost('/feedback', {
+      type: feedbackType,
+      rating,
+      title: title.trim(),
+      message: message.trim(),
+    });
+    setIsSending(false);
+    if (result.success) {
+      showToast({ type: 'success', title: 'Terima kasih! 🙏', message: 'Feedback Anda berhasil terkirim.' });
       setIsSent(true);
-    }, 1200);
+    } else {
+      showToast({ type: 'error', title: 'Gagal mengirim', message: result.message || 'Terjadi kesalahan, coba lagi.' });
+    }
   };
 
   if (isSent) {

@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
-    MapPin, DotsThreeVertical, ShieldCheck,
+    MapPin, ShieldCheck,
     FileText, HandsClapping, Leaf, TrendUp,
     Star, Medal, Trophy, Crown, Target,
     CaretRight, Clock, Camera, Trash, Wrench,
     Bell, SignOut, PencilSimple,
     CheckCircle, Sparkle, Gear, ArrowRight,
     ChartBar, Eye, ShieldCheckered,
+    Plant, Newspaper, CloudRain, BookOpenText, MegaphoneSimple,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyActivities } from '@/data/dummy';
+import { getActivities, type ActivityItem } from '@/services/activity.service';
+import { getActions, type ActionData } from '@/services/action.service';
+import { getInfoList, type InfoFeedData } from '@/services/info.service';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
+import { apiUpload, apiPatch } from '@/services/api';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 
-const BADGES = [
-    { icon: Medal, color: '#f59e0b', bg: '#fef3c7', border: '#fde68a', label: 'Warga Peduli', active: true },
-    { icon: Star, color: '#3b82f6', bg: '#dbeafe', border: '#bfdbfe', label: 'Relawan Aktif', active: true },
-    { icon: ShieldCheck, color: '#059669', bg: '#d1fae5', border: '#a7f3d0', label: 'Pelapor Handal', active: true },
-    { icon: Trophy, color: '#7c3aed', bg: '#ede9fe', border: '#ddd6fe', label: 'Top Contributor', active: false },
-    { icon: Crown, color: '#ec4899', bg: '#fce7f3', border: '#fbcfe8', label: 'Pahlawan Komunitas', active: false },
-    { icon: Target, color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', label: '100 Hari Streak', active: false },
-];
+const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
+    Medal, Star, ShieldCheck, Trophy, Crown, Target,
+};
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
     Camera, Trash, Wrench,
@@ -32,12 +33,89 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 
 export default function ProfilScreen() {
     const [sosVisible, setSosVisible] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
+    const { showToast } = useToast();
+    const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
+    const [rewardActions, setRewardActions] = useState<ActionData[]>([]);
+    const [infoFeed, setInfoFeed] = useState<InfoFeedData[]>([]);
 
-    // Show only 3 most recent activities
-    const recentActivities = dummyActivities.slice(0, 3);
+    const handleChangePhoto = () => {
+        Alert.alert('Ganti Foto Profil', 'Pilih sumber foto', [
+            {
+                text: 'Kamera',
+                onPress: () => pickImage(ImagePicker.MediaTypeOptions.Images, true),
+            },
+            {
+                text: 'Galeri',
+                onPress: () => pickImage(ImagePicker.MediaTypeOptions.Images, false),
+            },
+            { text: 'Batal', style: 'cancel' },
+        ]);
+    };
+
+    const pickImage = async (mediaTypes: ImagePicker.MediaTypeOptions, useCamera: boolean) => {
+        const permResult = useCamera
+            ? await ImagePicker.requestCameraPermissionsAsync()
+            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (permResult.status !== 'granted') {
+            showToast({ type: 'error', title: 'Izin Ditolak', message: 'Aktifkan izin ' + (useCamera ? 'kamera' : 'galeri') + ' di pengaturan.' });
+            return;
+        }
+
+        const result = useCamera
+            ? await ImagePicker.launchCameraAsync({ mediaTypes, allowsEditing: true, aspect: [1, 1], quality: 0.7 })
+            : await ImagePicker.launchImageLibraryAsync({ mediaTypes, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+
+        if (result.canceled || !result.assets?.[0]?.uri) return;
+
+        setIsUploading(true);
+        try {
+            const asset = result.assets[0];
+            const formData = new FormData();
+            formData.append('file', {
+                uri: asset.uri,
+                name: asset.fileName || 'avatar.jpg',
+                type: asset.mimeType || 'image/jpeg',
+            } as any);
+
+            const uploadRes = await apiUpload<{ url: string }>('/upload', formData);
+            if (!uploadRes.success || !uploadRes.data?.url) {
+                showToast({ type: 'error', title: 'Gagal Upload', message: uploadRes.message || 'Terjadi kesalahan upload.' });
+                return;
+            }
+
+            const patchRes = await apiPatch('/auth/profile', { avatarUrl: uploadRes.data.url });
+            if (!patchRes.success) {
+                showToast({ type: 'error', title: 'Gagal Simpan', message: patchRes.message || 'Gagal menyimpan foto profil.' });
+                return;
+            }
+
+            if (refreshUser) await refreshUser();
+            showToast({ type: 'success', title: 'Berhasil! ✅', message: 'Foto profil berhasil diperbarui.' });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    useEffect(() => {
+        async function load() {
+            // Refresh user profile to get updated ecoPoints
+            if (refreshUser) await refreshUser();
+            const [activitiesResult, actionsResult, infoResult] = await Promise.all([
+                getActivities(),
+                getActions({ limit: 5 }),
+                getInfoList({ limit: 3 }),
+            ]);
+            if (activitiesResult.success && activitiesResult.data) setRecentActivities(activitiesResult.data.slice(0, 3));
+            if (actionsResult.success && actionsResult.data) setRewardActions(actionsResult.data);
+            if (infoResult.success && infoResult.data) setInfoFeed(infoResult.data);
+        }
+        load();
+    }, []);
 
     const handleActivityPress = (refId?: string, type?: string) => {
         if (refId) {
@@ -60,10 +138,10 @@ export default function ProfilScreen() {
                             <View className="flex-row items-center gap-2">
                                 <TouchableOpacity
                                     className="w-8 h-8 rounded-full bg-white/10 items-center justify-center"
-                                    onPress={() => Alert.alert('Notifikasi', 'Belum ada notifikasi baru.')}
+                                    onPress={() => router.push('/notifikasi')}
                                     activeOpacity={0.7}
                                 >
-                                    <Bell size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
+                                    <Bell size={16} color="rgba(255,255,255,0.8)" weight="duotone" />
 
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -71,7 +149,7 @@ export default function ProfilScreen() {
                                     onPress={() => router.push('/pengaturan')}
                                     activeOpacity={0.7}
                                 >
-                                    <Gear size={14} color="rgba(255,255,255,0.8)" weight="duotone" />
+                                    <Gear size={16} color="rgba(255,255,255,0.8)" weight="duotone" />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -82,33 +160,40 @@ export default function ProfilScreen() {
                 <View className="mx-5 -mt-10 bg-white rounded-2xl border border-slate-100 p-5" style={{ elevation: 3, shadowColor: '#082a4c', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 }}>
                     <View className="flex-row items-start gap-4">
                         {/* Avatar */}
-                        <View className="relative">
+                        <TouchableOpacity className="relative" onPress={handleChangePhoto} activeOpacity={0.8} disabled={isUploading}>
                             <View
-                                className="w-[68px] h-[68px] rounded-2xl items-center justify-center"
+                                className="w-[68px] h-[68px] rounded-2xl items-center justify-center overflow-hidden"
                                 style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}
                             >
-                                <Text className="text-2xl font-bold text-white">{user?.initials || 'U'}</Text>
+                                {isUploading ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : user?.avatarUrl ? (
+                                    <Image source={{ uri: user.avatarUrl }} style={{ width: 68, height: 68 }} resizeMode="cover" />
+                                ) : (
+                                    <Text className="text-2xl font-bold text-white">{user?.initials || 'U'}</Text>
+                                )}
                             </View>
-                            <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white items-center justify-center">
-                                <CheckCircle size={10} color="#fff" weight="fill" />
+                            {/* Camera overlay button */}
+                            <View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center" style={{ backgroundColor: SiagaColors.info }}>
+                                <Camera size={11} color="#fff" weight="bold" />
                             </View>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Info */}
                         <View className="flex-1">
-                            <Text className="text-[16px] font-bold text-primary">{user?.fullName || 'User'}</Text>
+                            <Text className="text-[18px] font-bold text-primary">{user?.fullName || 'User'}</Text>
                             <View className="flex-row items-center gap-1 mt-0.5">
-                                <MapPin size={11} color={SiagaColors.secondary} weight="duotone" />
-                                <Text className="text-xs text-secondary">{user?.district || '-'}, {user?.city || '-'}</Text>
+                                <MapPin size={13} color={SiagaColors.secondary} weight="duotone" />
+                                <Text className="text-[14px] text-secondary">{user?.district || '-'}, {user?.city || '-'}</Text>
                             </View>
                             <View className="flex-row items-center gap-1.5 mt-2">
-                                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
-                                    <CheckCircle size={10} color="#15803d" weight="fill" />
-                                    <Text className="text-[10px] font-bold text-success">Terverifikasi</Text>
+                                <View className="flex-row items-center gap-1 px-3 py-1 rounded-md" style={{ backgroundColor: '#dcfce7' }}>
+                                    <CheckCircle size={12} color="#15803d" weight="fill" />
+                                    <Text className="text-[12px] font-bold text-success">Terverifikasi</Text>
                                 </View>
-                                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50">
-                                    <Medal size={10} color="#f59e0b" weight="duotone" />
-                                    <Text className="text-[10px] font-bold" style={{ color: '#b45309' }}>{user?.currentBadge || 'Warga Baru'}</Text>
+                                <View className="flex-row items-center gap-1 px-3 py-1 rounded-md bg-amber-50">
+                                    <Medal size={12} color="#f59e0b" weight="duotone" />
+                                    <Text className="text-[12px] font-bold" style={{ color: '#b45309' }}>{user?.currentBadge || 'Warga Baru'}</Text>
                                 </View>
                             </View>
                         </View>
@@ -119,12 +204,12 @@ export default function ProfilScreen() {
                             onPress={() => router.push('/edit-profil')}
                             activeOpacity={0.7}
                         >
-                            <PencilSimple size={14} color={SiagaColors.primary} weight="duotone" />
+                            <PencilSimple size={16} color={SiagaColors.primary} weight="duotone" />
                         </TouchableOpacity>
                     </View>
 
                     {/* Bio */}
-                    <Text className="text-[13px] text-secondary mt-3 leading-5">Warga aktif yang peduli terhadap lingkungan dan infrastruktur kota.</Text>
+                    <Text className="text-[13px] text-secondary mt-3 leading-5">{user?.bio || 'Belum ada bio'}</Text>
 
                     {/* Stats Row */}
                     <View className="flex-row gap-2 mt-4">
@@ -132,11 +217,11 @@ export default function ProfilScreen() {
                             { value: (user?.totalReports || 0).toString(), label: 'Laporan', color: SiagaColors.info },
                             { value: (user?.totalActions || 0).toString(), label: 'Aksi', color: SiagaColors.success },
                             { value: (user?.ecoPoints || 0).toString(), label: 'Eco-Points', color: '#f59e0b' },
-                            { value: '#-', label: 'Rank', color: '#7c3aed' },
+                            { value: `#${user?.rank || '-'}`, label: 'Rank', color: '#7c3aed' },
                         ].map((s, i) => (
                             <View key={i} className="flex-1 bg-slate-50 rounded-xl p-2.5 items-center">
                                 <Text className="text-base font-bold" style={{ color: s.color }}>{s.value}</Text>
-                                <Text className="text-[10px] font-medium text-secondary mt-0.5">{s.label}</Text>
+                                <Text className="text-[12px] font-medium text-secondary mt-0.5">{s.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -146,22 +231,22 @@ export default function ProfilScreen() {
                 <View className="mx-5 mt-4 rounded-2xl p-4 overflow-hidden" style={{ backgroundColor: SiagaColors.primary, elevation: 2 }}>
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-1.5">
-                            <Leaf size={16} color="#fff" weight="duotone" />
-                            <Text className="text-sm font-bold text-white">Eco-Points</Text>
+                            <Leaf size={18} color="#fff" weight="duotone" />
+                            <Text className="text-[16px] font-bold text-white">Eco-Points</Text>
                         </View>
                         <View className="bg-white/10 rounded-lg px-2 py-1 flex-row items-center gap-1">
                             <TrendUp size={10} color="#10b981" weight="bold" />
-                            <Text className="text-[11px] font-bold text-success">+45 minggu ini</Text>
+                            <Text className="text-[11px] font-bold text-success">+{user?.weeklyPoints || 0} minggu ini</Text>
                         </View>
                     </View>
                     <View className="flex-row items-end gap-1 mb-2">
                         <Text className="text-3xl font-extrabold text-white">{user?.ecoPoints || 0}</Text>
-                        <Text className="text-xs text-white/50 pb-1">points</Text>
+                        <Text className="text-[14px] text-white/50 pb-1">points</Text>
                     </View>
                     <View className="mb-2">
                         <View className="flex-row items-center justify-between mb-1">
-                            <Text className="text-[11px] font-medium text-white/60">Level berikutnya</Text>
-                            <Text className="text-[11px] font-bold text-white">{user?.ecoPoints || 0} pts</Text>
+                            <Text className="text-[13px] font-medium text-white/60">Level berikutnya</Text>
+                            <Text className="text-[13px] font-bold text-white">{user?.ecoPoints || 0} pts</Text>
                         </View>
                         <View className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <View
@@ -169,20 +254,72 @@ export default function ProfilScreen() {
                                 style={{ width: `${Math.min(((user?.ecoPoints || 0) / 300) * 100, 100)}%`, backgroundColor: '#10b981' }}
                             />
                         </View>
-                        <Text className="text-[10px] text-white/40 mt-1">Terus berkontribusi untuk badge berikutnya!</Text>
+                        <Text className="text-[12px] text-white/40 mt-1">Terus berkontribusi untuk badge berikutnya!</Text>
                     </View>
                     <View className="flex-row gap-2 mt-1">
                         {[
-                            { icon: <FileText size={10} color="#fff" weight="duotone" />, label: 'Lapor: +10 pts' },
-                            { icon: <HandsClapping size={10} color="#fff" weight="duotone" />, label: 'Aksi: +50 pts' },
-                            { icon: <Sparkle size={10} color="#fff" weight="duotone" />, label: 'Validasi: +5 pts' },
+                            { icon: <FileText size={12} color="#fff" weight="duotone" />, label: 'Lapor: +10 pts' },
+                            { icon: <HandsClapping size={12} color="#fff" weight="duotone" />, label: 'Aksi: +50 pts' },
+                            { icon: <Sparkle size={12} color="#fff" weight="duotone" />, label: 'Validasi: +5 pts' },
                         ].map((p, i) => (
                             <View key={i} className="flex-row items-center gap-1 bg-white/10 rounded-md px-2 py-1">
                                 {p.icon}
-                                <Text className="text-[10px] font-medium text-white/80">{p.label}</Text>
+                                <Text className="text-[12px] font-medium text-white/80">{p.label}</Text>
                             </View>
                         ))}
                     </View>
+                </View>
+
+                {/* Positive Actions */}
+                <View className="mt-5 px-5">
+                    <View className="flex-row items-center justify-between mb-3">
+                        <View className="flex-row items-center gap-2">
+                            <View className="w-8 h-8 rounded-xl bg-emerald-50 items-center justify-center">
+                                <Plant size={18} color="#059669" weight="duotone" />
+                            </View>
+                            <View>
+                                <Text className="text-base font-bold text-primary">Aksi Positif</Text>
+                                <Text className="text-xs text-secondary">Kontribusi yang menambah rewards Anda</Text>
+                            </View>
+                        </View>
+                        <View className="px-3 py-2 rounded-xl bg-emerald-50">
+                            <Text className="text-xs font-bold text-success">{rewardActions.length} aksi</Text>
+                        </View>
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                        {rewardActions.map((action) => (
+                            <TouchableOpacity
+                                key={action.id}
+                                className="w-[260px] bg-white border border-emerald-100 rounded-2xl p-4"
+                                style={{ elevation: 1 }}
+                                onPress={() => router.push({ pathname: '/action-detail', params: { id: action.id } })}
+                                activeOpacity={0.7}
+                            >
+                                <View className="flex-row items-start justify-between mb-3">
+                                    <View className="w-11 h-11 rounded-2xl bg-emerald-50 items-center justify-center">
+                                        <Plant size={22} color="#059669" weight="duotone" />
+                                    </View>
+                                    <View className="px-2.5 py-1 rounded-full bg-emerald-50">
+                                        <Text className="text-xs font-bold text-success">{action.status}</Text>
+                                    </View>
+                                </View>
+
+                                <Text className="text-base font-bold text-primary" numberOfLines={2}>{action.title}</Text>
+                                <Text className="text-xs text-secondary mt-1" numberOfLines={2}>
+                                    {action.address}, {action.district}
+                                </Text>
+
+                                <View className="flex-row items-center justify-between mt-4">
+                                    <Text className="text-xs text-secondary">{action.date || 'Jadwal menyusul'}</Text>
+                                    <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50">
+                                        <Leaf size={12} color="#b45309" weight="duotone" />
+                                        <Text className="text-xs font-bold" style={{ color: '#b45309' }}>+{action.points} pts</Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
                 </View>
 
                 {/* Badges */}
@@ -190,16 +327,18 @@ export default function ProfilScreen() {
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-2">
                             <View className="w-7 h-7 rounded-lg bg-amber-50 items-center justify-center">
-                                <Trophy size={14} color="#f59e0b" weight="duotone" />
+                                <Trophy size={16} color="#f59e0b" weight="duotone" />
                             </View>
                             <Text className="text-base font-bold text-primary">Badge Saya</Text>
                         </View>
                         <View className="bg-amber-50 rounded-md px-2 py-0.5">
-                            <Text className="text-[11px] font-semibold" style={{ color: '#b45309' }}>3 / 6 terkumpul</Text>
+                            <Text className="text-[11px] font-semibold" style={{ color: '#b45309' }}>{user?.badgeCount?.active || 0} / {user?.badgeCount?.total || 6} terkumpul</Text>
                         </View>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                        {BADGES.map((b, i) => (
+                        {(user?.badges || []).map((b, i) => {
+                            const IconComp = ICON_COMPONENTS[b.icon] || Medal;
+                            return (
                             <TouchableOpacity
                                 key={i}
                                 className="w-[76px] items-center p-2.5 rounded-xl border-2"
@@ -216,18 +355,22 @@ export default function ProfilScreen() {
                                     }
                                 }}
                                 activeOpacity={0.7}
-                            >
-                                <View className="w-10 h-10 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: b.active ? `${b.color}15` : '#f1f5f9' }}>
-                                    <b.icon size={20} color={b.active ? b.color : '#c4c4c4'} weight="duotone" />
+                                >
+                                <View
+                                    className="w-10 h-10 rounded-xl items-center justify-center mb-1.5"
+                                    style={{ backgroundColor: b.active ? b.bg : '#f8fafc' }}
+                                >
+                                    <IconComp size={20} color={b.active ? b.color : '#94a3b8'} weight={b.active ? 'duotone' : 'light'} />
                                 </View>
-                                <Text className="text-[10px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
+                                <Text className="text-[12px] font-bold text-center" style={{ color: b.active ? SiagaColors.primary : '#999' }} numberOfLines={2}>{b.label}</Text>
                                 {b.active && (
                                     <View className="absolute -top-1 -right-1">
-                                        <CheckCircle size={14} color={b.color} weight="fill" />
+                                        <CheckCircle size={16} color={b.color} weight="fill" />
                                     </View>
                                 )}
                             </TouchableOpacity>
-                        ))}
+                            );
+                        })}
                     </ScrollView>
                 </View>
 
@@ -236,17 +379,17 @@ export default function ProfilScreen() {
                     <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-2">
                             <View className="w-7 h-7 rounded-lg bg-blue-50 items-center justify-center">
-                                <Clock size={14} color="#3b82f6" weight="duotone" />
+                                <Clock size={16} color="#3b82f6" weight="duotone" />
                             </View>
                             <Text className="text-base font-bold text-primary">Aktivitas Terkini</Text>
                         </View>
                         <TouchableOpacity
-                            className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg"
+                            className="flex-row items-center gap-1 bg-blue-50 px-3 py-1.5.5 rounded-lg"
                             onPress={() => router.push('/riwayat-aktivitas')}
                             activeOpacity={0.7}
                         >
-                            <Text className="text-[11px] font-bold text-info">Lihat Semua</Text>
-                            <ArrowRight size={10} color={SiagaColors.info} weight="bold" />
+                            <Text className="text-[13px] font-bold text-info">Lihat Semua</Text>
+                            <ArrowRight size={12} color={SiagaColors.info} weight="bold" />
                         </TouchableOpacity>
                     </View>
                     <View className="gap-2">
@@ -261,22 +404,75 @@ export default function ProfilScreen() {
                                     activeOpacity={a.refId ? 0.7 : 1}
                                 >
                                     <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: a.bgColor }}>
-                                        <IconComp size={18} color={a.color} weight="duotone" />
+                                        <IconComp size={20} color={a.color} weight="duotone" />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-sm font-bold text-primary" numberOfLines={1}>{a.title}</Text>
+                                        <Text className="text-[16px] font-bold text-primary" numberOfLines={1}>{a.title}</Text>
                                         <View className="flex-row items-center gap-2 mt-0.5">
                                             <View className="flex-row items-center gap-0.5">
-                                                <Clock size={9} color={SiagaColors.secondary} />
-                                                <Text className="text-[11px] text-secondary">{a.time}</Text>
+                                                <Clock size={11} color={SiagaColors.secondary} />
+                                                <Text className="text-[13px] text-secondary">{a.time}</Text>
                                             </View>
                                             <View className="flex-row items-center gap-0.5">
-                                                <Leaf size={9} color="#059669" weight="duotone" />
-                                                <Text className="text-[11px] font-bold text-success">+{a.points} pts</Text>
+                                                <Leaf size={11} color="#059669" weight="duotone" />
+                                                <Text className="text-[13px] font-bold text-success">+{a.points} pts</Text>
                                             </View>
                                         </View>
                                     </View>
-                                    {a.refId && <CaretRight size={14} color={SiagaColors.secondary} />}
+                                    {a.refId && <CaretRight size={16} color={SiagaColors.secondary} />}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* Education Feed */}
+                <View className="mt-5 px-5">
+                    <View className="flex-row items-center justify-between mb-3">
+                        <View className="flex-row items-center gap-2">
+                            <View className="w-8 h-8 rounded-xl bg-sky-50 items-center justify-center">
+                                <Newspaper size={18} color={SiagaColors.info} weight="duotone" />
+                            </View>
+                            <View>
+                                <Text className="text-base font-bold text-primary">Info & Edukasi</Text>
+                                <Text className="text-xs text-secondary">Bacaan singkat untuk kesiapsiagaan harian</Text>
+                            </View>
+                        </View>
+                        <View className="px-3 py-2 rounded-xl bg-sky-50">
+                            <Text className="text-xs font-bold text-info">Topik Pilihan</Text>
+                        </View>
+                    </View>
+
+                    <View className="gap-3">
+                        {infoFeed.map((info) => {
+                            const InfoIcon = info.type === 'CloudRain'
+                                ? CloudRain
+                                : info.type === 'BookOpenText'
+                                    ? BookOpenText
+                                    : MegaphoneSimple;
+
+                            return (
+                                <TouchableOpacity
+                                    key={info.id}
+                                    className="bg-white border border-slate-100 rounded-2xl p-4 flex-row items-center gap-3"
+                                    style={{ elevation: 1 }}
+                                    onPress={() => router.push({ pathname: '/info-detail', params: { id: info.id } })}
+                                    activeOpacity={0.7}
+                                >
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: info.bg }}>
+                                        <InfoIcon size={22} color={info.color} weight="duotone" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <View className="flex-row items-center gap-2 mb-1">
+                                            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: info.bg }}>
+                                                <Text className="text-xs font-bold" style={{ color: info.color }}>{info.category}</Text>
+                                            </View>
+                                            <Text className="text-xs text-secondary">{info.source}</Text>
+                                        </View>
+                                        <Text className="text-[15px] font-bold text-primary" numberOfLines={2}>{info.title}</Text>
+                                        <Text className="text-xs text-secondary mt-1" numberOfLines={2}>{info.subtitle}</Text>
+                                    </View>
+                                    <CaretRight size={16} color={SiagaColors.secondary} />
                                 </TouchableOpacity>
                             );
                         })}
@@ -287,7 +483,7 @@ export default function ProfilScreen() {
                 <View className="mt-5 px-5">
                     <View className="flex-row items-center gap-2 mb-3">
                         <View className="w-7 h-7 rounded-lg bg-slate-100 items-center justify-center">
-                            <Gear size={14} color={SiagaColors.primary} weight="duotone" />
+                            <Gear size={16} color={SiagaColors.primary} weight="duotone" />
                         </View>
                         <Text className="text-base font-bold text-primary">Menu</Text>
                     </View>
@@ -296,7 +492,6 @@ export default function ProfilScreen() {
                             { icon: PencilSimple, label: 'Edit Profil', color: SiagaColors.primary, onPress: () => router.push('/edit-profil') },
                             { icon: ChartBar, label: 'Riwayat Aktivitas', color: '#3b82f6', onPress: () => router.push('/riwayat-aktivitas') },
                             { icon: Gear, label: 'Pengaturan', color: '#475569', onPress: () => router.push('/pengaturan') },
-                            { icon: ShieldCheckered, label: 'Keamanan & Privasi', color: '#f59e0b', onPress: () => router.push('/pengaturan') },
                             { icon: Eye, label: 'Tentang SIAGA', color: SiagaColors.info, onPress: () => router.push('/tentang') },
                         ].map((item, i, arr) => (
                             <TouchableOpacity
@@ -310,10 +505,10 @@ export default function ProfilScreen() {
                                 activeOpacity={0.7}
                             >
                                 <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: `${item.color}12` }}>
-                                    <item.icon size={16} color={item.color} weight="duotone" />
+                                    <item.icon size={18} color={item.color} weight="duotone" />
                                 </View>
-                                <Text className="flex-1 text-sm font-semibold text-primary">{item.label}</Text>
-                                <CaretRight size={14} color={SiagaColors.secondary} />
+                                <Text className="flex-1 text-[16px] font-semibold text-primary">{item.label}</Text>
+                                <CaretRight size={16} color={SiagaColors.secondary} />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -329,17 +524,20 @@ export default function ProfilScreen() {
                                 'Apakah Anda yakin ingin keluar dari akun ini?',
                                 [
                                     { text: 'Batal', style: 'cancel' },
-                                    { text: 'Keluar', style: 'destructive', onPress: async () => { await logout(); } },
+                                    { text: 'Keluar', style: 'destructive', onPress: async () => {
+                                        showToast({ type: 'info', title: 'Berhasil Keluar', message: 'Anda telah logout dari akun.' });
+                                        await logout();
+                                    } },
                                 ]
                             );
                         }}
                         activeOpacity={0.7}
                     >
-                        <SignOut size={18} color={SiagaColors.danger} weight="duotone" />
-                        <Text className="text-sm font-bold text-danger">Keluar</Text>
+                        <SignOut size={20} color={SiagaColors.danger} weight="duotone" />
+                        <Text className="text-[16px] font-bold text-danger">Keluar</Text>
                     </TouchableOpacity>
-                    <Text className="text-center text-[11px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
-                    <Text className="text-center text-[10px] text-secondary/50 mt-0.5">SIAGA — ProxoCoris</Text>
+                    <Text className="text-center text-[13px] text-secondary mt-3">SIAGA v1.0.0 · Build 2026</Text>
+                    <Text className="text-center text-[12px] text-secondary/50 mt-0.5">SIAGA — ProxoCoris</Text>
                 </View>
             </ScrollView>
 

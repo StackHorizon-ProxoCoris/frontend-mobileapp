@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
+import * as Location from 'expo-location';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     KeyboardAvoidingView, Platform, Alert, Animated,
-    ActivityIndicator,
+    ActivityIndicator, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/auth';
 import {
     ShieldCheck, Envelope, Lock, Eye, EyeSlash,
     User, Phone, MapPin, ArrowLeft, ArrowRight,
-    GoogleLogo, CheckCircle, CaretRight, IdentificationCard,
-    Buildings, Check, Warning as WarningIcon,
+    CheckCircle, CaretRight, IdentificationCard,
+    Buildings, Check, Warning as WarningIcon, GpsFix,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
 
 type Step = 1 | 2 | 3;
 
@@ -38,12 +40,14 @@ export default function RegisterScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { register } = useAuth();
+    const { showToast } = useToast();
 
     const [step, setStep] = useState<Step>(1);
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [detectingLocation, setDetectingLocation] = useState(false);
     const [form, setForm] = useState<FormData>({
         fullName: '',
         email: '',
@@ -72,28 +76,28 @@ export default function RegisterScreen() {
     };
 
     const validateStep1 = (): boolean => {
-        if (!form.fullName.trim()) { Alert.alert('Error', 'Masukkan nama lengkap Anda.'); return false; }
-        if (form.fullName.trim().length < 3) { Alert.alert('Error', 'Nama minimal 3 karakter.'); return false; }
-        if (!form.email.trim()) { Alert.alert('Error', 'Masukkan alamat email.'); return false; }
-        if (!/\S+@\S+\.\S+/.test(form.email)) { Alert.alert('Error', 'Format email tidak valid.'); return false; }
-        if (!form.phone.trim()) { Alert.alert('Error', 'Masukkan nomor telepon.'); return false; }
-        if (form.phone.trim().length < 10) { Alert.alert('Error', 'Nomor telepon minimal 10 digit.'); return false; }
+        if (!form.fullName.trim()) { showToast({ type: 'warning', title: 'Nama diperlukan', message: 'Masukkan nama lengkap Anda.' }); return false; }
+        if (form.fullName.trim().length < 3) { showToast({ type: 'warning', title: 'Nama terlalu pendek', message: 'Nama minimal 3 karakter.' }); return false; }
+        if (!form.email.trim()) { showToast({ type: 'warning', title: 'Email diperlukan', message: 'Masukkan alamat email.' }); return false; }
+        if (!/\S+@\S+\.\S+/.test(form.email)) { showToast({ type: 'warning', title: 'Format salah', message: 'Format email tidak valid.' }); return false; }
+        if (!form.phone.trim()) { showToast({ type: 'warning', title: 'Telepon diperlukan', message: 'Masukkan nomor telepon.' }); return false; }
+        if (form.phone.trim().length < 10) { showToast({ type: 'warning', title: 'Nomor terlalu pendek', message: 'Nomor telepon minimal 10 digit.' }); return false; }
         return true;
     };
 
     const validateStep2 = (): boolean => {
-        if (!form.password) { Alert.alert('Error', 'Masukkan password.'); return false; }
-        if (form.password.length < 8) { Alert.alert('Error', 'Password minimal 8 karakter.'); return false; }
-        if (!/[A-Z]/.test(form.password)) { Alert.alert('Error', 'Password harus mengandung huruf besar.'); return false; }
-        if (!/[0-9]/.test(form.password)) { Alert.alert('Error', 'Password harus mengandung angka.'); return false; }
-        if (form.password !== form.confirmPassword) { Alert.alert('Error', 'Password dan konfirmasi password tidak cocok.'); return false; }
+        if (!form.password) { showToast({ type: 'warning', title: 'Password diperlukan', message: 'Masukkan password.' }); return false; }
+        if (form.password.length < 8) { showToast({ type: 'warning', title: 'Password terlalu pendek', message: 'Password minimal 8 karakter.' }); return false; }
+        if (!/[A-Z]/.test(form.password)) { showToast({ type: 'warning', title: 'Password lemah', message: 'Password harus mengandung huruf besar.' }); return false; }
+        if (!/[0-9]/.test(form.password)) { showToast({ type: 'warning', title: 'Password lemah', message: 'Password harus mengandung angka.' }); return false; }
+        if (form.password !== form.confirmPassword) { showToast({ type: 'warning', title: 'Password tidak cocok', message: 'Password dan konfirmasi password tidak cocok.' }); return false; }
         return true;
     };
 
     const validateStep3 = (): boolean => {
-        if (!form.district.trim()) { Alert.alert('Error', 'Masukkan kecamatan Anda.'); return false; }
-        if (!form.city.trim()) { Alert.alert('Error', 'Masukkan kota/kabupaten.'); return false; }
-        if (!form.agreeTerms) { Alert.alert('Error', 'Anda harus menyetujui Syarat & Ketentuan.'); return false; }
+        if (!form.district.trim()) { showToast({ type: 'warning', title: 'Kecamatan diperlukan', message: 'Masukkan kecamatan Anda.' }); return false; }
+        if (!form.city.trim()) { showToast({ type: 'warning', title: 'Kota diperlukan', message: 'Masukkan kota/kabupaten.' }); return false; }
+        if (!form.agreeTerms) { showToast({ type: 'warning', title: 'Syarat & Ketentuan', message: 'Anda harus menyetujui Syarat & Ketentuan.' }); return false; }
         return true;
     };
 
@@ -121,13 +125,11 @@ export default function RegisterScreen() {
         setIsLoading(false);
 
         if (!result.success) {
-            Alert.alert('Registrasi Gagal', result.message);
+            showToast({ type: 'error', title: 'Registrasi Gagal', message: result.message });
+        } else {
+            showToast({ type: 'success', title: 'Registrasi Berhasil! 🎉', message: 'Akun Anda berhasil dibuat.' });
         }
         // Jika sukses, AuthGuard otomatis redirect ke (tabs)
-    };
-
-    const handleGoogleRegister = () => {
-        Alert.alert('Segera Hadir', 'Daftar dengan Google akan tersedia di versi berikutnya.');
     };
 
     const renderInput = (
@@ -186,24 +188,6 @@ export default function RegisterScreen() {
             <View className="mb-5">
                 <Text className="text-[18px] font-bold text-primary">Data Diri</Text>
                 <Text className="text-[11px] text-secondary mt-0.5">Isi informasi dasar akun Anda</Text>
-            </View>
-
-            {/* Google Register */}
-            <TouchableOpacity
-                className="flex-row items-center justify-center gap-3 py-3.5 rounded-2xl border-2 border-slate-100 mb-5"
-                style={{ backgroundColor: '#fafbfc' }}
-                onPress={handleGoogleRegister}
-                activeOpacity={0.7}
-                disabled={isLoading}
-            >
-                <GoogleLogo size={20} color="#4285F4" weight="bold" />
-                <Text className="text-[13px] font-bold text-primary">Daftar dengan Google</Text>
-            </TouchableOpacity>
-
-            <View className="flex-row items-center gap-3 mb-5">
-                <View className="flex-1 h-px bg-slate-100" />
-                <Text className="text-[10px] font-semibold text-secondary/60 uppercase tracking-wider">atau isi manual</Text>
-                <View className="flex-1 h-px bg-slate-100" />
             </View>
 
             {/* Full Name */}
@@ -311,12 +295,53 @@ export default function RegisterScreen() {
                 <Text className="text-[11px] text-secondary mt-0.5">Bantu kami menampilkan laporan di sekitar Anda</Text>
             </View>
 
+            {/* Auto-detect Location Button */}
+            <TouchableOpacity
+                className="flex-row items-center justify-center gap-2 py-3 rounded-xl mb-4"
+                style={{ backgroundColor: SiagaColors.primary + '12', borderWidth: 1.5, borderColor: SiagaColors.primary + '30', borderStyle: 'dashed' }}
+                disabled={detectingLocation}
+                activeOpacity={0.7}
+                onPress={async () => {
+                    setDetectingLocation(true);
+                    try {
+                        const { status } = await Location.requestForegroundPermissionsAsync();
+                        if (status !== 'granted') {
+                            showToast({ type: 'warning', title: 'Izin Lokasi Ditolak', message: 'Aktifkan izin lokasi untuk deteksi otomatis.' });
+                            setDetectingLocation(false);
+                            return;
+                        }
+                        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                        if (results.length > 0) {
+                            const geo = results[0];
+                            updateForm('district', geo.subregion || geo.district || '');
+                            updateForm('city', geo.city || geo.region || '');
+                            showToast({ type: 'success', title: 'Lokasi Terdeteksi! 📍', message: `${geo.subregion || ''}, ${geo.city || ''}` });
+                        } else {
+                            showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat mendeteksi alamat dari lokasi Anda.' });
+                        }
+                    } catch (err) {
+                        showToast({ type: 'error', title: 'Gagal', message: 'Tidak bisa mendapatkan lokasi. Coba lagi.' });
+                    }
+                    setDetectingLocation(false);
+                }}
+            >
+                {detectingLocation ? (
+                    <ActivityIndicator size="small" color={SiagaColors.primary} />
+                ) : (
+                    <GpsFix size={18} color={SiagaColors.primary} weight="duotone" />
+                )}
+                <Text className="text-[12px] font-bold" style={{ color: SiagaColors.primary }}>
+                    {detectingLocation ? 'Mendeteksi lokasi...' : 'Deteksi Lokasi Otomatis'}
+                </Text>
+            </TouchableOpacity>
+
             {/* District */}
             <View className="mb-3.5">
                 <Text className="text-[11px] font-bold text-primary/70 mb-1.5 ml-1">Kecamatan</Text>
                 {renderInput(
                     <MapPin size={18} color={focusedField === 'district' ? SiagaColors.primary : SiagaColors.secondary} weight="duotone" />,
-                    'district', 'Contoh: Coblong', form.district,
+                    'district', 'Contoh: Tikala', form.district,
                     (t) => updateForm('district', t),
                     { autoCapitalize: 'words' }
                 )}
@@ -327,7 +352,7 @@ export default function RegisterScreen() {
                 <Text className="text-[11px] font-bold text-primary/70 mb-1.5 ml-1">Kota / Kabupaten</Text>
                 {renderInput(
                     <Buildings size={18} color={focusedField === 'city' ? SiagaColors.primary : SiagaColors.secondary} weight="duotone" />,
-                    'city', 'Contoh: Kota Bandung', form.city,
+                    'city', 'Contoh: Kota Manado', form.city,
                     (t) => updateForm('city', t),
                     { autoCapitalize: 'words' }
                 )}
@@ -380,7 +405,7 @@ export default function RegisterScreen() {
     return (
         <View className="flex-1" style={{ backgroundColor: SiagaColors.primary }}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
             >
                 <ScrollView
@@ -404,9 +429,6 @@ export default function RegisterScreen() {
 
                         {/* Header */}
                         <View className="flex-row items-center gap-3 mb-3">
-                            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
-                                <ShieldCheck size={24} color="#fff" weight="duotone" />
-                            </View>
                             <View>
                                 <Text className="text-[20px] font-bold text-white">Buat Akun</Text>
                                 <Text className="text-[10px] text-white/50">Bergabung untuk lindungi komunitas Anda</Text>

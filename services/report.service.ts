@@ -8,6 +8,72 @@ import { apiGet, apiPost, apiPatch, type ApiResponse } from './api';
 // Tipe Data
 // ============================================================
 
+// ── UI Presentation Types (digunakan oleh komponen layar) ────
+export interface Report {
+  id: string;
+  type: string;
+  gradient: string;
+  badge: 'Kritis' | 'Sedang' | 'Rendah';
+  badgeBg: string;
+  badgeColor: string;
+  title: string;
+  desc: string;
+  distance: string;
+  votes: number;
+  photos: number;
+  time: string;
+  urgency: number;
+  urgencyColor: string;
+  supported: boolean;
+}
+
+export interface ReportDetail extends Report {
+  reporter: {
+    name: string;
+    initials: string;
+    badge: string;
+    reportsCount: number;
+  };
+  location: {
+    address: string;
+    district: string;
+    city: string;
+    lat: number;
+    lng: number;
+  };
+  description: string;
+  category: string;
+  status: 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
+  statusColor: string;
+  statusBg: string;
+  createdAt: string;
+  updatedAt: string;
+  photoUrls: string[];
+  comments: {
+    id: string;
+    user: string;
+    initials: string;
+    text: string;
+    time: string;
+    likes: number;
+  }[];
+  timeline: {
+    id: string;
+    title: string;
+    desc: string;
+    time: string;
+    status: 'done' | 'active' | 'pending';
+  }[];
+  respondedBy: string | null;
+  estimatedCompletion: string | null;
+  verifiedCount: number;
+  resolutionNotes?: string | null;
+  resolutionImageUrl?: string | null;
+}
+
+// ── API Response Types ───────────────────────────────────────
+export type BackendReportStatus = 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
+
 export interface ReportData {
   id: string;
   userId: string;
@@ -20,7 +86,7 @@ export interface ReportData {
   city: string;
   lat: number;
   lng: number;
-  status: 'Menunggu' | 'Diverifikasi' | 'Ditangani' | 'Selesai';
+  status: BackendReportStatus;
   urgency: number;
   votesCount: number;
   verifiedCount: number;
@@ -28,6 +94,8 @@ export interface ReportData {
   commentsCount: number;
   respondedBy: string | null;
   estimatedCompletion: string | null;
+  resolutionNotes?: string | null;
+  resolutionImageUrl?: string | null;
   photoUrls: string[];
   createdAt: string;
   updatedAt: string;
@@ -55,9 +123,48 @@ export interface CreateReportPayload {
   photoUrls?: string[];
 }
 
+export interface UpdateReportStatusPayload {
+  respondedBy?: string;
+  estimatedCompletion?: string;
+  resolutionNotes?: string;
+  resolutionImageUrl?: string;
+}
+
 // ============================================================
 // API Calls
 // ============================================================
+
+/** Ambil statistik agregasi laporan */
+export interface ReportStats {
+  total: number;
+  pending: number;
+  inProgress: number;
+  resolved: number;
+}
+
+export async function getReportStats(): Promise<ApiResponse<ReportStats>> {
+  return apiGet<ReportStats>('/reports/stats', false);
+}
+
+/** Tipe data ringan untuk marker peta */
+export interface MapMarkerData {
+  id: string;
+  title: string;
+  category: string;
+  lat: number;
+  lng: number;
+  urgency: number;
+  votesCount: number;
+  district: string;
+  city: string;
+  description: string;
+  createdAt: string;
+}
+
+/** Ambil marker peta (payload ringan) */
+export async function getMapMarkers(): Promise<ApiResponse<MapMarkerData[]>> {
+  return apiGet<MapMarkerData[]>('/reports/map-markers', false);
+}
 
 /** Ambil daftar laporan dengan filter & pagination */
 export async function getReports(params?: {
@@ -73,7 +180,7 @@ export async function getReports(params?: {
   if (params?.limit) query.set('limit', String(params.limit));
 
   const queryStr = query.toString();
-  return apiGet<ReportData[]>(`/reports${queryStr ? `?${queryStr}` : ''}`, false);
+  return apiGet<ReportData[]>(`/reports${queryStr ? `?${queryStr}` : ''}`);
 }
 
 /** Ambil detail laporan berdasarkan ID */
@@ -103,8 +210,23 @@ export async function toggleReportVote(reportId: string): Promise<ApiResponse> {
 /** Update status laporan */
 export async function updateReportStatus(
   reportId: string,
-  status: string,
-  respondedBy?: string,
+  status: BackendReportStatus,
+  payload?: UpdateReportStatusPayload,
 ): Promise<ApiResponse> {
-  return apiPatch(`/reports/${reportId}/status`, { status, respondedBy });
+  return apiPatch(`/reports/${reportId}/status`, { status, ...payload });
+}
+
+/** Verifikasi laporan */
+export async function verifyReport(reportId: string): Promise<ApiResponse> {
+  return apiPost(`/reports/${reportId}/verify`);
+}
+
+/** Pelapor menutup laporannya sendiri (masalah teratasi) */
+export async function resolveReportByUser(reportId: string): Promise<ApiResponse> {
+  return apiPatch(`/reports/${reportId}/resolve-by-user`, {});
+}
+
+/** Toggle bookmark (polymorphic — report, action, info) */
+export async function toggleBookmark(refType: string, refId: string): Promise<ApiResponse> {
+  return apiPost('/bookmarks', { refType, refId });
 }

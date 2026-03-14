@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft, Camera, UserCircle, Envelope, Phone, MapPin,
   CalendarBlank, GenderIntersex, House, PencilSimple, CheckCircle,
-  FloppyDisk, IdentificationCard,
+  FloppyDisk, IdentificationCard, Crosshair,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { useToast } from '@/contexts/toast.context';
+import { apiPatch, apiUpload } from '@/services/api';
+import * as Location from 'expo-location';
 
 interface FormField {
   key: string;
@@ -25,11 +29,12 @@ interface FormField {
 export default function EditProfilScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const { showToast } = useToast();
 
   const [form, setForm] = useState({
     name: user?.fullName || '',
-    bio: 'Warga aktif yang peduli lingkungan dan infrastruktur kota.',
+    bio: user?.bio || 'Warga aktif yang peduli lingkungan dan infrastruktur kota.',
     email: user?.email || '',
     phone: user?.phone || '',
     birthDate: '',
@@ -37,9 +42,65 @@ export default function EditProfilScreen() {
     address: '',
     district: user?.district || '',
     city: user?.city || '',
+    province: user?.province || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleChangePhoto = () => {
+    Alert.alert('Ganti Foto Profil', 'Pilih sumber foto', [
+      { text: 'Kamera', onPress: () => pickImage(true) },
+      { text: 'Galeri', onPress: () => pickImage(false) },
+      { text: 'Batal', style: 'cancel' },
+    ]);
+  };
+
+  const pickImage = async (useCamera: boolean) => {
+    const permResult = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permResult.status !== 'granted') {
+      showToast({ type: 'error', title: 'Izin Ditolak', message: 'Aktifkan izin ' + (useCamera ? 'kamera' : 'galeri') + ' di pengaturan.' });
+      return;
+    }
+
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setIsUploading(true);
+    try {
+      const asset = result.assets[0];
+      const formData = new FormData();
+      formData.append('file', {
+        uri: asset.uri,
+        name: asset.fileName || 'avatar.jpg',
+        type: asset.mimeType || 'image/jpeg',
+      } as any);
+
+      const uploadRes = await apiUpload<{ url: string }>('/upload', formData);
+      if (!uploadRes.success || !uploadRes.data?.url) {
+        showToast({ type: 'error', title: 'Gagal Upload', message: uploadRes.message || 'Terjadi kesalahan upload.' });
+        return;
+      }
+
+      const patchRes = await apiPatch('/auth/profile', { avatarUrl: uploadRes.data.url });
+      if (!patchRes.success) {
+        showToast({ type: 'error', title: 'Gagal Simpan', message: patchRes.message || 'Gagal menyimpan foto profil.' });
+        return;
+      }
+
+      if (refreshUser) await refreshUser();
+      showToast({ type: 'success', title: 'Berhasil! ✅', message: 'Foto profil berhasil diperbarui.' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fields: FormField[] = [
     { key: 'name', label: 'Nama Lengkap', icon: UserCircle, iconColor: SiagaColors.primary, value: form.name, placeholder: 'Masukkan nama lengkap' },
@@ -49,22 +110,68 @@ export default function EditProfilScreen() {
     { key: 'birthDate', label: 'Tanggal Lahir', icon: CalendarBlank, iconColor: '#f59e0b', value: form.birthDate, placeholder: 'DD MMMM YYYY' },
     { key: 'gender', label: 'Jenis Kelamin', icon: GenderIntersex, iconColor: '#ec4899', value: form.gender, placeholder: 'Laki-laki / Perempuan' },
     { key: 'address', label: 'Alamat', icon: House, iconColor: '#ea580c', value: form.address, placeholder: 'Masukkan alamat lengkap', multiline: true },
-    { key: 'district', label: 'Kecamatan', icon: MapPin, iconColor: SiagaColors.info, value: form.district, placeholder: 'Kecamatan', editable: false },
-    { key: 'city', label: 'Kota', icon: MapPin, iconColor: SiagaColors.info, value: form.city, placeholder: 'Kota', editable: false },
+    { key: 'district', label: 'Kecamatan', icon: MapPin, iconColor: SiagaColors.info, value: form.district, placeholder: 'Kecamatan' },
+    { key: 'city', label: 'Kota / Kabupaten', icon: MapPin, iconColor: SiagaColors.info, value: form.city, placeholder: 'Kota' },
+    { key: 'province', label: 'Provinsi', icon: MapPin, iconColor: SiagaColors.info, value: form.province, placeholder: 'Provinsi' },
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      Alert.alert('Berhasil', 'Profil berhasil diperbarui!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    }, 800);
+    const result = await apiPatch('/auth/profile', {
+      fullName: form.name,
+      bio: form.bio,
+      email: form.email,
+      phone: form.phone,
+      district: form.district,
+      city: form.city,
+      province: form.province,
+    });
+    setIsSaving(false);
+    if (result.success) {
+      if (refreshUser) await refreshUser();
+      showToast({ type: 'success', title: 'Berhasil! ✅', message: 'Profil berhasil diperbarui.' });
+      router.back();
+    } else {
+      showToast({ type: 'error', title: 'Gagal', message: result.message || 'Terjadi kesalahan saat menyimpan profil.' });
+    }
   };
 
   const updateField = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const detectLocation = async () => {
+    setIsDetecting(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showToast({ type: 'error', title: 'Izin Ditolak', message: 'Aktifkan izin lokasi di pengaturan perangkat.' });
+        setIsDetecting(false);
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = position.coords;
+
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+      if (geocode.length > 0) {
+        const geo = geocode[0];
+        setForm(prev => ({
+          ...prev,
+          district: geo.subregion || geo.district || prev.district,
+          city: geo.city || prev.city,
+          province: geo.region || prev.province,
+        }));
+        showToast({ type: 'success', title: 'Lokasi Terdeteksi ✅', message: `${geo.subregion || '-'}, ${geo.city || '-'}` });
+      } else {
+        showToast({ type: 'error', title: 'Gagal', message: 'Tidak dapat menentukan alamat dari lokasi GPS.' });
+      }
+    } catch {
+      showToast({ type: 'error', title: 'Error', message: 'Gagal mendeteksi lokasi. Pastikan GPS aktif.' });
+    } finally {
+      setIsDetecting(false);
+    }
   };
 
   return (
@@ -81,7 +188,7 @@ export default function EditProfilScreen() {
         >
           <ArrowLeft size={18} color={SiagaColors.primary} weight="bold" />
         </TouchableOpacity>
-        <Text className="text-sm font-bold text-primary">Edit Profil</Text>
+        <Text className="text-base font-bold text-primary">Edit Profil</Text>
         <TouchableOpacity
           className="px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
           style={{ backgroundColor: isSaving ? '#e2e8f0' : SiagaColors.primary }}
@@ -89,8 +196,8 @@ export default function EditProfilScreen() {
           disabled={isSaving}
           activeOpacity={0.7}
         >
-          <FloppyDisk size={14} color="#fff" weight="bold" />
-          <Text className="text-xs font-bold text-white">{isSaving ? 'Menyimpan...' : 'Simpan'}</Text>
+          <FloppyDisk size={16} color="#fff" weight="bold" />
+          <Text className="text-[13px] font-bold text-white">{isSaving ? 'Menyimpan...' : 'Simpan'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -105,22 +212,27 @@ export default function EditProfilScreen() {
         >
           {/* Avatar Section */}
           <View className="items-center pt-6 pb-4">
-            <View className="relative">
+            <TouchableOpacity className="relative" onPress={handleChangePhoto} activeOpacity={0.8} disabled={isUploading}>
               <View
-                className="w-24 h-24 rounded-full items-center justify-center"
+                className="w-24 h-24 rounded-full items-center justify-center overflow-hidden"
                 style={{ backgroundColor: SiagaColors.primary, elevation: 4, shadowColor: SiagaColors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }}
               >
-                <Text className="text-3xl font-bold text-white">{user?.initials || 'U'}</Text>
+                {isUploading ? (
+                  <ActivityIndicator color="#fff" size="large" />
+                ) : user?.avatarUrl ? (
+                  <Image source={{ uri: user.avatarUrl }} style={{ width: 96, height: 96 }} resizeMode="cover" />
+                ) : (
+                  <Text className="text-3xl font-bold text-white">{user?.initials || 'U'}</Text>
+                )}
               </View>
-              <TouchableOpacity
+              <View
                 className="absolute bottom-0 right-0 w-8 h-8 rounded-full items-center justify-center border-2 border-white"
                 style={{ backgroundColor: SiagaColors.info, elevation: 3 }}
-                activeOpacity={0.7}
               >
                 <Camera size={14} color="#fff" weight="bold" />
-              </TouchableOpacity>
-            </View>
-            <Text className="text-xs text-secondary mt-2">Tap ikon kamera untuk mengganti foto</Text>
+              </View>
+            </TouchableOpacity>
+            <Text className="text-[13px] text-secondary mt-2">Tap foto untuk mengganti</Text>
           </View>
 
           {/* Verification Banner */}
@@ -130,10 +242,10 @@ export default function EditProfilScreen() {
             </View>
             <View className="flex-1">
               <View className="flex-row items-center gap-1.5">
-                <Text className="text-sm font-bold text-primary">Identitas Terverifikasi</Text>
-                <CheckCircle size={12} color="#059669" weight="fill" />
+                <Text className="text-[14px] font-bold text-primary">Identitas Terverifikasi</Text>
+                <CheckCircle size={14} color="#059669" weight="fill" />
               </View>
-              <Text className="text-[11px] text-secondary mt-0.5">KTP telah diverifikasi pada 10 Jan 2026</Text>
+              <Text className="text-[12px] text-secondary mt-0.5">KTP telah diverifikasi pada 10 Jan 2026</Text>
             </View>
           </View>
 
@@ -141,18 +253,38 @@ export default function EditProfilScreen() {
           <View className="px-5 gap-3.5">
             {fields.map((field) => {
               const IconComp = field.icon;
+              const isLocationField = field.key === 'district';
               return (
-                <View key={field.key}>
-                  <Text className="text-xs font-semibold text-primary mb-1.5 ml-1">{field.label}</Text>
+                <React.Fragment key={field.key}>
+                  {/* Tombol Deteksi Lokasi — tampil sekali sebelum field Kecamatan */}
+                  {isLocationField && (
+                    <TouchableOpacity
+                      className="flex-row items-center justify-center gap-2 py-3 rounded-xl border"
+                      style={{
+                        backgroundColor: isDetecting ? '#f1f5f9' : '#eff6ff',
+                        borderColor: isDetecting ? '#e2e8f0' : '#bfdbfe',
+                      }}
+                      activeOpacity={0.7}
+                      onPress={detectLocation}
+                      disabled={isDetecting}
+                    >
+                      <Crosshair size={18} color={SiagaColors.info} weight="duotone" />
+                      <Text className="text-[13px] font-bold" style={{ color: SiagaColors.info }}>
+                        {isDetecting ? 'Mendeteksi lokasi...' : 'Deteksi Lokasi Saya'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                <View>
+                  <Text className="text-[13px] font-semibold text-primary mb-2 ml-1">{field.label}</Text>
                   <View
-                    className="bg-white border border-slate-100 rounded-xl flex-row items-start gap-3 px-3.5 py-3"
+                    className="bg-white border border-slate-100 rounded-xl flex-row items-start gap-3 px-4 py-3.5"
                     style={{ elevation: 1, opacity: field.editable === false ? 0.6 : 1 }}
                   >
-                    <View className="w-8 h-8 rounded-lg items-center justify-center mt-0.5" style={{ backgroundColor: `${field.iconColor}12` }}>
-                      <IconComp size={16} color={field.iconColor} weight="duotone" />
+                    <View className="w-9 h-9 rounded-lg items-center justify-center mt-0.5" style={{ backgroundColor: `${field.iconColor}12` }}>
+                      <IconComp size={18} color={field.iconColor} weight="duotone" />
                     </View>
                     <TextInput
-                      className="flex-1 text-[13px] text-primary py-0"
+                      className="flex-1 text-[14px] text-primary py-0"
                       value={field.value}
                       onChangeText={(val) => updateField(field.key, val)}
                       placeholder={field.placeholder}
@@ -167,29 +299,30 @@ export default function EditProfilScreen() {
                     />
                   </View>
                 </View>
+                </React.Fragment>
               );
             })}
           </View>
 
           {/* Member Info */}
           <View className="mx-5 mt-6 bg-slate-50 border border-slate-100 rounded-2xl p-4">
-            <Text className="text-[11px] font-semibold text-secondary uppercase tracking-wider mb-2">Informasi Keanggotaan</Text>
+            <Text className="text-[12px] font-semibold text-secondary uppercase tracking-wider mb-2">Informasi Keanggotaan</Text>
             <View className="gap-2">
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">Bergabung sejak</Text>
-                <Text className="text-xs font-semibold text-primary">-</Text>
+                <Text className="text-[13px] text-secondary">Bergabung sejak</Text>
+                <Text className="text-[13px] font-semibold text-primary">-</Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">ID Pengguna</Text>
-                <Text className="text-xs font-semibold text-primary font-mono">{user?.id?.slice(0, 8) || '-'}...</Text>
+                <Text className="text-[13px] text-secondary">ID Pengguna</Text>
+                <Text className="text-[13px] font-semibold text-primary font-mono">{user?.id?.slice(0, 8) || '-'}...</Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">Total Laporan</Text>
-                <Text className="text-xs font-semibold text-primary">{user?.totalReports || 0}</Text>
+                <Text className="text-[13px] text-secondary">Total Laporan</Text>
+                <Text className="text-[13px] font-semibold text-primary">{user?.totalReports || 0}</Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-secondary">Total Aksi</Text>
-                <Text className="text-xs font-semibold text-primary">{user?.totalActions || 0}</Text>
+                <Text className="text-[13px] text-secondary">Total Aksi</Text>
+                <Text className="text-[13px] font-semibold text-primary">{user?.totalActions || 0}</Text>
               </View>
             </View>
           </View>

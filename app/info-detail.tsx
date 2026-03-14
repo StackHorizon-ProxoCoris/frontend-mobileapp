@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, Image,
+  ScrollView, View, Text, TouchableOpacity,
   Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent, Share, Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -15,7 +16,7 @@ import {
   LinkSimple, ArrowSquareOut,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
-import { dummyInfoDetails, type InfoDetail } from '@/data/dummy';
+import { getInfoById, type InfoDetailData } from '@/services/info.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
@@ -26,8 +27,32 @@ export default function InfoDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activePhoto, setActivePhoto] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
+  const [info, setInfo] = useState<InfoDetailData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const info = dummyInfoDetails[id ?? ''];
+  useEffect(() => {
+    const fetchInfo = async () => {
+      if (!id) { setIsLoading(false); return; }
+      setIsLoading(true);
+      const result = await getInfoById(id);
+      if (result.success && result.data) {
+        setInfo(result.data);
+      }
+      setIsLoading(false);
+    };
+    fetchInfo();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-[#f8fafd] items-center justify-center" style={{ paddingTop: insets.top }}>
+        <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.primary + '20' }}>
+          <BookOpenText size={20} color={SiagaColors.primary} weight="duotone" />
+        </View>
+        <Text className="text-sm text-secondary mt-3">Memuat artikel...</Text>
+      </View>
+    );
+  }
 
   if (!info) {
     return (
@@ -203,9 +228,10 @@ export default function InfoDetailScreen() {
               renderItem={({ item }) => (
                 <Image
                   source={{ uri: item }}
-                  style={{ width: PHOTO_WIDTH, height: 200 }}
-                  className="bg-slate-200"
-                  resizeMode="cover"
+                  style={{ width: PHOTO_WIDTH, height: 200, backgroundColor: '#e2e8f0' }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
                 />
               )}
             />
@@ -359,10 +385,10 @@ export default function InfoDetailScreen() {
         {/* Comments */}
         <View className="px-5 pt-5">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-[13px] font-bold text-primary">Komentar ({info.comments.length})</Text>
+            <Text className="text-[13px] font-bold text-primary">Komentar ({info.comments?.length ?? 0})</Text>
           </View>
           <View className="gap-2.5">
-            {info.comments.map((comment) => (
+            {(info.comments ?? []).map((comment) => (
               <View key={comment.id} className="bg-white border border-slate-100 rounded-xl p-3.5" style={{ elevation: 1 }}>
                 <View className="flex-row items-start gap-2.5">
                   <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: SiagaColors.surface }}>

@@ -1,25 +1,32 @@
 {
   "expo": {
-    "name": "frontend-mobileapp",
+    "name": "SIAGA",
     "slug": "frontend-mobileapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "frontendmobileapp",
+    "icon": "./assets/images/siaga-icon.png",
+    "scheme": "siaga",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SIAGA memerlukan akses lokasi untuk menentukan titik laporan masalah dan aksi positif Anda secara akurat."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/siaga-adaptive-foreground.png"
       },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "pan",
+      "package": "com.stackhorizon.siaga"
     },
     "web": {
       "output": "static",
@@ -30,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/siaga-splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -39,11 +46,24 @@
           }
         }
       ],
-      "expo-secure-store"
+      [
+        "expo-notifications",
+        {
+          "color": "#082a4c",
+          "defaultChannel": "default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "apiUrl": "https://api.jordannst.dev/api",
+      "router": {},
+      "eas": {
+        "projectId": "7c1dd4b2-546c-4b73-9ddf-e3605f680a92"
+      }
     }
   }
 }
