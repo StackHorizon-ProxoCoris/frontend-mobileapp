@@ -4,7 +4,7 @@
     "slug": "frontend-mobileapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/siaga-logo.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "siaga",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -17,7 +17,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/siaga-adaptive-foreground.png"
+        "foregroundImage": "./assets/images/logo.png"
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",

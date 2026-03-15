@@ -52,7 +52,7 @@ export default function TentangScreen() {
         {/* Hero Section */}
         <View className="items-center pt-8 pb-6 px-5">
           <View className="mb-4" style={{ elevation: 4, shadowColor: SiagaColors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12 }}>
-            <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 100, height: 100 }} resizeMode="contain" />
+            <Image source={require('@/assets/images/logo.png')} style={{ width: 100, height: 100 }} resizeMode="contain" />
           </View>
           <Text className="text-2xl font-extrabold text-primary">SIAGA</Text>
           <Text className="text-xs text-secondary mt-1 font-semibold">Sistem Informasi Aksi & Gotong-royong Aktif</Text>

@@ -123,7 +123,7 @@ export default function LoginScreen() {
                             >
                                 {/* App Logo */}
                                 <View className="w-28 h-28 rounded-3xl items-center justify-center mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-                                    <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 300, height: 300 }} resizeMode="contain" />
+                                    <Image source={require('@/assets/images/logo.png')} style={{ width: 300, height: 300 }} resizeMode="contain" />
                                 </View>
                                 <Text className="text-3xl font-extrabold text-white tracking-wider">SIAGA</Text>
                                 <Text className="text-[11px] text-white/50 mt-1 tracking-widest uppercase">Aplikasi Pelaporan Masyarakat</Text>
