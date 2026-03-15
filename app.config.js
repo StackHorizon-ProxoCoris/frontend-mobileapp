@@ -1,8 +1,6 @@
 const { expo: baseConfig } = require('./app.json');
 
 const PRODUCTION_API_URL = 'https://api.jordannst.dev/api';
-const DEVELOPMENT_PACKAGE = 'com.stackhorizon.siaga.dev';
-const DEVELOPMENT_SCHEME = 'siaga-dev';
 
 function resolveVariant() {
   if (process.env.APP_VARIANT) {
@@ -33,12 +31,6 @@ module.exports = () => {
 
   return {
     ...baseConfig,
-    name: isDevelopment ? 'SIAGA Dev' : baseConfig.name,
-    scheme: isDevelopment ? DEVELOPMENT_SCHEME : baseConfig.scheme,
-    android: {
-      ...baseConfig.android,
-      package: isDevelopment ? DEVELOPMENT_PACKAGE : baseConfig.android.package,
-    },
     extra,
   };
 };

@@ -11,20 +11,12 @@
         "APP_VARIANT": "development"
       }
     },
-    "preview": {
+    "final": {
       "distribution": "internal",
       "env": {
-        "APP_VARIANT": "production"
-      }
-    },
-    "production": {
-      "autoIncrement": true,
-      "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "final"
       }
     }
   },
-  "submit": {
-    "production": {}
-  }
+  "submit": {}
 }

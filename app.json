@@ -4,7 +4,7 @@
     "slug": "frontend-mobileapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/siaga-icon.png",
+    "icon": "./assets/images/siaga-logo.png",
     "scheme": "siaga",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -37,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/siaga-splash.png",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

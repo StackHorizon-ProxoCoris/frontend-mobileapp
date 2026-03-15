@@ -59,7 +59,7 @@ export default function AnalyticsScreen() {
                 <View className="px-5 pb-5 pt-4">
                     <View className="flex-row items-center justify-between">
                         <View className="flex-row items-center gap-2.5">
-                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
+                            <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-base font-extrabold text-white tracking-tight">Analitik</Text>
                                 <Text className="text-xs font-semibold text-white/45 uppercase tracking-[2px]">Gov Dashboard</Text>
@@ -184,7 +184,7 @@ export default function AnalyticsScreen() {
                 {/* ── FOOTER ── */}
                 <View className="pt-2 pb-2 items-center gap-1">
                     <View className="flex-row items-center gap-1.5">
-                        <Image source={require('@/assets/images/logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
+                        <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
                         <Text className="text-[13px] font-bold" style={{ color: SiagaColors.primary }}>SIAGA Dashboard</Text>
                     </View>
                     <Text className="text-[10px]" style={{ color: SiagaColors.secondary }}>v1.0.0 · Smart Indonesia Adaptive Governance Application</Text>

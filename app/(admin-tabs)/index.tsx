@@ -187,7 +187,7 @@ export default function AdminDashboardScreen() {
                 <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
+                            <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: -0.3 }}>SIAGA</Text>
                                 <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' }}>Admin Panel</Text>
@@ -529,7 +529,7 @@ export default function AdminDashboardScreen() {
 
                         <View style={{ paddingVertical: 8, alignItems: 'center', gap: 4 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                <Image source={require('@/assets/images/logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
+                                <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: SiagaColors.primary }}>SIAGA Admin Panel</Text>
                             </View>
                             <Text style={{ fontSize: 10, color: SiagaColors.secondary }}>v1.0.0 · Dashboard Admin Terintegrasi · PROXOCORIS 2026</Text>

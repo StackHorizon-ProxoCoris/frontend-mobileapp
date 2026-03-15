@@ -200,7 +200,7 @@ export default function GovDashboardScreen() {
                     {/* Top row */}
                     <View className="flex-row items-center justify-between mb-5">
                         <View className="flex-row items-center gap-2.5">
-                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
+                            <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-base font-extrabold text-white tracking-tight">SIAGA</Text>
                                 <Text className="text-xs font-semibold text-white/45 uppercase tracking-[2px]">Gov Dashboard</Text>
