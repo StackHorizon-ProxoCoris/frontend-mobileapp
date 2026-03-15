@@ -6,7 +6,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { apiPost, apiGet, TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api';
+import {
+  apiPost,
+  apiGet,
+  apiDelete,
+  TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+  clearStoredTokens,
+  hasStoredSession,
+  registerSessionInvalidatedCallback,
+  unregisterSessionInvalidatedCallback,
+} from '../services/api';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
 // ============================================================
@@ -74,6 +84,7 @@ interface AuthContextType {
 // ============================================================
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const USER_CACHE_KEY = 'siaga_auth_user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -87,6 +98,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return 'user';
   }, []);
 
+  const persistCachedUser = useCallback(async (nextUser: AuthUser | null) => {
+    try {
+      if (nextUser) {
+        await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(nextUser));
+      } else {
+        await SecureStore.deleteItemAsync(USER_CACHE_KEY);
+      }
+    } catch {
+      // Non-blocking cache write
+    }
+  }, []);
+
+  const readCachedUser = useCallback(async (): Promise<AuthUser | null> => {
+    try {
+      const cached = await SecureStore.getItemAsync(USER_CACHE_KEY);
+      if (!cached) return null;
+
+      const parsed = JSON.parse(cached) as Partial<AuthUser>;
+      if (!parsed || typeof parsed !== 'object' || !parsed.id || !parsed.email) {
+        return null;
+      }
+
+      return {
+        id: parsed.id,
+        email: parsed.email,
+        fullName: parsed.fullName || '',
+        initials: parsed.initials || '',
+        phone: parsed.phone || '',
+        bio: parsed.bio || '',
+        avatarUrl: parsed.avatarUrl || '',
+        district: parsed.district || '',
+        city: parsed.city || 'Kota Bandung',
+        province: parsed.province || 'Jawa Barat',
+        ecoPoints: parsed.ecoPoints || 0,
+        currentBadge: parsed.currentBadge || 'Warga Baru',
+        totalReports: parsed.totalReports || 0,
+        totalActions: parsed.totalActions || 0,
+        rank: parsed.rank || 0,
+        weeklyPoints: parsed.weeklyPoints || 0,
+        badges: Array.isArray(parsed.badges) ? parsed.badges : [],
+        badgeCount: parsed.badgeCount || { active: 0, total: 0 },
+        settings: parsed.settings || {},
+        role: normalizeRole(parsed.role),
+        nip: parsed.nip || '',
+        jabatan: parsed.jabatan || '',
+        instansi: parsed.instansi || '',
+        unitKerja: parsed.unitKerja || '',
+        golongan: parsed.golongan || '',
+        tmt: parsed.tmt || '',
+      };
+    } catch {
+      return null;
+    }
+  }, [normalizeRole]);
+
   // Push notification token
   const { registerForPushNotifications } = usePushNotifications();
   const pushTokenRef = useRef<string | null>(null);
@@ -97,7 +163,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await registerForPushNotifications();
       if (token) {
         pushTokenRef.current = token;
-        // Kirim ke backend (fire-and-forget)
         apiPost('/device-tokens', {
           token,
           platform: Platform.OS,
@@ -108,25 +173,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [registerForPushNotifications]);
 
+  const clearAuthState = useCallback(async () => {
+    await clearStoredTokens();
+    await persistCachedUser(null);
+    setUser(null);
+    setRole('user');
+    pushTokenRef.current = null;
+  }, [persistCachedUser]);
+
   // ----------------------------------------------------------
-  // Cek token saat app pertama kali dibuka
+  // Sinkronisasi invalidasi sesi dari API client
   // ----------------------------------------------------------
   useEffect(() => {
-    checkExistingToken();
-  }, []);
-
-  async function checkExistingToken() {
-    try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      if (token) {
-        await fetchUserProfile();
-      }
-    } catch {
-      await clearTokens();
-    } finally {
+    registerSessionInvalidatedCallback(() => {
+      void persistCachedUser(null);
+      setUser(null);
+      setRole('user');
+      pushTokenRef.current = null;
       setIsLoading(false);
-    }
-  }
+    });
+
+    return () => {
+      unregisterSessionInvalidatedCallback();
+    };
+  }, [persistCachedUser]);
 
   // ----------------------------------------------------------
   // Ambil profil user dari backend
@@ -138,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const d = response.data;
       const backendRole = normalizeRole(d.role);
 
-      setUser({
+      const hydratedUser: AuthUser = {
         id: d.authId || d.auth_id || d.id,
         email: d.email,
         fullName: d.fullName || d.full_name || '',
@@ -159,29 +229,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         badgeCount: d.badgeCount || { active: 0, total: 0 },
         settings: d.settings || {},
         role: backendRole,
-        // Gov-specific
         nip: d.nip || '',
         jabatan: d.jabatan || '',
         instansi: d.instansi || '',
         unitKerja: d.unitKerja || d.unit_kerja || '',
         golongan: d.golongan || '',
         tmt: d.tmt || '',
-      });
-      setRole(backendRole);
+      };
 
-      // Sinkronisasi push token setelah user berhasil dimuat
+      setUser(hydratedUser);
+      setRole(backendRole);
+      persistCachedUser(hydratedUser);
+
       syncPushToken();
 
       return { success: true, message: response.message };
     }
 
     if (response.statusCode === 401) {
-      await clearTokens();
-      setRole('user');
+      await clearAuthState();
+      return { success: false, message: response.message || 'Sesi login telah berakhir.' };
     }
 
     return { success: false, message: response.message || 'Gagal memuat profil pengguna.' };
-  }, [normalizeRole]);
+  }, [clearAuthState, normalizeRole, persistCachedUser, syncPushToken]);
+
+  // ----------------------------------------------------------
+  // Cek token saat app pertama kali dibuka
+  // ----------------------------------------------------------
+  const restoreSession = useCallback(async () => {
+    try {
+      const hasSession = await hasStoredSession();
+      if (!hasSession) {
+        await clearAuthState();
+        return;
+      }
+
+      const cachedUser = await readCachedUser();
+      if (cachedUser) {
+        setUser(cachedUser);
+        setRole(normalizeRole(cachedUser.role));
+      }
+
+      const profile = await fetchUserProfile();
+      if (!profile.success) {
+        const stillHasSession = await hasStoredSession();
+        if (!stillHasSession) {
+          await clearAuthState();
+          return;
+        }
+
+        if (!cachedUser) {
+          await clearAuthState();
+          return;
+        }
+      }
+    } catch {
+      await clearAuthState();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clearAuthState, fetchUserProfile, normalizeRole, readCachedUser]);
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
 
   // ----------------------------------------------------------
   // Login
@@ -192,7 +304,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (response.success && response.data) {
       const { accessToken, refreshToken } = response.data;
 
-      // Simpan tokens
       await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
       if (refreshToken) {
         await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
@@ -200,8 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const profile = await fetchUserProfile();
       if (!profile.success) {
-        await clearTokens();
-        setRole('user');
+        await clearAuthState();
         return { success: false, message: profile.message };
       }
 
@@ -220,17 +330,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (response.success && response.data) {
       const { accessToken, refreshToken } = response.data;
 
-      // Simpan tokens
       await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
       if (refreshToken) {
         await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
       }
 
-      // Ambil profil user
       const profile = await fetchUserProfile();
       if (!profile.success) {
-        await clearTokens();
-        setRole('user');
+        await clearAuthState();
         return { success: false, message: profile.message };
       }
 
@@ -244,26 +351,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout
   // ----------------------------------------------------------
   async function logout() {
-    // Nonaktifkan push token di backend sebelum logout
-    if (pushTokenRef.current) {
-      apiPost('/device-tokens', undefined, true)
-        .catch(() => { /* silent */ });
-      // Atau bisa pakai DELETE, tapi apiPost lebih simple untuk fire-and-forget
-    }
-    await apiPost('/auth/logout');
-    await clearTokens();
-    setUser(null);
-    setRole('user');
-    pushTokenRef.current = null;
-  }
+    const deviceToken = pushTokenRef.current;
 
-  // ----------------------------------------------------------
-  // Helpers
-  // ----------------------------------------------------------
-  async function clearTokens() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-    setUser(null);
+    if (deviceToken) {
+      apiDelete('/device-tokens', { token: deviceToken }, true)
+        .catch(() => { /* silent */ });
+    }
+
+    await apiPost('/auth/logout');
+    await clearAuthState();
   }
 
   // ----------------------------------------------------------

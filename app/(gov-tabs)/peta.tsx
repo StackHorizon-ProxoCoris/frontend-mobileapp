@@ -99,6 +99,7 @@ function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number
         // Persistent layer groups for markers and hotspots
         var markerLayerGroup = L.layerGroup().addTo(map);
         var hotspotLayerGroup = L.layerGroup().addTo(map);
+        var currentMarkers = [];
 
         var CATEGORY_MAP = ${categoryMapJSON};
         var SEVERITY_COLOR = ${severityColorJSON};
@@ -110,6 +111,7 @@ function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number
         }
 
         function updateMarkers(allMarkers, activeFilter) {
+            currentMarkers = allMarkers || [];
             markerLayerGroup.clearLayers();
             var filtered = allMarkers;
             if (activeFilter === 'Darurat') {
@@ -152,6 +154,18 @@ function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number
                 }).addTo(hotspotLayerGroup);
                 circle.bindTooltip('<b>\ud83d\udd34 ' + h.label + '</b><br>' + h.count + ' laporan', { permanent: false, direction: 'top' });
             });
+        }
+
+        function focusMarkerById(reportId, allMarkers) {
+            var markers = Array.isArray(allMarkers) && allMarkers.length ? allMarkers : currentMarkers;
+            var target = markers.find(function(marker) { return marker.id === reportId; });
+            if (!target) return false;
+
+            map.flyTo([target.lat, target.lng], 17, {
+                animate: true,
+                duration: 0.8,
+            });
+            return true;
         }
 
         // Render initial state
@@ -350,11 +364,14 @@ function ReportBottomSheet({
 export default function GovPetaScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { filter } = useLocalSearchParams<{ filter?: string }>();
+    const params = useLocalSearchParams<{ filter?: string | string[]; reportId?: string | string[] }>();
+    const filterParam = Array.isArray(params.filter) ? params.filter[0] : params.filter;
+    const focusReportId = Array.isArray(params.reportId) ? params.reportId[0] : params.reportId;
     const webviewRef = useRef<WebView>(null);
+    const lastFocusedReportIdRef = useRef<string | null>(null);
 
     const [activeFilter, setActiveFilter] = useState<FilterKey>(
-        (filter as FilterKey) || 'Semua'
+        (filterParam as FilterKey) || 'Semua'
     );
     const [showHotspot, setShowHotspot] = useState(true);
     const [showLegend, setShowLegend] = useState(false);
@@ -377,6 +394,11 @@ export default function GovPetaScreen() {
         }
         load();
     }, []);
+
+    useEffect(() => {
+        if (!filterParam) return;
+        setActiveFilter(filterParam as FilterKey);
+    }, [filterParam]);
 
     // Konversi API data ke MapMarker format (backend sudah filter null lat/lng)
     const LIVE_MARKERS = useMemo<MapMarker[]>(() => {
@@ -466,6 +488,24 @@ export default function GovPetaScreen() {
         const js = `updateHotspots(${JSON.stringify(DYNAMIC_HOTSPOTS)}, ${showHotspot}); true;`;
         webviewRef.current.injectJavaScript(js);
     }, [showHotspot, DYNAMIC_HOTSPOTS, mapReady]);
+
+    useEffect(() => {
+        if (!focusReportId) {
+            lastFocusedReportIdRef.current = null;
+            return;
+        }
+        if (!mapReady || !webviewRef.current || LIVE_MARKERS.length === 0) return;
+        if (lastFocusedReportIdRef.current === focusReportId) return;
+
+        const targetReport = LIVE_MARKERS.find(report => report.id === focusReportId);
+        if (!targetReport) return;
+
+        openSheet(targetReport);
+        webviewRef.current.injectJavaScript(
+            `focusMarkerById(${JSON.stringify(focusReportId)}, ${JSON.stringify(LIVE_MARKERS)}); true;`
+        );
+        lastFocusedReportIdRef.current = focusReportId;
+    }, [LIVE_MARKERS, focusReportId, mapReady, openSheet]);
 
     const criticalCount = LIVE_MARKERS.filter(r => r.severity === 'Kritis').length;
     const filteredCount = activeFilter === 'Semua'
@@ -706,8 +746,12 @@ export default function GovPetaScreen() {
                     report={selectedReport}
                     onClose={closeSheet}
                     onNavigate={() => {
+                        const targetReportId = selectedReport?.id;
                         closeSheet();
-                        setTimeout(() => router.push('/report-detail'), 200);
+                        if (!targetReportId) return;
+                        setTimeout(() => {
+                            router.push({ pathname: '/report-detail', params: { id: targetReportId } });
+                        }, 200);
                     }}
                 />
             </Animated.View>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Dimensions, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Dimensions, RefreshControl, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -7,7 +7,7 @@ import {
     Waves, RoadHorizon, Trash, Mountains, Fire,
     MapPin, Clock, CaretRight, Users,
     ListBullets, CaretDown, CaretUp,
-    ShieldCheck, Warning, Eye, NavigationArrow,
+    ShieldCheck, Warning, Eye, NavigationArrow, Crosshair,
 } from 'phosphor-react-native';
 import { SiagaColors } from '@/constants/theme';
 import { type Report } from '@/services/report.service';
@@ -16,12 +16,10 @@ import EmbeddedMap from '@/components/ui/MapView';
 import SOSButton from '@/components/ui/SOSButton';
 import SOSModal from '@/components/ui/SOSModal';
 import { useToast } from '@/contexts/toast.context';
+import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
 const { height: W_HEIGHT, width: W_WIDTH } = Dimensions.get('window');
-
-// Bandung center coordinates
-const MAP_CENTER = { lat: -6.8917, lng: 107.6107 };
 
 const FILTER_CHIPS = [
     { icon: SquaresFour, label: 'Semua', color: SiagaColors.primary },
@@ -56,6 +54,10 @@ export default function PantauScreen() {
     const router = useRouter();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['12%', '60%'], []);
+    const location = useCurrentLocation();
+
+    // GPS is ready when we have coordinates
+    const gpsReady = location.lat !== null && location.lng !== null;
 
     // Fetch reports dari API
     const loadReports = useCallback(async () => {
@@ -155,19 +157,63 @@ export default function PantauScreen() {
         <View className="flex-1 bg-[#f8fafd]" style={{ paddingTop: insets.top }}>
             {/* Full-height Map Section */}
             <View className="flex-1">
-                {/* Embedded Map — full screen */}
+                {/* Embedded Map — full screen (only when GPS ready) */}
                 <View className="absolute inset-0">
-                    <EmbeddedMap
-                        latitude={MAP_CENTER.lat}
-                        longitude={MAP_CENTER.lng}
-                        zoom={14}
-                        height={W_HEIGHT}
-                        markers={mapMarkers}
-                        borderRadius={0}
-                        showOpenButton={false}
-                        interactive={true}
-                        onMarkerPress={handleMarkerPress}
-                    />
+                    {gpsReady ? (
+                        <EmbeddedMap
+                            latitude={location.lat!}
+                            longitude={location.lng!}
+                            zoom={14}
+                            height={W_HEIGHT}
+                            markers={mapMarkers}
+                            borderRadius={0}
+                            showOpenButton={false}
+                            interactive={true}
+                            onMarkerPress={handleMarkerPress}
+                        />
+                    ) : (
+                        /* GPS Overlay — Loading or Error */
+                        <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#e8eef6', height: W_HEIGHT }}>
+                            {location.loading ? (
+                                /* Loading state */
+                                <View className="items-center gap-4">
+                                    <View className="w-20 h-20 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(8,42,76,0.08)' }}>
+                                        <ActivityIndicator size="large" color={SiagaColors.primary} />
+                                    </View>
+                                    <View className="items-center">
+                                        <Text className="text-[16px] font-bold text-primary">Mencari lokasi...</Text>
+                                        <Text className="text-[13px] text-secondary mt-1">Menggunakan GPS perangkat Anda</Text>
+                                    </View>
+                                </View>
+                            ) : (
+                                /* Error / Permission denied state */
+                                <View className="items-center gap-5 px-8">
+                                    <View className="w-24 h-24 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(8,42,76,0.06)' }}>
+                                        <View className="w-16 h-16 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(8,42,76,0.08)' }}>
+                                            <Crosshair size={32} color={SiagaColors.secondary} weight="duotone" />
+                                        </View>
+                                    </View>
+                                    <View className="items-center">
+                                        <Text className="text-[17px] font-bold text-primary">Lokasi Tidak Tersedia</Text>
+                                        <Text className="text-[13px] text-secondary mt-2 text-center leading-5">
+                                            {location.error || 'Aktifkan GPS untuk melihat peta dan laporan di sekitar Anda.'}
+                                        </Text>
+                                    </View>
+                                    <View className="flex-row gap-3">
+                                        <TouchableOpacity
+                                            className="flex-row items-center gap-2 px-6 py-3.5 rounded-2xl"
+                                            style={{ backgroundColor: SiagaColors.primary, elevation: 4, shadowColor: SiagaColors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 }}
+                                            onPress={() => location.refresh()}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Crosshair size={18} color="#fff" weight="bold" />
+                                            <Text className="text-[14px] font-bold text-white">Aktifkan Lokasi</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    )}
                 </View>
 
                 {/* Overlay Header */}

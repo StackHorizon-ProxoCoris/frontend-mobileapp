@@ -126,6 +126,55 @@ export default function GovDashboardScreen() {
         });
     }, [reports]);
 
+    const emergencyReports = useMemo(
+        () => reports.filter(report => report.urgency >= 80),
+        [reports]
+    );
+
+    const emergencyFocusReport = useMemo(() => {
+        if (reports.length === 0) return null;
+
+        return [...reports].sort((left, right) => {
+            if (right.urgency !== left.urgency) return right.urgency - left.urgency;
+            return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+        })[0];
+    }, [reports]);
+
+    const emergencyTargetFilter = emergencyFocusReport?.urgency && emergencyFocusReport.urgency >= 80
+        ? 'Darurat'
+        : 'Semua';
+
+    const emergencyCountLabel = emergencyReports.length > 0
+        ? `${emergencyReports.length} laporan`
+        : emergencyFocusReport
+            ? '1 laporan prioritas'
+            : 'Pantau peta';
+
+    const emergencyAreaLabel = emergencyFocusReport
+        ? [emergencyFocusReport.district, emergencyFocusReport.city].filter(Boolean).join(', ') || 'Lokasi laporan belum lengkap'
+        : 'Belum ada titik darurat yang aktif saat ini.';
+
+    const emergencyDescription = emergencyFocusReport?.description?.trim()
+        ? emergencyFocusReport.description.trim()
+        : emergencyFocusReport
+            ? 'Buka peta untuk melihat titik laporan prioritas yang perlu ditindak.'
+            : 'Buka peta untuk memantau seluruh titik laporan terbaru.';
+
+    const handleEmergencyPress = useCallback(() => {
+        if (!emergencyFocusReport?.id) {
+            router.push({ pathname: '/(gov-tabs)/peta', params: { filter: 'Darurat' } });
+            return;
+        }
+
+        router.push({
+            pathname: '/(gov-tabs)/peta',
+            params: {
+                filter: emergencyTargetFilter,
+                reportId: emergencyFocusReport.id,
+            },
+        });
+    }, [emergencyFocusReport?.id, emergencyTargetFilter, router]);
+
     const openReportDetail = useCallback((reportId?: string) => {
         if (!reportId) {
             showToast({
@@ -151,7 +200,7 @@ export default function GovDashboardScreen() {
                     {/* Top row */}
                     <View className="flex-row items-center justify-between mb-5">
                         <View className="flex-row items-center gap-2.5">
-                            <Image source={require('@/assets/images/logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
+                            <Image source={require('@/assets/images/siaga-logo.png')} style={{ width: 40, height: 40 }} resizeMode="contain" />
                             <View>
                                 <Text className="text-base font-extrabold text-white tracking-tight">SIAGA</Text>
                                 <Text className="text-xs font-semibold text-white/45 uppercase tracking-[2px]">Gov Dashboard</Text>
@@ -209,7 +258,7 @@ export default function GovDashboardScreen() {
                         className="rounded-3xl p-4"
                         style={{ backgroundColor: SiagaColors.danger, borderWidth: 1, borderColor: SiagaColors.danger, elevation: 2, shadowColor: SiagaColors.danger, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 6 }}
                         activeOpacity={0.85}
-                        onPress={() => router.push('/(gov-tabs)/peta?filter=Darurat')}
+                        onPress={handleEmergencyPress}
                     >
                         <View className="flex-row items-start gap-3">
                             <View className="w-11 h-11 rounded-2xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}>
@@ -219,11 +268,15 @@ export default function GovDashboardScreen() {
                                 <View className="flex-row items-center gap-2 mb-1">
                                     <Text className="text-xs font-bold uppercase tracking-wider text-white">Peringatan Darurat</Text>
                                     <View className="px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}>
-                                        <Text className="text-xs font-bold text-white">3 laporan</Text>
+                                        <Text className="text-xs font-bold text-white">{emergencyCountLabel}</Text>
                                     </View>
                                 </View>
-                                <Text className="text-[17px] font-bold text-white">Laporan Banjir Kritis</Text>
-                                <Text className="text-[13px] mt-1 leading-5 text-white/85">Kec. Dayeuhkolot, Coblong — ketinggian air naik 2 jam terakhir.</Text>
+                                <Text className="text-[17px] font-bold text-white">
+                                    {emergencyFocusReport?.title || 'Belum Ada Laporan Darurat'}
+                                </Text>
+                                <Text className="text-[13px] mt-1 leading-5 text-white/85">
+                                    {emergencyAreaLabel} {'\u2014'} {emergencyDescription}
+                                </Text>
                             </View>
                             <CaretRight size={18} color="rgba(255,255,255,0.9)" style={{ marginTop: 10 }} />
                         </View>

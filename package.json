@@ -4,11 +4,15 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev": "expo start --dev-client",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
+    "android:dev": "expo start --dev-client --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:android:dev": "eas build --platform android --profile development",
+    "build:android:final": "eas build --platform android --profile final"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

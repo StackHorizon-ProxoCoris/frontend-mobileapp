@@ -47,6 +47,8 @@ const BASE_URL = getBaseUrl();
 export const TOKEN_KEY = 'siaga_auth_token';
 export const REFRESH_TOKEN_KEY = 'siaga_refresh_token';
 
+let refreshSessionPromise: Promise<boolean> | null = null;
+
 // ============================================================
 // Tipe Response dari Backend
 // ============================================================
@@ -80,6 +82,134 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+async function getRefreshToken(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function clearStoredTokens(): Promise<void> {
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+}
+
+export async function hasStoredSession(): Promise<boolean> {
+  const [accessToken, refreshToken] = await Promise.all([
+    getAuthToken(),
+    getRefreshToken(),
+  ]);
+  return Boolean(accessToken || refreshToken);
+}
+
+function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return { ...(headers as Record<string, string>) };
+}
+
+// ─── Global Error / Session Callbacks ────────────────────────────────────────
+
+type NetworkErrorCallback = (message: string, errorDetail?: string) => void;
+let _onNetworkError: NetworkErrorCallback | null = null;
+
+type ForbiddenErrorCallback = (message: string) => void;
+let _onForbiddenError: ForbiddenErrorCallback | null = null;
+
+type SessionInvalidatedCallback = (reason?: string) => void;
+let _onSessionInvalidated: SessionInvalidatedCallback | null = null;
+
+export function registerNetworkErrorCallback(cb: NetworkErrorCallback) {
+  _onNetworkError = cb;
+}
+
+export function unregisterNetworkErrorCallback() {
+  _onNetworkError = null;
+}
+
+export function registerForbiddenCallback(cb: ForbiddenErrorCallback) {
+  _onForbiddenError = cb;
+}
+
+export function unregisterForbiddenCallback() {
+  _onForbiddenError = null;
+}
+
+export function registerSessionInvalidatedCallback(cb: SessionInvalidatedCallback) {
+  _onSessionInvalidated = cb;
+}
+
+export function unregisterSessionInvalidatedCallback() {
+  _onSessionInvalidated = null;
+}
+
+async function clearSessionState(reason?: string): Promise<void> {
+  await clearStoredTokens();
+  _onSessionInvalidated?.(reason);
+}
+
+async function refreshAuthSession(): Promise<boolean> {
+  if (refreshSessionPromise) {
+    return refreshSessionPromise;
+  }
+
+  refreshSessionPromise = (async () => {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) {
+      await clearSessionState('missing_refresh_token');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      let data: ApiResponse<{ accessToken: string; refreshToken?: string }>;
+      try {
+        data = await response.json();
+      } catch {
+        data = {
+          success: false,
+          message: 'Gagal memperbarui sesi login.',
+        };
+      }
+
+      if (response.ok && data.success && data.data?.accessToken) {
+        await SecureStore.setItemAsync(TOKEN_KEY, data.data.accessToken);
+        if (data.data.refreshToken) {
+          await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.data.refreshToken);
+        }
+        return true;
+      }
+
+      if (response.status === 400 || response.status === 401) {
+        await clearSessionState('refresh_rejected');
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  })();
+
+  try {
+    return await refreshSessionPromise;
+  } finally {
+    refreshSessionPromise = null;
+  }
+}
+
 /**
  * Bangun headers dengan otorisasi
  */
@@ -103,38 +233,13 @@ async function buildHeaders(
   return headers;
 }
 
-// ─── Global Network Error Callback ────────────────────────────────────────────
-// Digunakan oleh ToastProvider untuk menampilkan toast saat network error.
-// Ini diperlukan karena api.ts bukan React component, tidak bisa pakai useToast.
-// ──────────────────────────────────────────────────────────────────────────────
-
-type NetworkErrorCallback = (message: string, errorDetail?: string) => void;
-let _onNetworkError: NetworkErrorCallback | null = null;
-type ForbiddenErrorCallback = (message: string) => void;
-let _onForbiddenError: ForbiddenErrorCallback | null = null;
-
-export function registerNetworkErrorCallback(cb: NetworkErrorCallback) {
-  _onNetworkError = cb;
-}
-
-export function unregisterNetworkErrorCallback() {
-  _onNetworkError = null;
-}
-
-export function registerForbiddenCallback(cb: ForbiddenErrorCallback) {
-  _onForbiddenError = cb;
-}
-
-export function unregisterForbiddenCallback() {
-  _onForbiddenError = null;
-}
-
 /**
  * Request handler utama — menangani response & error secara konsisten
  */
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
+  config: { includeAuth?: boolean; retryOnUnauthorized?: boolean } = {},
 ): Promise<ApiResponse<T>> {
   const url = `${BASE_URL}${endpoint}`;
 
@@ -156,10 +261,30 @@ async function request<T>(
 
     data.statusCode = response.status;
 
-    // Jika token expired, hapus dari storage
-    if (response.status === 401) {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    if (response.status === 401 && config.includeAuth && config.retryOnUnauthorized !== false) {
+      const refreshed = await refreshAuthSession();
+      if (refreshed) {
+        const retryHeaders = normalizeHeaders(options.headers);
+        const latestToken = await getAuthToken();
+
+        if (latestToken) {
+          retryHeaders['Authorization'] = `Bearer ${latestToken}`;
+        } else {
+          delete retryHeaders['Authorization'];
+        }
+
+        return request<T>(
+          endpoint,
+          {
+            ...options,
+            headers: retryHeaders,
+          },
+          {
+            ...config,
+            retryOnUnauthorized: false,
+          }
+        );
+      }
     }
 
     if (response.status === 403 && _onForbiddenError) {
@@ -192,7 +317,7 @@ async function request<T>(
 /** GET request */
 export async function apiGet<T>(endpoint: string, includeAuth = true): Promise<ApiResponse<T>> {
   const headers = await buildHeaders(includeAuth);
-  return request<T>(endpoint, { method: 'GET', headers });
+  return request<T>(endpoint, { method: 'GET', headers }, { includeAuth });
 }
 
 /** POST request dengan JSON body */
@@ -202,7 +327,7 @@ export async function apiPost<T>(endpoint: string, body?: any, includeAuth = tru
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
-  });
+  }, { includeAuth });
 }
 
 /** PATCH request dengan JSON body */
@@ -212,13 +337,17 @@ export async function apiPatch<T>(endpoint: string, body: any, includeAuth = tru
     method: 'PATCH',
     headers,
     body: JSON.stringify(body),
-  });
+  }, { includeAuth });
 }
 
 /** DELETE request */
-export async function apiDelete<T>(endpoint: string, includeAuth = true): Promise<ApiResponse<T>> {
+export async function apiDelete<T>(endpoint: string, body?: any, includeAuth = true): Promise<ApiResponse<T>> {
   const headers = await buildHeaders(includeAuth);
-  return request<T>(endpoint, { method: 'DELETE', headers });
+  return request<T>(endpoint, {
+    method: 'DELETE',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  }, { includeAuth });
 }
 
 /** POST request dengan FormData (untuk file upload) */
@@ -229,5 +358,5 @@ export async function apiUpload<T>(endpoint: string, formData: FormData): Promis
     method: 'POST',
     headers,
     body: formData,
-  });
+  }, { includeAuth: true });
 }
