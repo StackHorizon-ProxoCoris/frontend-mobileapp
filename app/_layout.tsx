@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
 import { AuthProvider, useAuth } from "../context/auth";
+import { OnboardingProvider, useOnboarding } from "../context/onboarding";
 import { ToastProvider, useToast } from "@/contexts/toast.context";
 import { registerForbiddenCallback, unregisterForbiddenCallback } from "@/services/api";
 import ToastContainer from "@/components/ui/Toast";
@@ -16,6 +17,7 @@ import "../global.css";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, role } = useAuth();
+  const { hasSeenOnboarding, isOnboardingLoading } = useOnboarding();
   const { showToast } = useToast();
   const segments = useSegments();
   const [isNavigating, setIsNavigating] = useState(true);
@@ -83,24 +85,41 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [router, showToast]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || isOnboardingLoading) return;
 
     const segment0 = String(segments[0] ?? "");
+    const segment1 = String(segments[1] ?? "");
     const inAuthGroup = segment0 === "(auth)";
     const inGovGroup = segment0 === "(gov-tabs)";
     const inAdminGroup = segment0 === "(admin-tabs)";
     const inUserGroup = segment0 === "(tabs)";
+    const onOnboardingScreen = inAuthGroup && segment1 === "onboarding";
     const isGovRole = role === "pemerintah" || role === "admin";
     const isAdminRole = role === "admin";
 
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/(auth)/login");
-      setTimeout(() => setIsNavigating(false), 50);
-      return;
-    }
-
     if (!isAuthenticated) {
-      setIsNavigating(false);
+      if (!hasSeenOnboarding) {
+        if (!onOnboardingScreen) {
+          router.replace("/(auth)/onboarding" as any);
+          setTimeout(() => setIsNavigating(false), 50);
+          return;
+        }
+        setIsNavigating(false);
+        return;
+      }
+
+      if (!inAuthGroup) {
+        router.replace("/(auth)/login");
+        setTimeout(() => setIsNavigating(false), 50);
+        return;
+      }
+
+      if (onOnboardingScreen) {
+        router.replace("/(auth)/login");
+      } else {
+        setIsNavigating(false);
+      }
+      setTimeout(() => setIsNavigating(false), 50);
       return;
     }
 
@@ -156,10 +175,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     setIsNavigating(false);
     isInitialMountRef.current = false;
-  }, [isAuthenticated, isLoading, role, router, segments, showToast]);
+  }, [isAuthenticated, isLoading, isOnboardingLoading, hasSeenOnboarding, role, router, segments, showToast]);
 
-  // Tampilkan loading saat cek token atau navigasi sedang berlangsung
-  if (isLoading || isNavigating) {
+  // Tampilkan loading saat cek token, onboarding, atau navigasi sedang berlangsung
+  if (isLoading || isOnboardingLoading || isNavigating) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f8fafd" }}>
         <ActivityIndicator size="large" color="#082a4c" />
@@ -179,6 +198,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ToastProvider>
       <AuthProvider>
+        <OnboardingProvider>
         <AuthGuard>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" />
@@ -349,6 +369,7 @@ export default function RootLayout() {
           <StatusBar style="dark" />
           <ToastContainer />
         </AuthGuard>
+        </OnboardingProvider>
       </AuthProvider>
     </ToastProvider>
     </GestureHandlerRootView>

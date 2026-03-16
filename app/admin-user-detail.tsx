@@ -357,7 +357,7 @@ function StatMini({ icon: Icon, label, value, color, trend }: {
 export default function AdminUserDetailScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const params = useLocalSearchParams<AdminUserDetailRouteParams>();
+    const params = useLocalSearchParams() as AdminUserDetailRouteParams;
     const { showToast } = useToast();
 
     const paramId = getParamValue(params.id);

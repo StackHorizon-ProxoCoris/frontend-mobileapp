@@ -73,7 +73,9 @@ export default function ModerationDetailScreen() {
     async function handleStatusChange(status: BackendReportStatus) {
         if (!report || report.status === status) return;
         setUpdatingStatus(status);
-        const result = await updateReportStatus(report.id, status, user?.fullName || 'Admin SIAGA');
+        const result = await updateReportStatus(report.id, status, {
+            respondedBy: user?.fullName || 'Admin SIAGA',
+        });
         setUpdatingStatus(null);
 
         if (!result.success) {
