@@ -81,6 +81,12 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
 }
 
+interface FetchUserProfileResult {
+  success: boolean;
+  message: string;
+  user?: AuthUser;
+}
+
 // ============================================================
 // Context & Provider
 // ============================================================
@@ -211,7 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ----------------------------------------------------------
   // Ambil profil user dari backend
   // ----------------------------------------------------------
-  const fetchUserProfile = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+  const fetchUserProfile = useCallback(async (): Promise<FetchUserProfileResult> => {
     const response = await apiGet<any>('/auth/me');
 
     if (response.success && response.data) {
@@ -253,7 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       syncPushToken();
 
-      return { success: true, message: response.message };
+      return { success: true, message: response.message, user: hydratedUser };
     }
 
     if (response.statusCode === 401) {
@@ -353,6 +359,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!profile.success) {
         await clearAuthState();
         return { success: false, message: profile.message };
+      }
+
+      if (profile.user?.id && profile.user.id !== registeredUserId) {
+        await markTutorialEligibleForNewUser(profile.user.id);
       }
 
       return { success: true, message: response.message };

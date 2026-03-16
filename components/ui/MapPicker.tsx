@@ -106,9 +106,11 @@ export default function MapPicker({ visible, initialLat, initialLng, onConfirm, 
                 attributionControl: true
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
+            // Hindari tile server OSM publik langsung di WebView/mobile app.
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
                 maxZoom: 19,
+                subdomains: 'abcd',
             }).addTo(map);
 
             // Send center coordinates to React Native when map moves

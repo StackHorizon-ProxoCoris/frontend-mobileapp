@@ -91,9 +91,11 @@ function buildMapHtml(markers: MapMarker[], hotspots: { lat: number; lng: number
             zoomControl: true,
             attributionControl: true,
         });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '\u00a9 OpenStreetMap',
+        // Hindari tile server OSM publik langsung di WebView/mobile app.
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
             maxZoom: 19,
+            subdomains: 'abcd',
         }).addTo(map);
 
         // Persistent layer groups for markers and hotspots

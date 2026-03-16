@@ -88,7 +88,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
 
     setIsHomeTutorialLoading(true);
-    (async () => {
+    let isCancelled = false;
+
+    const syncTutorialState = async () => {
       try {
         const tutorialKey = `${TUTORIAL_KEY_PREFIX}${user.id}`;
         const eligibleKey = `${TUTORIAL_ELIGIBLE_KEY_PREFIX}${user.id}`;
@@ -100,15 +102,31 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         const hasSeenTutorial = tutorialValue === 'true';
         const isEligibleUser = eligibleValue === 'true';
 
+        if (isCancelled) return;
         setHasSeenHomeTutorial(hasSeenTutorial);
         setShouldShowHomeTutorial(isEligibleUser && !hasSeenTutorial);
       } catch {
+        if (isCancelled) return;
         setHasSeenHomeTutorial(false);
         setShouldShowHomeTutorial(false);
       } finally {
+        if (isCancelled) return;
         setIsHomeTutorialLoading(false);
       }
-    })();
+    };
+
+    void syncTutorialState();
+
+    // Register -> hydrate profile -> mount home bisa saling berkejaran.
+    // Re-check singkat ini menangkap eligibility key yang baru selesai ditulis.
+    const retryTimer = setTimeout(() => {
+      void syncTutorialState();
+    }, 300);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(retryTimer);
+    };
   }, [user?.id]);
 
   // ----------------------------------------------------------

@@ -95,9 +95,12 @@ export default function EmbeddedMap({
                 attributionControl: true
             });
             
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
+            // Gunakan CARTO raster tiles, bukan tile server OSM publik langsung.
+            // Ini menghindari blokir referer pada WebView/mobile app.
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
                 maxZoom: 19,
+                subdomains: 'abcd',
             }).addTo(map);
 
             function openDetail(id) {
