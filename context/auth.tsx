@@ -19,6 +19,8 @@ import {
 } from '../services/api';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
+const HOME_TUTORIAL_ELIGIBLE_KEY_PREFIX = 'siaga_tutorial_eligible:';
+
 // ============================================================
 // Tipe Data
 // ============================================================
@@ -172,6 +174,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Non-blocking: jangan ganggu flow auth
     }
   }, [registerForPushNotifications]);
+
+  const markTutorialEligibleForNewUser = useCallback(async (userId: string) => {
+    try {
+      await SecureStore.setItemAsync(`${HOME_TUTORIAL_ELIGIBLE_KEY_PREFIX}${userId}`, 'true');
+    } catch {
+      // Non-blocking
+    }
+  }, []);
 
   const clearAuthState = useCallback(async () => {
     await clearStoredTokens();
@@ -329,10 +339,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (response.success && response.data) {
       const { accessToken, refreshToken } = response.data;
+      const registeredUserId = response.data.user?.id || response.data.user?.authId || response.data.user?.auth_id;
 
       await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
       if (refreshToken) {
         await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+      }
+      if (registeredUserId) {
+        await markTutorialEligibleForNewUser(registeredUserId);
       }
 
       const profile = await fetchUserProfile();

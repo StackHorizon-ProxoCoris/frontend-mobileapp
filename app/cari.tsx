@@ -311,7 +311,7 @@ export default function CariScreen() {
       </View>
       <Text style={{ fontSize: 16, fontWeight: '700', color: SiagaColors.primary, marginBottom: 4 }}>Tidak ditemukan</Text>
       <Text style={{ fontSize: 13, color: SiagaColors.secondary, textAlign: 'center', lineHeight: 18 }}>
-        Tidak ada hasil untuk "{query}".{'\n'}Coba kata kunci lain.
+        Tidak ada hasil untuk {'"'}{query}{'"'}.{'\n'}Coba kata kunci lain.
       </Text>
     </View>
   );
@@ -397,7 +397,7 @@ export default function CariScreen() {
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
               <Text style={{ fontSize: 13, color: SiagaColors.secondary, marginBottom: 12 }}>
-                {results.length} hasil ditemukan untuk "{query}"
+                {results.length} hasil ditemukan untuk {'"'}{query}{'"'}
               </Text>
             }
           />

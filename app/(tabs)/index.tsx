@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { ScrollView, FlatList, View, Text, TouchableOpacity, RefreshControl, Modal, Image, useWindowDimensions } from 'react-native';
+import { ScrollView, FlatList, View, Text, TouchableOpacity, RefreshControl, Modal, Image, useWindowDimensions, InteractionManager } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,7 +18,7 @@ import { useAuth } from '@/context/auth';
 import { useOnboarding } from '@/context/onboarding';
 import { useToast } from '@/contexts/toast.context';
 import HomeTutorial, { type TutorialTarget } from '@/components/ui/HomeTutorial';
-import { getReports, toggleReportVote, type ReportData, type Report } from '@/services/report.service';
+import { getReports, type ReportData, type Report } from '@/services/report.service';
 import { getActions, type ActionData } from '@/services/action.service';
 import { getAreaStatus, type AreaStatusData } from '@/services/area-status.service';
 import { getInfoList, type InfoFeedData } from '@/services/info.service';
@@ -73,13 +73,14 @@ export default function HomeScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const { user, refreshUser } = useAuth();
-  const { hasSeenHomeTutorial, isHomeTutorialLoading, completeHomeTutorial } = useOnboarding();
+  const { shouldShowHomeTutorial, isHomeTutorialLoading, markHomeTutorialSeen, completeHomeTutorial } = useOnboarding();
   const { showToast } = useToast();
   const greeting = useMemo(() => getGreeting(), []);
 
   // --- Tutorial refs & state ---
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialTargets, setTutorialTargets] = useState<(TutorialTarget | null)[]>([null, null, null, null]);
+  const tutorialSessionStartedRef = useRef(false);
   const buatLaporanRef = useRef<View>(null);
   const pantauAreaRef = useRef<View>(null);
   const sosRef = useRef<View>(null);
@@ -109,28 +110,52 @@ export default function HomeScreen() {
     });
   }, []);
 
-  // Trigger tutorial setelah data loaded & layout siap
-  useEffect(() => {
-    if (!isHomeTutorialLoading && !hasSeenHomeTutorial && user?.id) {
-      // Delay sedikit agar layout sudah stabil
-      const timer = setTimeout(() => {
+  const prepareTutorialTargets = useCallback(() => {
+    InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
         measureTargets();
-        setShowTutorial(true);
-      }, 800);
-      return () => clearTimeout(timer);
+      });
+    });
+  }, [measureTargets]);
+
+  const handleTutorialLayoutChange = useCallback(() => {
+    if (!showTutorial && !shouldShowHomeTutorial) return;
+    prepareTutorialTargets();
+  }, [prepareTutorialTargets, shouldShowHomeTutorial, showTutorial]);
+
+  // Trigger tutorial hanya sekali untuk akun yang eligible.
+  useEffect(() => {
+    if (isHomeTutorialLoading || !shouldShowHomeTutorial || !user?.id || tutorialSessionStartedRef.current) {
+      return;
     }
-  }, [isHomeTutorialLoading, hasSeenHomeTutorial, user?.id, measureTargets]);
+
+    tutorialSessionStartedRef.current = true;
+    setShowTutorial(true);
+    void markHomeTutorialSeen();
+
+    const timer = setTimeout(() => {
+      prepareTutorialTargets();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [isHomeTutorialLoading, markHomeTutorialSeen, prepareTutorialTargets, shouldShowHomeTutorial, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      tutorialSessionStartedRef.current = false;
+    }
+  }, [user?.id]);
 
   // Re-measure spotlight target saat ukuran layar berubah ketika tutorial aktif.
   useEffect(() => {
     if (!showTutorial) return;
 
     const timer = setTimeout(() => {
-      measureTargets();
+      prepareTutorialTargets();
     }, 120);
 
     return () => clearTimeout(timer);
-  }, [showTutorial, measureTargets, windowWidth, windowHeight]);
+  }, [prepareTutorialTargets, showTutorial, windowWidth, windowHeight]);
 
   const handleTutorialComplete = useCallback(async () => {
     setShowTutorial(false);
@@ -221,32 +246,6 @@ export default function HomeScreen() {
     showToast({ type: 'success', title: 'Data diperbarui', message: 'Data terbaru berhasil dimuat.', duration: 2000 });
   }, [loadData, showToast, refreshUser]);
 
-  const handleSupport = async (reportId: string) => {
-    const result = await toggleReportVote(reportId);
-    if (result.success) {
-      const serverVoted = result.data?.voted;
-      const serverCount = result.data?.votesCount;
-      const newUrgency = result.data?.urgency;
-      setReports(prev =>
-        prev.map(r => {
-          if (r.id !== reportId) return r;
-          const urg = newUrgency ?? r.urgency;
-          const urgColor = urg >= 80 ? SiagaColors.danger : urg >= 40 ? SiagaColors.warning : SiagaColors.success;
-          return {
-            ...r,
-            supported: serverVoted ?? !r.supported,
-            votes: serverCount ?? (r.supported ? r.votes - 1 : r.votes + 1),
-            urgency: urg,
-            urgencyColor: urgColor,
-            badge: urg >= 80 ? 'Kritis' : urg >= 40 ? 'Sedang' : 'Rendah',
-            badgeBg: urg >= 80 ? SiagaColors.dangerSoft : urg >= 40 ? SiagaColors.warningSoft : SiagaColors.successSoft,
-            badgeColor: urgColor,
-          };
-        })
-      );
-    }
-  };
-
   return (
     <View className="flex-1" style={{ backgroundColor: SiagaColors.background, paddingTop: insets.top }}>
       {/* Warning Banner */}
@@ -290,7 +289,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <View className="flex-row items-center gap-2">
-            <View ref={notifikasiRef} collapsable={false}>
+            <View ref={notifikasiRef} collapsable={false} onLayout={handleTutorialLayoutChange}>
             <TouchableOpacity
               className="relative h-11 w-11 rounded-full bg-white border items-center justify-center"
               style={{ elevation: 1, borderColor: SiagaColors.border }}
@@ -329,6 +328,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ gap: 16, paddingBottom: 112 }}
         scrollEnabled={!showTutorial}
+        onContentSizeChange={handleTutorialLayoutChange}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={SiagaColors.primary} colors={[SiagaColors.primary]} />}
         data={reports.slice(0, 2)}
         keyExtractor={(item) => item.id}
@@ -337,6 +337,52 @@ export default function HomeScreen() {
         windowSize={3}
         ListHeaderComponent={
           <>
+            <View className="rounded-3xl border border-slate-200 bg-white p-4" style={{ elevation: 1 }} onLayout={handleTutorialLayoutChange}>
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-secondary">Aksi Utama</Text>
+                  <Text className="mt-1 text-lg font-bold text-primary">Laporkan atau pantau kondisi sekitar</Text>
+                </View>
+                {areaStatus?.level && (
+                  <View className="rounded-full px-3 py-2" style={{ backgroundColor: areaStatus.levelBg || SiagaColors.successSoft, borderWidth: 1, borderColor: (areaStatus.levelColor || SiagaColors.success) + '33' }}>
+                    <Text className="text-xs font-bold uppercase" style={{ color: areaStatus.levelColor || SiagaColors.success }}>{areaStatus.level}</Text>
+                  </View>
+                )}
+              </View>
+
+              <View className="mt-4 flex-row gap-3">
+                <View ref={buatLaporanRef} collapsable={false} style={{ flex: 1 }} onLayout={handleTutorialLayoutChange}>
+                <TouchableOpacity
+                  className="flex-1 min-h-[56px] flex-row items-center justify-center gap-2 rounded-2xl px-4 py-3"
+                  style={{ backgroundColor: SiagaColors.primary }}
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(tabs)/lapor')}
+                >
+                  <Megaphone size={20} color="#fff" weight="duotone" />
+                  <Text className="text-sm font-bold text-white">Buat Laporan</Text>
+                </TouchableOpacity>
+                </View>
+                <View ref={pantauAreaRef} collapsable={false} style={{ flex: 1 }} onLayout={handleTutorialLayoutChange}>
+                <TouchableOpacity
+                  className="flex-1 min-h-[56px] flex-row items-center justify-center gap-2 rounded-2xl border px-4 py-3"
+                  style={{ backgroundColor: '#f8fbff', borderColor: '#dbeafe' }}
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(tabs)/pantau')}
+                >
+                  <MapTrifold size={20} color={SiagaColors.info} weight="duotone" />
+                  <Text className="text-sm font-bold text-info">Pantau Area</Text>
+                </TouchableOpacity>
+                </View>
+              </View>
+
+              <View className="mt-4 flex-row items-center gap-2 rounded-2xl bg-white px-4 py-4" style={{ borderWidth: 1, borderColor: SiagaColors.dangerSoft }}>
+                <Siren size={18} color={SiagaColors.danger} weight="duotone" />
+                <Text className="flex-1 text-xs leading-5" style={{ color: '#9f1239' }}>
+                  Kondisi darurat? Gunakan tombol SOS merah di kanan bawah untuk akses tercepat.
+                </Text>
+              </View>
+            </View>
+
             {showGempa && gempaData && (
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -348,6 +394,7 @@ export default function HomeScreen() {
                   borderWidth: 1,
                   borderColor: gempaColors.border,
                 }}
+                onLayout={handleTutorialLayoutChange}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
@@ -433,52 +480,6 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 12, color: gempaColors.muted, textAlign: 'center', marginTop: 14 }}>Ketuk kartu ini untuk membuka detail dan panduan keselamatan</Text>
               </TouchableOpacity>
             )}
-
-            <View className="rounded-3xl border border-slate-200 bg-white p-4" style={{ elevation: 1 }}>
-              <View className="flex-row items-center justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-secondary">Aksi Utama</Text>
-                  <Text className="mt-1 text-lg font-bold text-primary">Laporkan atau pantau kondisi sekitar</Text>
-                </View>
-                {areaStatus?.level && (
-                  <View className="rounded-full px-3 py-2" style={{ backgroundColor: areaStatus.levelBg || SiagaColors.successSoft, borderWidth: 1, borderColor: (areaStatus.levelColor || SiagaColors.success) + '33' }}>
-                    <Text className="text-xs font-bold uppercase" style={{ color: areaStatus.levelColor || SiagaColors.success }}>{areaStatus.level}</Text>
-                  </View>
-                )}
-              </View>
-
-              <View className="mt-4 flex-row gap-3">
-                <View ref={buatLaporanRef} collapsable={false} style={{ flex: 1 }}>
-                <TouchableOpacity
-                  className="flex-1 min-h-[56px] flex-row items-center justify-center gap-2 rounded-2xl px-4 py-3"
-                  style={{ backgroundColor: SiagaColors.primary }}
-                  activeOpacity={0.8}
-                  onPress={() => router.push('/(tabs)/lapor')}
-                >
-                  <Megaphone size={20} color="#fff" weight="duotone" />
-                  <Text className="text-sm font-bold text-white">Buat Laporan</Text>
-                </TouchableOpacity>
-                </View>
-                <View ref={pantauAreaRef} collapsable={false} style={{ flex: 1 }}>
-                <TouchableOpacity
-                  className="flex-1 min-h-[56px] flex-row items-center justify-center gap-2 rounded-2xl border px-4 py-3"
-                  style={{ backgroundColor: '#f8fbff', borderColor: '#dbeafe' }}
-                  activeOpacity={0.8}
-                  onPress={() => router.push('/(tabs)/pantau')}
-                >
-                  <MapTrifold size={20} color={SiagaColors.info} weight="duotone" />
-                  <Text className="text-sm font-bold text-info">Pantau Area</Text>
-                </TouchableOpacity>
-                </View>
-              </View>
-
-              <View className="mt-4 flex-row items-center gap-2 rounded-2xl bg-white px-4 py-4" style={{ borderWidth: 1, borderColor: SiagaColors.dangerSoft }}>
-                <Siren size={18} color={SiagaColors.danger} weight="duotone" />
-                <Text className="flex-1 text-xs leading-5" style={{ color: '#9f1239' }}>
-                  Kondisi darurat? Gunakan tombol SOS merah di kanan bawah untuk akses tercepat.
-                </Text>
-              </View>
-            </View>
 
             <View className="flex-row items-end justify-between gap-3">
               <View className="flex-1">
@@ -569,6 +570,7 @@ export default function HomeScreen() {
         ref={sosRef}
         collapsable={false}
         pointerEvents="none"
+        onLayout={handleTutorialLayoutChange}
         style={{ position: 'absolute', right: 20, bottom: 88, width: 60, height: 60, zIndex: -1 }}
       />
       <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />

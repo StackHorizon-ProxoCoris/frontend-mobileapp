@@ -14,6 +14,7 @@ import { useAuth } from './auth';
 
 const ONBOARDING_KEY = 'siaga_onboarding_done';
 const TUTORIAL_KEY_PREFIX = 'siaga_tutorial_done:';
+const TUTORIAL_ELIGIBLE_KEY_PREFIX = 'siaga_tutorial_eligible:';
 
 // ============================================================
 // Types
@@ -29,8 +30,12 @@ interface OnboardingContextType {
 
   /** Apakah user aktif sudah melewati tutorial home */
   hasSeenHomeTutorial: boolean;
+  /** Apakah user aktif memenuhi syarat menampilkan tutorial sekali saja */
+  shouldShowHomeTutorial: boolean;
   /** Loading state saat baca tutorial flag dari storage */
   isHomeTutorialLoading: boolean;
+  /** Tandai tutorial home sudah pernah ditampilkan untuk user aktif */
+  markHomeTutorialSeen: () => Promise<void>;
   /** Tandai tutorial home selesai untuk user aktif */
   completeHomeTutorial: () => Promise<void>;
 }
@@ -50,6 +55,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   // --- Home Tutorial (per user) ---
   const [hasSeenHomeTutorial, setHasSeenHomeTutorial] = useState(true); // default true agar tidak flash
+  const [shouldShowHomeTutorial, setShouldShowHomeTutorial] = useState(false);
   const [isHomeTutorialLoading, setIsHomeTutorialLoading] = useState(true);
 
   // ----------------------------------------------------------
@@ -76,6 +82,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     if (!user?.id) {
       // Belum login — reset ke default (true = jangan tampilkan)
       setHasSeenHomeTutorial(true);
+      setShouldShowHomeTutorial(false);
       setIsHomeTutorialLoading(false);
       return;
     }
@@ -83,11 +90,21 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setIsHomeTutorialLoading(true);
     (async () => {
       try {
-        const key = `${TUTORIAL_KEY_PREFIX}${user.id}`;
-        const value = await SecureStore.getItemAsync(key);
-        setHasSeenHomeTutorial(value === 'true');
+        const tutorialKey = `${TUTORIAL_KEY_PREFIX}${user.id}`;
+        const eligibleKey = `${TUTORIAL_ELIGIBLE_KEY_PREFIX}${user.id}`;
+        const [tutorialValue, eligibleValue] = await Promise.all([
+          SecureStore.getItemAsync(tutorialKey),
+          SecureStore.getItemAsync(eligibleKey),
+        ]);
+
+        const hasSeenTutorial = tutorialValue === 'true';
+        const isEligibleUser = eligibleValue === 'true';
+
+        setHasSeenHomeTutorial(hasSeenTutorial);
+        setShouldShowHomeTutorial(isEligibleUser && !hasSeenTutorial);
       } catch {
         setHasSeenHomeTutorial(false);
+        setShouldShowHomeTutorial(false);
       } finally {
         setIsHomeTutorialLoading(false);
       }
@@ -106,18 +123,39 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setHasSeenOnboarding(true);
   }, []);
 
+  const markHomeTutorialSeen = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const tutorialKey = `${TUTORIAL_KEY_PREFIX}${user.id}`;
+      const eligibleKey = `${TUTORIAL_ELIGIBLE_KEY_PREFIX}${user.id}`;
+      await Promise.all([
+        SecureStore.setItemAsync(tutorialKey, 'true'),
+        SecureStore.deleteItemAsync(eligibleKey),
+      ]);
+    } catch {
+      // Non-blocking
+    }
+    setHasSeenHomeTutorial(true);
+    setShouldShowHomeTutorial(false);
+  }, [user?.id]);
+
   // ----------------------------------------------------------
   // Tandai tutorial home selesai untuk user aktif
   // ----------------------------------------------------------
   const completeHomeTutorial = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const key = `${TUTORIAL_KEY_PREFIX}${user.id}`;
-      await SecureStore.setItemAsync(key, 'true');
+      const tutorialKey = `${TUTORIAL_KEY_PREFIX}${user.id}`;
+      const eligibleKey = `${TUTORIAL_ELIGIBLE_KEY_PREFIX}${user.id}`;
+      await Promise.all([
+        SecureStore.setItemAsync(tutorialKey, 'true'),
+        SecureStore.deleteItemAsync(eligibleKey),
+      ]);
     } catch {
       // Non-blocking
     }
     setHasSeenHomeTutorial(true);
+    setShouldShowHomeTutorial(false);
   }, [user?.id]);
 
   // ----------------------------------------------------------
@@ -128,7 +166,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     isOnboardingLoading,
     completeOnboarding,
     hasSeenHomeTutorial,
+    shouldShowHomeTutorial,
     isHomeTutorialLoading,
+    markHomeTutorialSeen,
     completeHomeTutorial,
   };
 
